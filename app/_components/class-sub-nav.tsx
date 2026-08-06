@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
+import GroupedNav, { type NavItem } from "./grouped-nav";
 
 export default function ClassSubNav() {
   const pathname = usePathname();
@@ -10,38 +10,71 @@ export default function ClassSubNav() {
 
   if (!classId) return null;
 
-  const tools = [
-    { label: "Students", href: `/dashboard/classes/${classId}` },
-    { label: "Print QR", href: `/qr/${classId}` },
-    { label: "Scan", href: `/scan/${classId}` },
-    { label: "Self Check-in", href: `/checkin/${classId}` },
-    { label: "Attendance", href: `/attendance/${classId}` },
-    { label: "Records", href: `/records/${classId}` },
-    { label: "Participation", href: `/participation/${classId}` },
-    { label: "Announcements", href: `/announcements/${classId}` },
-    { label: "Materials", href: `/materials/${classId}` },
-    { label: "Assignments", href: `/assignments/${classId}` },
-    { label: "Grading", href: `/gradebook/${classId}` },
+  const studentsHref = `/dashboard/classes/${classId}`;
+
+  const items: NavItem[] = [
+    { kind: "tool", label: "Students", href: studentsHref, active: pathname === studentsHref },
+    {
+      kind: "group",
+      label: "Attendance",
+      tools: [
+        { label: "Print QR", href: `/qr/${classId}`, active: pathname === `/qr/${classId}` },
+        { label: "Scan", href: `/scan/${classId}`, active: pathname === `/scan/${classId}` },
+        {
+          label: "Self Check-in",
+          href: `/checkin/${classId}`,
+          active: pathname === `/checkin/${classId}`,
+        },
+        {
+          label: "Attendance",
+          href: `/attendance/${classId}`,
+          active: pathname === `/attendance/${classId}`,
+        },
+        {
+          label: "Records",
+          href: `/records/${classId}`,
+          active: pathname === `/records/${classId}`,
+        },
+        {
+          label: "Participation",
+          href: `/participation/${classId}`,
+          active: pathname === `/participation/${classId}`,
+        },
+      ],
+    },
+    {
+      kind: "group",
+      label: "Classroom",
+      tools: [
+        {
+          label: "Announcements",
+          href: `/announcements/${classId}`,
+          active: pathname === `/announcements/${classId}`,
+        },
+        {
+          label: "Materials",
+          href: `/materials/${classId}`,
+          active: pathname === `/materials/${classId}`,
+        },
+      ],
+    },
+    {
+      kind: "group",
+      label: "Gradebook",
+      tools: [
+        {
+          label: "Assignments",
+          href: `/assignments/${classId}`,
+          active: pathname === `/assignments/${classId}`,
+        },
+        {
+          label: "Grading",
+          href: `/gradebook/${classId}`,
+          active: pathname === `/gradebook/${classId}`,
+        },
+      ],
+    },
   ];
 
-  return (
-    <div className="flex flex-wrap gap-1 border-b border-rule/60 pb-3">
-      {tools.map((tool) => {
-        const active = pathname === tool.href;
-        return (
-          <Link
-            key={tool.href}
-            href={tool.href}
-            className={`rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition ${
-              active
-                ? "bg-brass text-chalk font-semibold"
-                : "text-ink/70 hover:bg-ink/5"
-            }`}
-          >
-            {tool.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
+  return <GroupedNav items={items} />;
 }

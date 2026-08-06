@@ -5,6 +5,17 @@ import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
 import type { ClassRow } from "@/lib/types";
 import SignOutButton from "./sign-out-button";
+import SidebarIcon from "./sidebar-icons";
+
+function LogoBadge({ size = "h-9 w-9" }: { size?: string }) {
+  return (
+    <span
+      className={`flex ${size} shrink-0 items-center justify-center rounded-full bg-brass text-chalk`}
+    >
+      <SidebarIcon name="logo" className="h-5 w-5" />
+    </span>
+  );
+}
 
 export default function Sidebar({
   classes,
@@ -30,12 +41,23 @@ export default function Sidebar({
     setOpen(false);
   }
 
+  function navClass(active: boolean) {
+    return `mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition ${
+      active
+        ? "bg-brass font-semibold text-chalk"
+        : "text-rule hover:bg-white/5 hover:text-paper"
+    }`;
+  }
+
   return (
     <>
       <div className="flex items-center justify-between border-b border-rule/20 bg-chalk px-4 py-3 md:hidden">
-        <p className="font-display text-lg font-semibold text-paper">
-          Roll Call
-        </p>
+        <div className="flex items-center gap-2.5">
+          <LogoBadge size="h-8 w-8" />
+          <p className="font-display text-lg font-semibold text-paper">
+            Roll Call
+          </p>
+        </div>
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
@@ -72,13 +94,16 @@ export default function Sidebar({
         }`}
       >
         <div className="flex items-center justify-between border-b border-rule/20 px-5 py-5">
-          <div>
-            <p className="font-display text-xl font-semibold text-paper">
-              Roll Call
-            </p>
-            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
-              Teacher Portal
-            </p>
+          <div className="flex items-center gap-3">
+            <LogoBadge />
+            <div>
+              <p className="font-display text-xl font-semibold text-paper">
+                Roll Call
+              </p>
+              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
+                Teacher Portal
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -98,64 +123,39 @@ export default function Sidebar({
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <p className="px-2 font-mono text-[10px] uppercase tracking-[0.2em] text-rule/70">
-            Overview
+            Main
           </p>
-          <Link
-            href="/dashboard"
-            onClick={closeMenu}
-            className={`mt-1 flex items-center rounded-sm border-l-2 px-3 py-2 text-sm transition ${
-              isDashboardActive
-                ? "border-brass bg-white/5 font-medium text-paper"
-                : "border-transparent text-rule hover:bg-white/5 hover:text-paper"
-            }`}
-          >
+          <Link href="/dashboard" onClick={closeMenu} className={navClass(isDashboardActive)}>
+            <SidebarIcon name="dashboard" />
             Dashboard
           </Link>
-          <Link
-            href="/schedule"
-            onClick={closeMenu}
-            className={`mt-1 flex items-center rounded-sm border-l-2 px-3 py-2 text-sm transition ${
-              isScheduleActive
-                ? "border-brass bg-white/5 font-medium text-paper"
-                : "border-transparent text-rule hover:bg-white/5 hover:text-paper"
-            }`}
-          >
+          <Link href="/schedule" onClick={closeMenu} className={navClass(isScheduleActive)}>
+            <SidebarIcon name="schedule" />
             Schedule
           </Link>
-          <Link
-            href="/students"
-            onClick={closeMenu}
-            className={`mt-1 flex items-center rounded-sm border-l-2 px-3 py-2 text-sm transition ${
-              isStudentsActive
-                ? "border-brass bg-white/5 font-medium text-paper"
-                : "border-transparent text-rule hover:bg-white/5 hover:text-paper"
-            }`}
-          >
+          <Link href="/students" onClick={closeMenu} className={navClass(isStudentsActive)}>
+            <SidebarIcon name="students" />
             Students
           </Link>
-          <Link
-            href="/attendance"
-            onClick={closeMenu}
-            className={`mt-1 flex items-center rounded-sm border-l-2 px-3 py-2 text-sm transition ${
-              isAttendanceActive
-                ? "border-brass bg-white/5 font-medium text-paper"
-                : "border-transparent text-rule hover:bg-white/5 hover:text-paper"
-            }`}
-          >
+          <Link href="/attendance" onClick={closeMenu} className={navClass(isAttendanceActive)}>
+            <SidebarIcon name="attendance" />
             Attendance
           </Link>
+
           {isAdmin && (
-            <Link
-              href="/admin/teachers"
-              onClick={closeMenu}
-              className={`mt-1 flex items-center rounded-sm border-l-2 px-3 py-2 text-sm transition ${
-                isAdminActive
-                  ? "border-brass bg-white/5 font-medium text-paper"
-                  : "border-transparent text-rule hover:bg-white/5 hover:text-paper"
-              }`}
-            >
-              Admin
-            </Link>
+            <>
+              <p className="mt-6 px-2 font-mono text-[10px] uppercase tracking-[0.2em] text-rule/70">
+                Admin
+              </p>
+              <Link
+                href="/admin/teachers"
+                onClick={closeMenu}
+                className={navClass(isAdminActive)}
+              >
+                <SidebarIcon name="admin" />
+                Teacher accounts
+              </Link>
+            </>
           )}
 
           <p className="mt-6 px-2 font-mono text-[10px] uppercase tracking-[0.2em] text-rule/70">
@@ -169,13 +169,10 @@ export default function Sidebar({
                   key={c.id}
                   href={`/dashboard/classes/${c.id}`}
                   onClick={closeMenu}
-                  className={`flex items-center rounded-sm border-l-2 px-3 py-2 text-sm transition ${
-                    active
-                      ? "border-brass bg-white/5 font-medium text-paper"
-                      : "border-transparent text-rule hover:bg-white/5 hover:text-paper"
-                  }`}
+                  className={navClass(active)}
                 >
-                  {c.name}
+                  <SidebarIcon name="class" />
+                  <span className="truncate">{c.name}</span>
                 </Link>
               );
             })}
@@ -186,7 +183,12 @@ export default function Sidebar({
         </nav>
 
         <div className="border-t border-rule/20 px-4 py-4">
-          <p className="truncate font-mono text-xs text-rule">{email}</p>
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-rule">
+              <SidebarIcon name="user" className="h-4 w-4" />
+            </span>
+            <p className="truncate font-mono text-xs text-rule">{email}</p>
+          </div>
           <Link
             href="/profile"
             onClick={closeMenu}
@@ -194,7 +196,7 @@ export default function Sidebar({
           >
             Edit profile
           </Link>
-          <SignOutButton className="mt-2 w-full" />
+          <SignOutButton className="mt-3 w-full" />
         </div>
       </aside>
     </>

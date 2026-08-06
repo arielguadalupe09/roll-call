@@ -18,6 +18,7 @@ import SetupTab from "./setup-tab";
 import MajorExamTab from "./major-exam-tab";
 import RecitationTab from "./recitation-tab";
 import OverviewTab from "./overview-tab";
+import GroupedNav, { type NavItem } from "@/app/_components/grouped-nav";
 
 type Tab =
   | "overview"
@@ -28,17 +29,6 @@ type Tab =
   | "laboratory"
   | "major-exam"
   | "recitation";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "setup", label: "Setup" },
-  { key: "assignments", label: "Assignments" },
-  { key: "quiz", label: "Quiz" },
-  { key: "written", label: "Written Activity" },
-  { key: "laboratory", label: "Laboratory Activity" },
-  { key: "major-exam", label: "Major Exam" },
-  { key: "recitation", label: "Recitation" },
-];
 
 export default function GradingHubClient({
   classId,
@@ -74,23 +64,36 @@ export default function GradingHubClient({
     return assessmentScores.filter((s) => ids.has(s.assessment_id));
   };
 
+  const navItems: NavItem[] = [
+    { kind: "tool", label: "Overview", active: tab === "overview", onClick: () => setTab("overview") },
+    { kind: "tool", label: "Setup", active: tab === "setup", onClick: () => setTab("setup") },
+    {
+      kind: "group",
+      label: "Assessments",
+      tools: [
+        { label: "Assignments", active: tab === "assignments", onClick: () => setTab("assignments") },
+        { label: "Quiz", active: tab === "quiz", onClick: () => setTab("quiz") },
+        { label: "Written Activity", active: tab === "written", onClick: () => setTab("written") },
+        {
+          label: "Laboratory Activity",
+          active: tab === "laboratory",
+          onClick: () => setTab("laboratory"),
+        },
+      ],
+    },
+    {
+      kind: "group",
+      label: "Exams",
+      tools: [
+        { label: "Major Exam", active: tab === "major-exam", onClick: () => setTab("major-exam") },
+        { label: "Recitation", active: tab === "recitation", onClick: () => setTab("recitation") },
+      ],
+    },
+  ];
+
   return (
     <div>
-      <div className="flex flex-wrap gap-1 border-b border-rule/60 pb-3">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition ${
-              tab === t.key
-                ? "bg-brass text-chalk font-semibold"
-                : "text-ink/70 hover:bg-ink/5"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <GroupedNav items={navItems} />
 
       {tab === "overview" && (
         <OverviewTab

@@ -1,20 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { GradingConfig, ParticipationLog, Student } from "@/lib/types";
-
-function summarize(logs: ParticipationLog[], students: Student[]) {
-  const byStudent = new Map<string, { sum: number; count: number }>();
-  for (const s of students) byStudent.set(s.id, { sum: 0, count: 0 });
-  for (const log of logs) {
-    if (log.score == null) continue;
-    const entry = byStudent.get(log.student_id);
-    if (!entry) continue;
-    entry.sum += log.score;
-    entry.count += 1;
-  }
-  return byStudent;
-}
+import { summarizeParticipation } from "@/lib/participation";
+import CollapsibleSection from "./collapsible-section";
 
 function SummaryTable({
   title,
@@ -25,15 +14,77 @@ function SummaryTable({
   logs: ParticipationLog[];
   students: Student[];
 }) {
-  const summary = useMemo(() => summarize(logs, students), [logs, students]);
+  const summary = useMemo(() => summarizeParticipation(logs), [logs]);
+  const [showLog, setShowLog] = useState(false);
+  const [logDate, setLogDate] = useState<string>("all");
+
+  const logDates = useMemo(
+    () => Array.from(new Set(logs.map((l) => l.date))).sort((a, b) => b.localeCompare(a)),
+    [logs],
+  );
+
+  const filteredLogs = useMemo(
+    () => logs.filter((l) => logDate === "all" || l.date === logDate),
+    [logs, logDate],
+  );
+
+  const logsByStudent = useMemo(() => {
+    const map = new Map<string, ParticipationLog[]>();
+    for (const log of filteredLogs) {
+      const list = map.get(log.student_id) ?? [];
+      list.push(log);
+      map.set(log.student_id, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) =>
+        a.date === b.date
+          ? a.recorded_at.localeCompare(b.recorded_at)
+          : a.date.localeCompare(b.date),
+      );
+    }
+    return map;
+  }, [filteredLogs]);
 
   return (
-    <div className="rounded-sm border border-rule bg-white p-4">
-      <p className="font-display text-lg font-semibold text-ink">{title}</p>
-      <div className="mt-3 overflow-x-auto rounded-sm border border-rule">
+    <CollapsibleSection
+      title={title}
+      subtitle={`${students.length} students`}
+      actions={
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowLog((v) => !v);
+          }}
+          className="shrink-0 text-sm text-teal underline underline-offset-2"
+        >
+          {showLog ? "Hide detailed log" : "Show detailed log"}
+        </button>
+      }
+    >
+      <div className="overflow-x-auto rounded-sm border border-rule">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
+              {showLog && (
+                <th className="py-2 px-3">
+                  <div className="flex items-center gap-2">
+                    <span>Log</span>
+                    <select
+                      value={logDate}
+                      onChange={(e) => setLogDate(e.target.value)}
+                      disabled={logDates.length === 0}
+                      className="rounded-sm border border-rule bg-white px-2 py-1 font-mono text-[10px] normal-case tracking-normal text-ink outline-none focus:border-brass disabled:opacity-60"
+                    >
+                      <option value="all">All recitations</option>
+                      {logDates.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </th>
+              )}
               <th className="py-2 px-3">Student</th>
               <th className="py-2 px-3">Taps</th>
               <th className="py-2 px-3">Average (/5)</th>
@@ -42,24 +93,40 @@ function SummaryTable({
           </thead>
           <tbody>
             {students.map((s) => {
-              const entry = summary.get(s.id) ?? { sum: 0, count: 0 };
-              const avg = entry.count > 0 ? entry.sum / entry.count : null;
+              const entry = summary.get(s.id) ?? { count: 0, sum: 0, avg: null };
+              const studentLogs = logsByStudent.get(s.id) ?? [];
               return (
-                <tr key={s.id} className="border-b border-rule/50 bg-white">
+                <tr key={s.id} className="border-b border-rule/50 bg-white align-top">
+                  {showLog && (
+                    <td className="py-2 px-3 font-mono text-xs text-ink/60">
+                      {studentLogs.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {studentLogs.map((log) => (
+                            <span key={log.id}>
+                              {log.date} · {new Date(log.recorded_at).toLocaleTimeString()} —{" "}
+                              {log.score != null ? `${log.score}/5` : "—"}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  )}
                   <td className="py-2 px-3 text-ink">{s.name}</td>
                   <td className="py-2 px-3 font-mono text-ink">{entry.count}</td>
                   <td className="py-2 px-3 font-mono text-ink">
-                    {avg != null ? avg.toFixed(1) : "—"}
+                    {entry.avg != null ? entry.avg.toFixed(1) : "—"}
                   </td>
                   <td className="py-2 px-3 font-mono text-ink">
-                    {avg != null ? `${((avg / 5) * 100).toFixed(1)}%` : "—"}
+                    {entry.avg != null ? `${((entry.avg / 5) * 100).toFixed(1)}%` : "—"}
                   </td>
                 </tr>
               );
             })}
             {students.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-4 px-3 text-ink/60">
+                <td colSpan={showLog ? 5 : 4} className="py-4 px-3 text-ink/60">
                   No students in this class yet.
                 </td>
               </tr>
@@ -67,7 +134,7 @@ function SummaryTable({
           </tbody>
         </table>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }
 

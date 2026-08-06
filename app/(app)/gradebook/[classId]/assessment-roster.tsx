@@ -10,8 +10,8 @@ import type {
   Period,
   Student,
 } from "@/lib/types";
-
-type ScoreRow = { score: string; saving: boolean };
+import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
+import CollapsibleSection from "./collapsible-section";
 
 export default function AssessmentRoster({
   classId,
@@ -208,84 +208,34 @@ export default function AssessmentRoster({
           const isOpen = expandedId === a.id;
           const rows = scoresByAssessment[a.id] ?? {};
           return (
-            <li key={a.id} className="rounded-sm border border-rule bg-white p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-display text-lg font-semibold text-ink">
-                    {a.title}
-                  </p>
-                  <p className="mt-1 font-mono text-xs uppercase tracking-wide text-ink/50">
-                    {a.date ? `${a.date} · ` : ""}Max score {a.max_score} ·{" "}
-                    {a.period}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
+            <li key={a.id}>
+              <CollapsibleSection
+                title={a.title}
+                subtitle={`${a.date ? `${a.date} · ` : ""}Max score ${a.max_score} · ${a.period} · ${students.length} students`}
+                open={isOpen}
+                onToggle={() => setExpandedId(isOpen ? null : a.id)}
+                actions={
                   <button
-                    onClick={() => setExpandedId(isOpen ? null : a.id)}
-                    className="text-sm text-teal underline underline-offset-2"
-                  >
-                    {isOpen ? "Hide scores" : "Enter scores"}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(a.id)}
-                    className="text-sm text-danger underline underline-offset-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(a.id);
+                    }}
+                    className="shrink-0 text-sm text-danger underline underline-offset-2"
                   >
                     Delete
                   </button>
-                </div>
-              </div>
-
-              {isOpen && (
-                <div className="mt-4 overflow-x-auto rounded-sm border border-rule">
-                  <table className="w-full border-collapse text-left">
-                    <thead>
-                      <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
-                        <th className="py-2 px-3">Student</th>
-                        <th className="py-2 px-3">Score / {a.max_score}</th>
-                        <th className="py-2 px-3" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((s) => {
-                        const row = rows[s.id] ?? { score: "", saving: false };
-                        return (
-                          <tr key={s.id} className="border-b border-rule/50 bg-white">
-                            <td className="py-2 px-3 text-ink">{s.name}</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min={0}
-                                max={a.max_score}
-                                value={row.score}
-                                onChange={(e) =>
-                                  updateScore(a.id, s.id, { score: e.target.value })
-                                }
-                                className="w-20 rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-sm text-ink"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <button
-                                onClick={() => handleSaveScore(a.id, s.id)}
-                                disabled={row.saving}
-                                className="rounded-sm bg-brass px-3 py-1 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                              >
-                                {row.saving ? "Saving..." : "Save"}
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {students.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="py-4 px-3 text-ink/60">
-                            No students in this class yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                }
+              >
+                <ScoreEntryTable
+                  students={students}
+                  rows={rows}
+                  maxScore={a.max_score}
+                  onScoreChange={(studentId, value) =>
+                    updateScore(a.id, studentId, { score: value })
+                  }
+                  onSave={(studentId) => handleSaveScore(a.id, studentId)}
+                />
+              </CollapsibleSection>
             </li>
           );
         })}

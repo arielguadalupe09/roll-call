@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MajorExam, MajorExamScore, Period, Student } from "@/lib/types";
-
-type ScoreRow = { score: string; saving: boolean };
+import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
+import CollapsibleSection from "./collapsible-section";
 
 function ExamSection({
   classId,
@@ -104,52 +104,16 @@ function ExamSection({
       </div>
 
       {exam ? (
-        <div className="mt-4 overflow-x-auto rounded-sm border border-rule">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
-                <th className="py-2 px-3">Student</th>
-                <th className="py-2 px-3">Score / {exam.max_score}</th>
-                <th className="py-2 px-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((s) => {
-                const row = rows[s.id] ?? { score: "", saving: false };
-                return (
-                  <tr key={s.id} className="border-b border-rule/50 bg-white">
-                    <td className="py-2 px-3 text-ink">{s.name}</td>
-                    <td className="py-2 px-3">
-                      <input
-                        type="number"
-                        min={0}
-                        max={exam.max_score}
-                        value={row.score}
-                        onChange={(e) => updateRow(s.id, { score: e.target.value })}
-                        className="w-20 rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-sm text-ink"
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <button
-                        onClick={() => handleSaveScore(s.id)}
-                        disabled={row.saving}
-                        className="rounded-sm bg-brass px-3 py-1 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                      >
-                        {row.saving ? "Saving..." : "Save"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {students.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="py-4 px-3 text-ink/60">
-                    No students in this class yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="mt-4">
+          <CollapsibleSection title="Scores" subtitle={`${students.length} students`}>
+            <ScoreEntryTable
+              students={students}
+              rows={rows}
+              maxScore={exam.max_score}
+              onScoreChange={(studentId, value) => updateRow(studentId, { score: value })}
+              onSave={handleSaveScore}
+            />
+          </CollapsibleSection>
         </div>
       ) : (
         <p className="mt-4 text-sm text-ink/60">
