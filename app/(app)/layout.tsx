@@ -16,6 +16,7 @@ export default async function AppShellLayout({
   const { data: classes } = await supabase
     .from("classes")
     .select("*")
+    .eq("archived", false)
     .order("name", { ascending: true });
 
   let isAdmin = false;

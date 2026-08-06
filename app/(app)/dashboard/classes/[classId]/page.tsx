@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ClassRow, Student } from "@/lib/types";
 import StudentsManager from "./students-manager";
 import SubjectEditor from "./subject-editor";
+import ArchiveButton from "../../archive-button";
 
 export default async function ClassDetailPage({
   params,
@@ -29,9 +30,12 @@ export default async function ClassDetailPage({
   return (
     <div className="px-8 py-10">
       <div className="mx-auto max-w-3xl">
-        <h1 className="font-display text-3xl font-semibold text-ink">
-          {classRow.name}
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-display text-3xl font-semibold text-ink">
+            {classRow.name}
+          </h1>
+          <ArchiveButton classId={classId} archived={(classRow as ClassRow).archived} />
+        </div>
         <SubjectEditor
           classId={classId}
           initialSubject={(classRow as ClassRow).subject}

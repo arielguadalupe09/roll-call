@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
 import { computeClassStats, computeInsights, type ClassStats } from "@/lib/dashboard-insights";
 import CreateClassForm from "./create-class-form";
+import ArchiveButton from "./archive-button";
+import ArchivedClasses from "./archived-classes";
 
 function attendanceBadge(rate: number | null) {
   if (rate == null) {
@@ -32,7 +34,9 @@ export default async function DashboardPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  const classList = (classes as ClassRow[] | null) ?? [];
+  const allClasses = (classes as ClassRow[] | null) ?? [];
+  const classList = allClasses.filter((c) => !c.archived);
+  const archivedClasses = allClasses.filter((c) => c.archived);
   const classIds = classList.map((c) => c.id);
 
   const [{ data: students }, { data: attendance }, { data: gradingConfigs }] = classIds.length
@@ -148,29 +152,31 @@ export default async function DashboardPage() {
 
         <ul id="class-list" className="mt-8 flex scroll-mt-6 flex-col gap-2">
           {stats.map((s) => (
-            <li key={s.classRow.id}>
-              <Link
-                href={`/dashboard/classes/${s.classRow.id}`}
-                className="flex flex-col gap-2 rounded-sm border border-rule bg-white p-4 transition hover:border-brass sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <span className="font-display text-xl font-semibold text-ink">
-                    {s.classRow.name}
-                  </span>
-                  <p className="mt-0.5 text-sm text-ink/60">
-                    {s.classRow.subject || "No subject set"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-xs text-ink/50">
-                    {s.studentCount} student{s.studentCount === 1 ? "" : "s"}
-                  </span>
-                  {attendanceBadge(s.attendanceRate)}
-                  <span className="font-mono text-xs uppercase tracking-wide text-teal">
-                    Open →
-                  </span>
-                </div>
-              </Link>
+            <li
+              key={s.classRow.id}
+              className="flex flex-col gap-2 rounded-sm border border-rule bg-white p-4 transition hover:border-brass sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <span className="font-display text-xl font-semibold text-ink">
+                  {s.classRow.name}
+                </span>
+                <p className="mt-0.5 text-sm text-ink/60">
+                  {s.classRow.subject || "No subject set"}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-xs text-ink/50">
+                  {s.studentCount} student{s.studentCount === 1 ? "" : "s"}
+                </span>
+                {attendanceBadge(s.attendanceRate)}
+                <Link
+                  href={`/dashboard/classes/${s.classRow.id}`}
+                  className="font-mono text-xs uppercase tracking-wide text-teal"
+                >
+                  Open →
+                </Link>
+                <ArchiveButton classId={s.classRow.id} archived={false} />
+              </div>
             </li>
           ))}
           {classList.length === 0 && (
@@ -179,6 +185,8 @@ export default async function DashboardPage() {
             </p>
           )}
         </ul>
+
+        <ArchivedClasses classes={archivedClasses} />
       </div>
     </div>
   );
