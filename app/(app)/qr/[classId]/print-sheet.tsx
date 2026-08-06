@@ -7,9 +7,11 @@ import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 
 export default function PrintSheet({
   className,
+  subject,
   students,
 }: {
   className: string;
+  subject: string | null;
   students: Student[];
 }) {
   const [paperSize, setPaperSize] = useState<PaperSize>("long");
@@ -23,7 +25,9 @@ export default function PrintSheet({
           <h1 className="font-display text-2xl font-semibold text-ink">
             {className} — QR sheet
           </h1>
-          <p className="text-ink/60">One card per student. Print and cut.</p>
+          <p className="text-ink/60">
+            {subject ? `${subject} · ` : ""}One card per student. Print and cut.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-ink/70">
@@ -58,6 +62,11 @@ export default function PrintSheet({
             key={s.id}
             className="flex flex-col items-center gap-2 rounded-sm border border-gray-300 p-4 text-center"
           >
+            {subject && (
+              <p className="font-mono text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {subject}
+              </p>
+            )}
             <QRCodeSVG value={s.code} size={128} />
             <p className="font-display text-lg font-semibold text-black">
               {s.name}

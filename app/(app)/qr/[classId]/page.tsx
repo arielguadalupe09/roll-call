@@ -36,7 +36,11 @@ export default async function QrPage({
 
   return (
     <div className="py-6">
-      <PrintSheet className={classRow.name} students={filteredStudents} />
+      <PrintSheet
+        className={classRow.name}
+        subject={classRow.subject}
+        students={filteredStudents}
+      />
     </div>
   );
 }
