@@ -41,7 +41,7 @@ export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
                 >
                   Open →
                 </Link>
-                <ArchiveButton classId={c.id} archived />
+                <ArchiveButton classId={c.id} name={c.name} archived />
               </div>
             </li>
           ))}

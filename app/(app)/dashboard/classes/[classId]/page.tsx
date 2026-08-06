@@ -34,7 +34,11 @@ export default async function ClassDetailPage({
           <h1 className="font-display text-3xl font-semibold text-ink">
             {classRow.name}
           </h1>
-          <ArchiveButton classId={classId} archived={(classRow as ClassRow).archived} />
+          <ArchiveButton
+            classId={classId}
+            name={classRow.name}
+            archived={(classRow as ClassRow).archived}
+          />
         </div>
         <SubjectEditor
           classId={classId}

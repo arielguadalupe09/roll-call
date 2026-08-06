@@ -175,7 +175,7 @@ export default async function DashboardPage() {
                 >
                   Open →
                 </Link>
-                <ArchiveButton classId={s.classRow.id} archived={false} />
+                <ArchiveButton classId={s.classRow.id} name={s.classRow.name} archived={false} />
               </div>
             </li>
           ))}
