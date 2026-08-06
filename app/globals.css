@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+:root {
+  /* Pampanga State University College of Computing Studies motif:
+     deep tech-blue base, university gold + maroon as accents. */
+  --chalk: #0b1e33;
+  --paper: #edf2f8;
+  --ink: #14233a;
+  --rule: #9fb4cb;
+  --brass: #c9a227;
+  --danger: #7a1f2b;
+  --teal: #2c7da0;
+}
+
+@theme inline {
+  --color-chalk: var(--chalk);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-rule: var(--rule);
+  --color-brass: var(--brass);
+  --color-danger: var(--danger);
+  --color-teal: var(--teal);
+
+  --font-display: var(--font-display-src);
+  --font-sans: var(--font-sans-src);
+  --font-mono: var(--font-mono-src);
+}
+
+.ledger-page {
+  background-color: var(--paper);
+}
+
+.loupe {
+  position: relative;
+  border-radius: 9999px;
+  border: 6px solid var(--brass);
+  box-shadow: 0 0 0 2px var(--chalk), 0 12px 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.loupe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(200, 155, 60, 0.55) 48%,
+    transparent 100%
+  );
+  animation: scan-sweep 2.2s ease-in-out infinite;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  50% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loupe::after {
+    animation: none;
+  }
+}
+
+.stamp-in {
+  animation: stamp-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.6) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in {
+    animation: none;
+  }
+}
+
+.toast-in {
+  animation: toast-in 0.25s ease-out both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: none;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-sheet,
+  #print-sheet * {
+    visibility: visible;
+  }
+  #print-sheet {
+    position: absolute;
+    inset: 0;
+    background: white;
+    display: grid !important;
+  }
+  #print-sheet > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .no-print {
+    display: none !important;
+  }
+
+  #record-card-print {
+    position: absolute;
+    inset: 0;
+    background: white;
+  }
+  #record-card-print,
+  #record-card-print * {
+    visibility: visible;
+  }
+  .record-card-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+}
+
+/* On-screen only: give each Record Card its own visible "sheet" so
+   consecutive students (or pages) don't visually run together. Print
+   already separates them with a hard page break, so this is purely a
+   screen-viewing aid and shouldn't add blank space to the printed output. */
+@media screen {
+  #record-card-print .record-card-page {
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+  #record-card-print .record-card-page:last-child {
+    margin-bottom: 0;
+  }
+}
