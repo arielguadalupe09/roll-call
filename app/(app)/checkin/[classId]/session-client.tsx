@@ -20,6 +20,9 @@ export default function SessionClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dateRef = useRef(date);
+  // Only known once mounted in the browser — differs from the server-
+  // rendered "" on purpose, so the mismatch is fine to suppress below.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   useEffect(() => {
     dateRef.current = date;
@@ -165,7 +168,16 @@ export default function SessionClient({
 
       {session ? (
         <>
-          <div className="mt-8 rounded-sm border-4 border-brass bg-white p-6">
+          <p className="mt-4 max-w-sm text-center text-sm text-rule">
+            Project this on your screen or board. Students open{" "}
+            <span className="font-mono text-paper" suppressHydrationWarning>
+              {origin || "your Roll Call link"}/checkin
+            </span>{" "}
+            on their own phone, scan this code, then enter their personal
+            code to be marked present.
+          </p>
+
+          <div className="mt-6 rounded-sm border-4 border-brass bg-white p-6">
             <QRCodeSVG value={`SESSION|${session.token}`} size={240} />
           </div>
           <p className="mt-6 font-mono text-5xl font-semibold text-brass">
@@ -189,15 +201,26 @@ export default function SessionClient({
               End session
             </button>
           </div>
+          <p className="mt-3 max-w-sm text-center text-xs text-rule/70">
+            &quot;New code&quot; refreshes the QR if it&apos;s been shared
+            beyond your class. &quot;End session&quot; closes it so no more
+            students can check in today.
+          </p>
         </>
       ) : (
-        <button
-          onClick={startSession}
-          disabled={loading}
-          className="mt-10 rounded-sm bg-brass px-6 py-3 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-        >
-          {loading ? "Starting..." : "Start session"}
-        </button>
+        <>
+          <p className="mt-4 max-w-xs text-center text-rule">
+            Starting a session generates a QR code your students scan to
+            check themselves in for today.
+          </p>
+          <button
+            onClick={startSession}
+            disabled={loading}
+            className="mt-6 rounded-sm bg-brass px-6 py-3 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
+          >
+            {loading ? "Starting..." : "Start session"}
+          </button>
+        </>
       )}
       </div>
     </div>
