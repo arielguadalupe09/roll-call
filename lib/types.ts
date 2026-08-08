@@ -3,6 +3,9 @@ export type Teacher = {
   email: string;
   full_name: string | null;
   is_admin: boolean;
+  card_school_name: string | null;
+  card_campus_line: string | null;
+  card_logo_path: string | null;
   created_at: string;
 };
 
@@ -113,6 +116,13 @@ export type GradingConfig = {
   midterm_weight: number;
   finals_weight: number;
   midterm_end_date: string | null;
+  show_assignment: boolean;
+  show_recitation: boolean;
+  show_quiz: boolean;
+  show_written: boolean;
+  show_laboratory: boolean;
+  show_major_exam: boolean;
+  show_attendance: boolean;
   updated_at: string;
 };
 

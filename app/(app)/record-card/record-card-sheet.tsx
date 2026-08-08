@@ -1,4 +1,4 @@
-import type { AttendanceStatus, ClassRow, Student, Teacher } from "@/lib/types";
+import type { AttendanceStatus, ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
 import { parseStudentName } from "@/lib/name-format";
 import type {
   AttendanceEntry,
@@ -18,10 +18,12 @@ function Header({
   classRow,
   teacher,
   student,
+  logoUrl,
 }: {
   classRow: ClassRow;
   teacher: Teacher | null;
   student: Student;
+  logoUrl: string | null;
 }) {
   const { lastName, firstName, mi } = parseStudentName(student.name);
 
@@ -29,12 +31,19 @@ function Header({
     <div className="mb-3">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-16 w-16 shrink-0 border border-black bg-gray-200" />
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden border border-black bg-gray-200">
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="School logo" className="h-full w-full object-contain" />
+            )}
+          </div>
           <div>
             <p className="font-display text-lg font-bold uppercase leading-tight text-black">
-              Pampanga State University
+              {teacher?.card_school_name || "School name not set"}
             </p>
-            <p className="text-xs uppercase text-black/70">Mexico Campus</p>
+            <p className="text-xs uppercase text-black/70">
+              {teacher?.card_campus_line || ""}
+            </p>
           </div>
         </div>
         <table className="border-collapse text-xs">
@@ -263,35 +272,57 @@ export default function RecordCardSheet({
   classRow,
   teacher,
   data,
+  config,
+  logoUrl,
   breakBeforePage = false,
 }: {
   classRow: ClassRow;
   teacher: Teacher | null;
   data: RecordCardStudentData;
+  config: GradingConfig;
+  logoUrl: string | null;
   breakBeforePage?: boolean;
 }) {
   const { student, assignmentEntries, recitationEntries, quizEntries, writtenEntries, labEntries, majorExam, attendanceEntries } =
     data;
 
+  const showTopRow = config.show_assignment || config.show_recitation || config.show_quiz;
+  const showMidRow =
+    config.show_major_exam || config.show_written || config.show_laboratory;
+
   return (
     <div className={`record-card-page ${breakBeforePage ? "record-card-page-break" : ""}`}>
-      <Header classRow={classRow} teacher={teacher} student={student} />
+      <Header classRow={classRow} teacher={teacher} student={student} logoUrl={logoUrl} />
 
-      <div className="grid grid-cols-3 gap-2">
-        <DateGridBox title="Assignment" entries={assignmentEntries} />
-        <DateGridBox title="Recitation" entries={recitationEntries} />
-        <DateGridBox title="Quizzes" entries={quizEntries} />
-      </div>
+      {showTopRow && (
+        <div className="grid grid-cols-3 gap-2">
+          {config.show_assignment && (
+            <DateGridBox title="Assignment" entries={assignmentEntries} />
+          )}
+          {config.show_recitation && (
+            <DateGridBox title="Recitation" entries={recitationEntries} />
+          )}
+          {config.show_quiz && <DateGridBox title="Quizzes" entries={quizEntries} />}
+        </div>
+      )}
 
-      <div className="mt-2 grid grid-cols-3 gap-2">
-        <MajorExamBox data={majorExam} />
-        <DateGridBox title="Written activities" entries={writtenEntries} />
-        <DateGridBox title="Lab activities" entries={labEntries} />
-      </div>
+      {showMidRow && (
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {config.show_major_exam && <MajorExamBox data={majorExam} />}
+          {config.show_written && (
+            <DateGridBox title="Written activities" entries={writtenEntries} />
+          )}
+          {config.show_laboratory && (
+            <DateGridBox title="Lab activities" entries={labEntries} />
+          )}
+        </div>
+      )}
 
-      <div className="mt-2">
-        <AttendanceBox entries={attendanceEntries} />
-      </div>
+      {config.show_attendance && (
+        <div className="mt-2">
+          <AttendanceBox entries={attendanceEntries} />
+        </div>
+      )}
 
       <SignatureRemarksRow />
     </div>

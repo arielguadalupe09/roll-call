@@ -15,6 +15,18 @@ const CATEGORY_FIELDS = [
 
 type FieldKey = (typeof CATEGORY_FIELDS)[number]["key"];
 
+const SECTION_FIELDS = [
+  { key: "show_assignment", label: "Assignment" },
+  { key: "show_recitation", label: "Recitation" },
+  { key: "show_quiz", label: "Quiz" },
+  { key: "show_written", label: "Written Activity" },
+  { key: "show_laboratory", label: "Laboratory Activity" },
+  { key: "show_major_exam", label: "Major Exam" },
+  { key: "show_attendance", label: "Attendance" },
+] as const;
+
+type SectionKey = (typeof SECTION_FIELDS)[number]["key"];
+
 export default function SetupTab({
   classId,
   initialConfig,
@@ -30,6 +42,11 @@ export default function SetupTab({
   const [midtermWeight, setMidtermWeight] = useState(String(initialConfig.midterm_weight));
   const [finalsWeight, setFinalsWeight] = useState(String(initialConfig.finals_weight));
   const [midtermEndDate, setMidtermEndDate] = useState(initialConfig.midterm_end_date ?? "");
+  const [sections, setSections] = useState<Record<SectionKey, boolean>>(() => {
+    const initial = {} as Record<SectionKey, boolean>;
+    for (const f of SECTION_FIELDS) initial[f.key] = initialConfig[f.key];
+    return initial;
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -51,6 +68,7 @@ export default function SetupTab({
       midterm_end_date: midtermEndDate || null,
     };
     for (const f of CATEGORY_FIELDS) payload[f.key] = Number(values[f.key]) || 0;
+    for (const f of SECTION_FIELDS) payload[f.key] = sections[f.key];
 
     const { error } = await supabase
       .from("grading_configs")
@@ -156,6 +174,30 @@ export default function SetupTab({
           Recitation taps on or before this date count toward Midterm; taps
           after it count toward Finals.
         </p>
+      </div>
+
+      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+        <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+          Record Card sections
+        </p>
+        <p className="mt-1 text-sm text-ink/60">
+          Choose which sections print on this class&apos;s Student Individual
+          Record Card.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {SECTION_FIELDS.map((f) => (
+            <label key={f.key} className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={sections[f.key]}
+                onChange={(e) =>
+                  setSections((prev) => ({ ...prev, [f.key]: e.target.checked }))
+                }
+              />
+              {f.label}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-3">

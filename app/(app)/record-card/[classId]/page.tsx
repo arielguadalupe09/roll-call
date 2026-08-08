@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { ClassRow, Student, Teacher } from "@/lib/types";
+import type { ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
 import { buildRecordCardData, fetchClassGradingData } from "@/lib/record-card-data";
 import RecordCardAllClient from "./record-card-all-client";
 
@@ -20,11 +20,21 @@ export default async function RecordCardAllPage({
 
   if (!classRow) notFound();
 
-  const { data: teacher } = await supabase
+  const { data: teacherRow } = await supabase
     .from("teachers")
     .select("*")
     .eq("id", (classRow as ClassRow).teacher_id)
     .single();
+
+  const teacher = teacherRow as Teacher | null;
+
+  let logoUrl: string | null = null;
+  if (teacher?.card_logo_path) {
+    const { data: signed } = await supabase.storage
+      .from("card-logos")
+      .createSignedUrl(teacher.card_logo_path, 3600);
+    logoUrl = signed?.signedUrl ?? null;
+  }
 
   const { data: students } = await supabase
     .from("students")
@@ -40,8 +50,10 @@ export default async function RecordCardAllPage({
   return (
     <RecordCardAllClient
       classRow={classRow as ClassRow}
-      teacher={teacher as Teacher | null}
+      teacher={teacher}
       allData={allData}
+      config={classData.config as GradingConfig}
+      logoUrl={logoUrl}
     />
   );
 }

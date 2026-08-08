@@ -25,6 +25,13 @@ function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
     midterm_weight: 50,
     finals_weight: 50,
     midterm_end_date: "2026-07-15",
+    show_assignment: true,
+    show_recitation: true,
+    show_quiz: true,
+    show_written: true,
+    show_laboratory: true,
+    show_major_exam: true,
+    show_attendance: true,
     updated_at: "2026-01-01T00:00:00Z",
     ...overrides,
   };

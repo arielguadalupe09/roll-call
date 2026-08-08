@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Teacher } from "@/lib/types";
 import ProfileForm from "./profile-form";
+import RecordCardBrandingForm from "./record-card-branding-form";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -11,11 +12,21 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  const { data: teacher } = await supabase
+  const { data: teacherRow } = await supabase
     .from("teachers")
     .select("*")
     .eq("id", user.id)
     .single();
+
+  const teacher = teacherRow as Teacher | null;
+
+  let logoUrl: string | null = null;
+  if (teacher?.card_logo_path) {
+    const { data: signed } = await supabase.storage
+      .from("card-logos")
+      .createSignedUrl(teacher.card_logo_path, 3600);
+    logoUrl = signed?.signedUrl ?? null;
+  }
 
   return (
     <div className="px-8 py-10">
@@ -27,7 +38,14 @@ export default async function ProfilePage() {
 
         <ProfileForm
           teacherId={user.id}
-          initialFullName={(teacher as Teacher | null)?.full_name ?? null}
+          initialFullName={teacher?.full_name ?? null}
+        />
+
+        <RecordCardBrandingForm
+          teacherId={user.id}
+          initialSchoolName={teacher?.card_school_name ?? null}
+          initialCampusLine={teacher?.card_campus_line ?? null}
+          initialLogoUrl={logoUrl}
         />
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ClassRow, Teacher } from "@/lib/types";
+import type { ClassRow, GradingConfig, Teacher } from "@/lib/types";
 import type { RecordCardStudentData } from "@/lib/record-card-data";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import RecordCardSheet from "../record-card-sheet";
@@ -10,10 +10,14 @@ export default function RecordCardAllClient({
   classRow,
   teacher,
   allData,
+  config,
+  logoUrl,
 }: {
   classRow: ClassRow;
   teacher: Teacher | null;
   allData: RecordCardStudentData[];
+  config: GradingConfig;
+  logoUrl: string | null;
 }) {
   const [paperSize, setPaperSize] = useState<PaperSize>("long");
 
@@ -64,6 +68,8 @@ export default function RecordCardAllClient({
               classRow={classRow}
               teacher={teacher}
               data={data}
+              config={config}
+              logoUrl={logoUrl}
               breakBeforePage={i > 0}
             />
           ))
