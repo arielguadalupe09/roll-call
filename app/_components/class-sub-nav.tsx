@@ -1,12 +1,38 @@
 "use client";
 
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useParams } from "next/navigation";
 import GroupedNav, { type NavItem } from "./grouped-nav";
+
+const LAST_CLASS_KEY = "rollcall:last-class-id";
+
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function getLastClassId() {
+  return localStorage.getItem(LAST_CLASS_KEY);
+}
+
+function getServerLastClassId() {
+  return null;
+}
 
 export default function ClassSubNav() {
   const pathname = usePathname();
   const params = useParams<{ classId?: string }>();
-  const classId = params?.classId;
+  const routeClassId = params?.classId;
+
+  // Persist the class whenever we're on one of its pages, so it can still
+  // be shown as a fallback from global Sidebar pages (Dashboard, Schedule,
+  // the global Students/Attendance lists) that aren't tied to any class.
+  useEffect(() => {
+    if (routeClassId) localStorage.setItem(LAST_CLASS_KEY, routeClassId);
+  }, [routeClassId]);
+
+  const lastClassId = useSyncExternalStore(subscribe, getLastClassId, getServerLastClassId);
+  const classId = routeClassId ?? lastClassId;
 
   if (!classId) return null;
 
