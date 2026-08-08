@@ -305,27 +305,46 @@ export default function RecordCardSheet({
     (key) => showBySection[key],
   );
 
-  function renderSection(key: RecordCardSectionKey) {
+  // Attendance always gets its own full-width row; everything else fills
+  // up to 3 per row. Grouping into rows here (rather than one flat grid)
+  // means a partial row's boxes stretch evenly to fill the width instead
+  // of leaving a gap where a hidden section used to be.
+  const rows: RecordCardSectionKey[][] = [];
+  let currentRow: RecordCardSectionKey[] = [];
+  for (const key of visibleSections) {
+    if (key === "attendance") {
+      if (currentRow.length > 0) {
+        rows.push(currentRow);
+        currentRow = [];
+      }
+      rows.push([key]);
+      continue;
+    }
+    currentRow.push(key);
+    if (currentRow.length === 3) {
+      rows.push(currentRow);
+      currentRow = [];
+    }
+  }
+  if (currentRow.length > 0) rows.push(currentRow);
+
+  function renderSectionContent(key: RecordCardSectionKey) {
     const title = sectionTitle(config.record_card_layout, key);
     switch (key) {
       case "assignment":
-        return <DateGridBox key={key} title={title} entries={assignmentEntries} />;
+        return <DateGridBox title={title} entries={assignmentEntries} />;
       case "recitation":
-        return <DateGridBox key={key} title={title} entries={recitationEntries} />;
+        return <DateGridBox title={title} entries={recitationEntries} />;
       case "quiz":
-        return <DateGridBox key={key} title={title} entries={quizEntries} />;
+        return <DateGridBox title={title} entries={quizEntries} />;
       case "written":
-        return <DateGridBox key={key} title={title} entries={writtenEntries} />;
+        return <DateGridBox title={title} entries={writtenEntries} />;
       case "laboratory":
-        return <DateGridBox key={key} title={title} entries={labEntries} />;
+        return <DateGridBox title={title} entries={labEntries} />;
       case "major_exam":
-        return <MajorExamBox key={key} title={title} data={majorExam} />;
+        return <MajorExamBox title={title} data={majorExam} />;
       case "attendance":
-        return (
-          <div key={key} className="col-span-3">
-            <AttendanceBox title={title} entries={attendanceEntries} />
-          </div>
-        );
+        return <AttendanceBox title={title} entries={attendanceEntries} />;
     }
   }
 
@@ -333,11 +352,15 @@ export default function RecordCardSheet({
     <div className={`record-card-page ${breakBeforePage ? "record-card-page-break" : ""}`}>
       <Header classRow={classRow} teacher={teacher} student={student} logoUrl={logoUrl} />
 
-      {visibleSections.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {visibleSections.map((key) => renderSection(key))}
+      {rows.map((row, i) => (
+        <div key={i} className={`flex gap-2 ${i > 0 ? "mt-2" : ""}`}>
+          {row.map((key) => (
+            <div key={key} className="min-w-0 flex-1">
+              {renderSectionContent(key)}
+            </div>
+          ))}
         </div>
-      )}
+      ))}
 
       <SignatureRemarksRow />
     </div>
