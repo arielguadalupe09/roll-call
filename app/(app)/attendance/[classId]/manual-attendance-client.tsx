@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { todayLocalDate } from "@/lib/date";
 import type { Attendance, AttendanceStatus, Student } from "@/lib/types";
+import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 
 const STATUS_ORDER: AttendanceStatus[] = ["present", "absent", "excused", "late"];
 
@@ -51,6 +53,8 @@ export default function ManualAttendanceClient({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
+  const { showToast } = useToast();
+  const confirm = useConfirm();
 
   const byStudent = useMemo(() => {
     const map = new Map<string, Attendance>();
@@ -91,7 +95,7 @@ export default function ManualAttendanceClient({
     setMarkingAll(false);
 
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
 
@@ -100,8 +104,9 @@ export default function ManualAttendanceClient({
 
   async function clearDay() {
     if (recordsForDate.length === 0) return;
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `Delete all ${recordsForDate.length} attendance record(s) for ${date}? This cannot be undone.`,
+      { danger: true, confirmLabel: "Delete" },
     );
     if (!confirmed) return;
 
@@ -117,7 +122,7 @@ export default function ManualAttendanceClient({
     setClearing(false);
 
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
 
@@ -140,7 +145,7 @@ export default function ManualAttendanceClient({
     setSavingId(null);
 
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
 

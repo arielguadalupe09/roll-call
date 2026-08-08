@@ -9,6 +9,7 @@ import {
   resolveSectionOrder,
   type RecordCardSectionKey,
 } from "@/lib/record-card-layout";
+import { useToast } from "@/app/_components/toast";
 
 const CATEGORY_FIELDS = [
   { key: "weight_assignment", label: "Assignment" },
@@ -73,6 +74,7 @@ export default function SetupTab({
     }
     return initial;
   });
+  const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -108,7 +110,7 @@ export default function SetupTab({
 
     setSaving(false);
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
     setSaved(true);

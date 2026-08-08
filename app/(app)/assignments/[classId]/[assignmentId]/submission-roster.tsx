@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Assignment, Student, Submission, SubmissionStatus } from "@/lib/types";
+import { useToast } from "@/app/_components/toast";
 
 const READER_ID = "roster-scan-reader";
 
@@ -39,6 +40,7 @@ export default function SubmissionRoster({
   students: Student[];
   initialSubmissions: Submission[];
 }) {
+  const { showToast } = useToast();
   const [rows, setRows] = useState<Record<string, Row>>(() => {
     const byStudent = new Map(initialSubmissions.map((s) => [s.student_id, s]));
     const initial: Record<string, Row> = {};
@@ -148,7 +150,7 @@ export default function SubmissionRoster({
     );
 
     updateRow(studentId, { saving: false });
-    if (error) window.alert(error.message);
+    if (error) showToast(error.message);
   }
 
   async function handleFileChange(studentId: string, file: File | null) {
@@ -164,7 +166,7 @@ export default function SubmissionRoster({
 
     if (uploadError) {
       updateRow(studentId, { uploading: false });
-      window.alert(uploadError.message);
+      showToast(uploadError.message);
       return;
     }
 
@@ -192,7 +194,7 @@ export default function SubmissionRoster({
       status: nextStatus,
     });
 
-    if (upsertError) window.alert(upsertError.message);
+    if (upsertError) showToast(upsertError.message);
   }
 
   async function handleViewFile(path: string) {
@@ -202,7 +204,7 @@ export default function SubmissionRoster({
       .createSignedUrl(path, 60);
 
     if (error || !data) {
-      window.alert(error?.message ?? "Could not open file.");
+      showToast(error?.message ?? "Could not open file.");
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");

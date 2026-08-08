@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/app/_components/toast";
 
 export default function SubjectEditor({
   classId,
@@ -12,6 +13,7 @@ export default function SubjectEditor({
   initialSubject: string | null;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [subject, setSubject] = useState(initialSubject);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(initialSubject ?? "");
@@ -30,7 +32,7 @@ export default function SubjectEditor({
     setSaving(false);
 
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
 

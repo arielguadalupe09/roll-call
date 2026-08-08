@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Toast, { useToast } from "@/app/_components/toast";
+import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 
 export default function ArchiveButton({
   classId,
@@ -16,7 +17,8 @@ export default function ArchiveButton({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { message, action, showToast } = useToast(5000);
+  const { showToast } = useToast();
+  const confirm = useConfirm();
 
   async function setArchived(next: boolean) {
     setLoading(true);
@@ -28,7 +30,7 @@ export default function ArchiveButton({
     setLoading(false);
 
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
     router.refresh();
@@ -41,10 +43,11 @@ export default function ArchiveButton({
     }
   }
 
-  function handleClick() {
+  async function handleClick() {
     if (!archived) {
-      const confirmed = window.confirm(
+      const confirmed = await confirm(
         `Archive "${name}"? It'll be hidden from your dashboard and sidebar — you can unarchive it anytime.`,
+        { confirmLabel: "Archive" },
       );
       if (!confirmed) return;
     }
@@ -52,17 +55,14 @@ export default function ArchiveButton({
   }
 
   return (
-    <>
-      <button
-        onClick={handleClick}
-        disabled={loading}
-        className={`shrink-0 whitespace-nowrap text-sm underline underline-offset-2 disabled:opacity-60 ${
-          archived ? "text-teal" : "text-ink/60 hover:text-ink"
-        }`}
-      >
-        {loading ? "..." : archived ? "Unarchive" : "Archive"}
-      </button>
-      <Toast message={message} action={action} />
-    </>
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className={`shrink-0 whitespace-nowrap text-sm underline underline-offset-2 disabled:opacity-60 ${
+        archived ? "text-teal" : "text-ink/60 hover:text-ink"
+      }`}
+    >
+      {loading ? "..." : archived ? "Unarchive" : "Archive"}
+    </button>
   );
 }

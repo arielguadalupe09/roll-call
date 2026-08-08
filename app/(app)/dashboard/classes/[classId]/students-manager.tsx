@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
 import { toLastNameFirst } from "@/lib/name-format";
 import type { Student } from "@/lib/types";
-import Toast, { useToast } from "@/app/_components/toast";
+import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 import IconButton from "@/app/_components/icon-button";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 
@@ -44,7 +45,8 @@ export default function StudentsManager({
   const [editName, setEditName] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { message, showToast } = useToast();
+  const { showToast } = useToast();
+  const confirm = useConfirm();
 
   const displayedStudents = useMemo(() => {
     const list = [...students];
@@ -188,7 +190,11 @@ export default function StudentsManager({
   }
 
   async function handleRemove(studentId: string, studentName: string) {
-    if (!window.confirm(`Delete "${studentName}"? This can't be undone.`)) return;
+    const confirmed = await confirm(`Delete "${studentName}"? This can't be undone.`, {
+      danger: true,
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
 
     const supabase = createClient();
     const { error: deleteError } = await supabase
@@ -210,12 +216,11 @@ export default function StudentsManager({
 
   async function handleRemoveSelected() {
     if (selected.size === 0) return;
-    if (
-      !window.confirm(
-        `Delete ${selected.size} student${selected.size === 1 ? "" : "s"}? This can't be undone.`,
-      )
-    )
-      return;
+    const confirmed = await confirm(
+      `Delete ${selected.size} student${selected.size === 1 ? "" : "s"}? This can't be undone.`,
+      { danger: true, confirmLabel: "Delete" },
+    );
+    if (!confirmed) return;
 
     const ids = Array.from(selected);
     const supabase = createClient();
@@ -258,7 +263,7 @@ export default function StudentsManager({
     setEditSaving(false);
 
     if (updateError) {
-      window.alert(updateError.message);
+      showToast(updateError.message);
       return;
     }
 
@@ -455,7 +460,6 @@ export default function StudentsManager({
           </table>
         </CollapsibleSection>
       </div>
-      <Toast message={message} />
     </div>
   );
 }

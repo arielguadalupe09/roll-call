@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import { useToast } from "@/app/_components/toast";
 
 export default function AssessmentRoster({
   classId,
@@ -29,6 +30,7 @@ export default function AssessmentRoster({
   initialScores: AssessmentScore[];
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [assessments, setAssessments] = useState(initialAssessments);
   const [scoresByAssessment, setScoresByAssessment] = useState<
     Record<string, Record<string, ScoreRow>>
@@ -143,7 +145,7 @@ export default function AssessmentRoster({
       );
 
     updateScore(assessmentId, studentId, { saving: false });
-    if (upsertError) window.alert(upsertError.message);
+    if (upsertError) showToast(upsertError.message);
   }
 
   return (

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "./_components/toast";
+import { ConfirmProvider } from "./_components/confirm-provider";
 
 const fraunces = Fraunces({
   variable: "--font-display-src",
@@ -36,7 +38,9 @@ export default function RootLayout({
       className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="h-full flex flex-col bg-chalk text-ink font-sans">
-        {children}
+        <ConfirmProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </ConfirmProvider>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Assignment, Period } from "@/lib/types";
+import { useToast } from "@/app/_components/toast";
 
 export default function AssignmentsClient({
   classId,
@@ -14,6 +15,7 @@ export default function AssignmentsClient({
   initialAssignments: Assignment[];
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [assignments, setAssignments] = useState(initialAssignments);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -82,7 +84,7 @@ export default function AssignmentsClient({
       .update({ period: nextPeriod })
       .eq("id", id);
 
-    if (updateError) window.alert(updateError.message);
+    if (updateError) showToast(updateError.message);
     router.refresh();
   }
 

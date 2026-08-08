@@ -6,6 +6,7 @@ import type { ClassRow, GradingConfig, Teacher } from "@/lib/types";
 import type { RecordCardStudentData } from "@/lib/record-card-data";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import RecordCardSheet from "../../record-card-sheet";
+import { useToast } from "@/app/_components/toast";
 
 type RosterEntry = { id: string; name: string };
 
@@ -28,6 +29,7 @@ export default function RecordCardClient({
   previousStudent: RosterEntry | null;
   nextStudent: RosterEntry | null;
 }) {
+  const { showToast } = useToast();
   const [paperSize, setPaperSize] = useState<PaperSize>("long");
   const [exportingPdf, setExportingPdf] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -63,7 +65,7 @@ export default function RecordCardClient({
       );
       pdf.save(`${data.student.name.replace(/\s+/g, "-").toLowerCase()}-record-card.pdf`);
     } catch {
-      window.alert("Could not generate the PDF. Please try again.");
+      showToast("Could not generate the PDF. Please try again.");
     } finally {
       setExportingPdf(false);
     }

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { MajorExam, MajorExamScore, Period, Student } from "@/lib/types";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import { useToast } from "@/app/_components/toast";
 
 function ExamSection({
   classId,
@@ -21,6 +22,7 @@ function ExamSection({
   students: Student[];
   initialScores: MajorExamScore[];
 }) {
+  const { showToast } = useToast();
   const [exam, setExam] = useState(initialExam);
   const [maxScore, setMaxScore] = useState(String(initialExam?.max_score ?? 100));
   const [savingMax, setSavingMax] = useState(false);
@@ -54,7 +56,7 @@ function ExamSection({
 
     setSavingMax(false);
     if (error) {
-      window.alert(error.message);
+      showToast(error.message);
       return;
     }
     setExam(data as MajorExam);
@@ -77,7 +79,7 @@ function ExamSection({
     );
 
     updateRow(studentId, { saving: false });
-    if (error) window.alert(error.message);
+    if (error) showToast(error.message);
   }
 
   return (

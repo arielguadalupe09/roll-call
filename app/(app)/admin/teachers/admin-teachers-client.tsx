@@ -3,12 +3,16 @@
 import { useState } from "react";
 import type { Teacher } from "@/lib/types";
 import IconButton from "@/app/_components/icon-button";
+import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 
 export default function AdminTeachersClient({
   initialTeachers,
 }: {
   initialTeachers: Teacher[];
 }) {
+  const { showToast } = useToast();
+  const confirm = useConfirm();
   const [teachers, setTeachers] = useState(initialTeachers);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,11 +41,11 @@ export default function AdminTeachersClient({
     setResettingId(null);
 
     if (!res.ok) {
-      window.alert(data.error ?? "Could not reset the password.");
+      showToast(data.error ?? "Could not reset the password.");
       return;
     }
 
-    window.alert(`Password reset for "${teacher.email}".`);
+    showToast(`Password reset for "${teacher.email}".`);
   }
 
   function startEdit(teacher: Teacher) {
@@ -65,7 +69,7 @@ export default function AdminTeachersClient({
     setSavingEdit(false);
 
     if (!res.ok) {
-      window.alert(data.error ?? "Could not update the account.");
+      showToast(data.error ?? "Could not update the account.");
       return;
     }
 
@@ -74,9 +78,11 @@ export default function AdminTeachersClient({
   }
 
   async function handleDelete(teacher: Teacher) {
-    if (!window.confirm(`Delete the account for "${teacher.email}"? This can't be undone.`)) {
-      return;
-    }
+    const confirmed = await confirm(
+      `Delete the account for "${teacher.email}"? This can't be undone.`,
+      { danger: true, confirmLabel: "Delete" },
+    );
+    if (!confirmed) return;
 
     setDeletingId(teacher.id);
     const res = await fetch("/api/admin/delete-teacher", {
@@ -88,7 +94,7 @@ export default function AdminTeachersClient({
     setDeletingId(null);
 
     if (!res.ok) {
-      window.alert(data.error ?? "Could not delete the account.");
+      showToast(data.error ?? "Could not delete the account.");
       return;
     }
 
