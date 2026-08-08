@@ -13,7 +13,7 @@ import type {
 import { summarizeParticipation } from "@/lib/participation";
 import { buildRecordCardData, type ClassGradingData } from "@/lib/record-card-data";
 import { computeFinalGrade } from "@/lib/final-grade";
-import CollapsibleSection from "./collapsible-section";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 function Cell({ children }: { children: React.ReactNode }) {
   return (

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MajorExam, MajorExamScore, Period, Student } from "@/lib/types";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
-import CollapsibleSection from "./collapsible-section";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 function ExamSection({
   classId,

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { GradingConfig, ParticipationLog, Student } from "@/lib/types";
 import { summarizeParticipation } from "@/lib/participation";
-import CollapsibleSection from "./collapsible-section";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 function SummaryTable({
   title,

@@ -9,6 +9,7 @@ import { toLastNameFirst } from "@/lib/name-format";
 import type { Student } from "@/lib/types";
 import Toast, { useToast } from "@/app/_components/toast";
 import IconButton from "@/app/_components/icon-button";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 const MAX_ATTEMPTS = 5;
 
@@ -319,137 +320,141 @@ export default function StudentsManager({
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <button
-          onClick={() => setSortMode((prev) => NEXT_SORT[prev])}
-          className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink transition hover:bg-ink/5"
-        >
-          {SORT_LABEL[sortMode]}
-        </button>
-
-        {selected.size > 0 && (
-          <div className="flex items-center gap-3 rounded-sm border border-brass bg-brass/10 px-3 py-1.5">
-            <span className="text-sm font-medium text-ink">
-              {selected.size} selected
-            </span>
-            <Link
-              href={`/qr/${classId}?ids=${Array.from(selected).join(",")}`}
-              className="text-sm text-teal underline underline-offset-2"
-            >
-              Print QR for selected
-            </Link>
+      <div className="mt-6">
+        <CollapsibleSection title="Students" subtitle={`${displayedStudents.length} students`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <button
-              onClick={handleRemoveSelected}
-              className="text-sm text-danger underline underline-offset-2"
+              onClick={() => setSortMode((prev) => NEXT_SORT[prev])}
+              className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink transition hover:bg-ink/5"
             >
-              Remove selected
+              {SORT_LABEL[sortMode]}
             </button>
-          </div>
-        )}
-      </div>
 
-      <table className="mt-3 w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b border-rule font-mono text-xs uppercase tracking-wide text-ink/60">
-            <th className="w-8 py-2">
-              <input
-                type="checkbox"
-                checked={
-                  displayedStudents.length > 0 &&
-                  selected.size === displayedStudents.length
-                }
-                onChange={toggleSelectAll}
-                aria-label="Select all students"
-              />
-            </th>
-            <th className="w-10 py-2">#</th>
-            <th className="py-2">Name</th>
-            <th className="py-2">Code</th>
-            <th className="py-2" />
-          </tr>
-        </thead>
-        <tbody>
-          {displayedStudents.map((s, i) => {
-            const isEditing = editingId === s.id;
-            return (
-              <tr key={s.id} className="border-b border-rule/50">
-                <td className="py-2">
+            {selected.size > 0 && (
+              <div className="flex items-center gap-3 rounded-sm border border-brass bg-brass/10 px-3 py-1.5">
+                <span className="text-sm font-medium text-ink">
+                  {selected.size} selected
+                </span>
+                <Link
+                  href={`/qr/${classId}?ids=${Array.from(selected).join(",")}`}
+                  className="text-sm text-teal underline underline-offset-2"
+                >
+                  Print QR for selected
+                </Link>
+                <button
+                  onClick={handleRemoveSelected}
+                  className="text-sm text-danger underline underline-offset-2"
+                >
+                  Remove selected
+                </button>
+              </div>
+            )}
+          </div>
+
+          <table className="mt-3 w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-rule font-mono text-xs uppercase tracking-wide text-ink/60">
+                <th className="w-8 py-2">
                   <input
                     type="checkbox"
-                    checked={selected.has(s.id)}
-                    onChange={() => toggleSelected(s.id)}
-                    aria-label={`Select ${s.name}`}
+                    checked={
+                      displayedStudents.length > 0 &&
+                      selected.size === displayedStudents.length
+                    }
+                    onChange={toggleSelectAll}
+                    aria-label="Select all students"
                   />
-                </td>
-                <td className="py-2 font-mono text-xs text-ink/50">{i + 1}.</td>
-                <td className="py-2 text-ink">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      autoFocus
-                      className="w-full rounded-sm border border-brass bg-white px-2 py-1 text-ink outline-none"
-                    />
-                  ) : (
-                    <span className="font-semibold uppercase tracking-wide">
-                      {s.name}
-                    </span>
-                  )}
-                </td>
-                <td className="py-2 font-mono text-teal">{s.code}</td>
-                <td className="py-2 text-right">
-                  {isEditing ? (
-                    <div className="flex justify-end gap-3">
-                      <button
-                        onClick={saveEdit}
-                        disabled={editSaving}
-                        className="text-sm text-teal underline underline-offset-2 disabled:opacity-60"
-                      >
-                        {editSaving ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="text-sm text-ink/60 underline underline-offset-2"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-end gap-2">
-                      <IconButton
-                        icon="record"
-                        color="brass"
-                        label="Record Card"
-                        href={`/record-card/${classId}/${s.id}`}
-                      />
-                      <IconButton
-                        icon="edit"
-                        color="teal"
-                        label="Edit"
-                        onClick={() => startEdit(s)}
-                      />
-                      <IconButton
-                        icon="delete"
-                        color="danger"
-                        label="Remove"
-                        onClick={() => handleRemove(s.id, s.name)}
-                      />
-                    </div>
-                  )}
-                </td>
+                </th>
+                <th className="w-10 py-2">#</th>
+                <th className="py-2">Name</th>
+                <th className="py-2">Code</th>
+                <th className="py-2" />
               </tr>
-            );
-          })}
-          {displayedStudents.length === 0 && (
-            <tr>
-              <td colSpan={5} className="py-4 text-ink/60">
-                No students yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {displayedStudents.map((s, i) => {
+                const isEditing = editingId === s.id;
+                return (
+                  <tr key={s.id} className="border-b border-rule/50">
+                    <td className="py-2">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(s.id)}
+                        onChange={() => toggleSelected(s.id)}
+                        aria-label={`Select ${s.name}`}
+                      />
+                    </td>
+                    <td className="py-2 font-mono text-xs text-ink/50">{i + 1}.</td>
+                    <td className="py-2 text-ink">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          autoFocus
+                          className="w-full rounded-sm border border-brass bg-white px-2 py-1 text-ink outline-none"
+                        />
+                      ) : (
+                        <span className="font-semibold uppercase tracking-wide">
+                          {s.name}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 font-mono text-teal">{s.code}</td>
+                    <td className="py-2 text-right">
+                      {isEditing ? (
+                        <div className="flex justify-end gap-3">
+                          <button
+                            onClick={saveEdit}
+                            disabled={editSaving}
+                            className="text-sm text-teal underline underline-offset-2 disabled:opacity-60"
+                          >
+                            {editSaving ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="text-sm text-ink/60 underline underline-offset-2"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end gap-2">
+                          <IconButton
+                            icon="record"
+                            color="brass"
+                            label="Record Card"
+                            href={`/record-card/${classId}/${s.id}`}
+                          />
+                          <IconButton
+                            icon="edit"
+                            color="teal"
+                            label="Edit"
+                            onClick={() => startEdit(s)}
+                          />
+                          <IconButton
+                            icon="delete"
+                            color="danger"
+                            label="Remove"
+                            onClick={() => handleRemove(s.id, s.name)}
+                          />
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {displayedStudents.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-4 text-ink/60">
+                    No students yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </CollapsibleSection>
+      </div>
       <Toast message={message} />
     </div>
   );

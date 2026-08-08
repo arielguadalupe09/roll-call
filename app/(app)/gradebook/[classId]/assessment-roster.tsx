@@ -11,7 +11,7 @@ import type {
   Student,
 } from "@/lib/types";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
-import CollapsibleSection from "./collapsible-section";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 export default function AssessmentRoster({
   classId,
