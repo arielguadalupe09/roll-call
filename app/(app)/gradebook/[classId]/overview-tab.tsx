@@ -3,6 +3,7 @@ import type {
   Assessment,
   AssessmentScore,
   Assignment,
+  GradingConfig,
   MajorExam,
   MajorExamScore,
   ParticipationLog,
@@ -10,6 +11,8 @@ import type {
   Submission,
 } from "@/lib/types";
 import { summarizeParticipation } from "@/lib/participation";
+import { buildRecordCardData, type ClassGradingData } from "@/lib/record-card-data";
+import { computeFinalGrade } from "@/lib/final-grade";
 import CollapsibleSection from "./collapsible-section";
 
 function Cell({ children }: { children: React.ReactNode }) {
@@ -22,6 +25,7 @@ function Cell({ children }: { children: React.ReactNode }) {
 
 export default function OverviewTab({
   students,
+  config,
   assignments,
   submissions,
   assessments,
@@ -31,6 +35,7 @@ export default function OverviewTab({
   recitationLogs,
 }: {
   students: Student[];
+  config: GradingConfig;
   assignments: Assignment[];
   submissions: Submission[];
   assessments: Assessment[];
@@ -67,6 +72,35 @@ export default function OverviewTab({
     () => summarizeParticipation(recitationLogs),
     [recitationLogs],
   );
+
+  const finalGradeByStudent = useMemo(() => {
+    const classData: ClassGradingData = {
+      config,
+      assignments,
+      submissions,
+      assessments,
+      assessmentScores,
+      majorExams,
+      majorExamScores,
+      recitationLogs,
+      attendance: [],
+    };
+    const map = new Map<string, ReturnType<typeof computeFinalGrade>>();
+    for (const s of students) {
+      map.set(s.id, computeFinalGrade(buildRecordCardData(s, classData), config));
+    }
+    return map;
+  }, [
+    students,
+    config,
+    assignments,
+    submissions,
+    assessments,
+    assessmentScores,
+    majorExams,
+    majorExamScores,
+    recitationLogs,
+  ]);
 
   const hasAnyColumns =
     assignments.length > 0 ||
@@ -136,11 +170,24 @@ export default function OverviewTab({
                   Recitation
                   <span className="block font-normal normal-case text-ink/40">avg / 5</span>
                 </th>
+                <th className="py-2 px-3 text-center">
+                  Midterm
+                  <span className="block font-normal normal-case text-ink/40">grade</span>
+                </th>
+                <th className="py-2 px-3 text-center">
+                  Finals
+                  <span className="block font-normal normal-case text-ink/40">grade</span>
+                </th>
+                <th className="py-2 px-3 text-center font-semibold text-ink">
+                  Final Grade
+                  <span className="block font-normal normal-case text-ink/40">weighted</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {students.map((s) => {
                 const recitation = recitationByStudent.get(s.id);
+                const grade = finalGradeByStudent.get(s.id);
                 return (
                   <tr key={s.id} className="bg-white">
                     <td className="sticky left-0 bg-white py-2 px-3 text-ink">{s.name}</td>
@@ -189,6 +236,19 @@ export default function OverviewTab({
                     <Cell>
                       {recitation?.avg != null ? `${recitation.avg.toFixed(1)}/5` : null}
                     </Cell>
+                    <Cell>
+                      {grade?.midterm != null ? `${grade.midterm.toFixed(1)}%` : null}
+                    </Cell>
+                    <Cell>
+                      {grade?.finals != null ? `${grade.finals.toFixed(1)}%` : null}
+                    </Cell>
+                    <td className="border-b border-rule/50 py-2 px-3 text-center font-mono text-xs font-semibold text-ink">
+                      {grade?.final != null ? (
+                        `${grade.final.toFixed(1)}%`
+                      ) : (
+                        <span className="font-normal text-ink/20">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

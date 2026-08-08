@@ -98,6 +98,7 @@ export default function GradingHubClient({
       {tab === "overview" && (
         <OverviewTab
           students={students}
+          config={config}
           assignments={assignments}
           submissions={submissions}
           assessments={assessments}

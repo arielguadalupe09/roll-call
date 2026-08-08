@@ -50,6 +50,7 @@ export default function ManualAttendanceClient({
   const [attendance, setAttendance] = useState(initialAttendance);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const byStudent = useMemo(() => {
     const map = new Map<string, Attendance>();
@@ -63,6 +64,39 @@ export default function ManualAttendanceClient({
     () => attendance.filter((a) => a.date === date),
     [attendance, date],
   );
+
+  const unmarkedStudents = useMemo(
+    () => students.filter((s) => !byStudent.has(s.id)),
+    [students, byStudent],
+  );
+
+  async function markRemainingPresent() {
+    if (unmarkedStudents.length === 0) return;
+    setMarkingAll(true);
+    const supabase = createClient();
+
+    const payload = unmarkedStudents.map((s) => ({
+      class_id: classId,
+      student_id: s.id,
+      date,
+      method: "manual" as const,
+      status: "present" as const,
+    }));
+
+    const { data, error } = await supabase
+      .from("attendance")
+      .upsert(payload, { onConflict: "class_id,student_id,date" })
+      .select();
+
+    setMarkingAll(false);
+
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+
+    setAttendance((prev) => [...prev, ...(data as Attendance[])]);
+  }
 
   async function clearDay() {
     if (recordsForDate.length === 0) return;
@@ -143,13 +177,24 @@ export default function ManualAttendanceClient({
             </span>
           ))}
         </div>
-        <button
-          onClick={clearDay}
-          disabled={clearing || recordsForDate.length === 0}
-          className="ml-auto rounded-sm border border-danger/40 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/10 disabled:opacity-40"
-        >
-          {clearing ? "Clearing…" : `Clear attendance for ${date}`}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={markRemainingPresent}
+            disabled={markingAll || unmarkedStudents.length === 0}
+            className="rounded-sm border border-teal/40 px-3 py-1.5 text-xs font-medium text-teal transition hover:bg-teal/10 disabled:opacity-40"
+          >
+            {markingAll
+              ? "Marking…"
+              : `Mark ${unmarkedStudents.length} remaining as Present`}
+          </button>
+          <button
+            onClick={clearDay}
+            disabled={clearing || recordsForDate.length === 0}
+            className="rounded-sm border border-danger/40 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/10 disabled:opacity-40"
+          >
+            {clearing ? "Clearing…" : `Clear attendance for ${date}`}
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-sm border border-rule">
