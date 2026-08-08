@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClassRow, GradingConfig, Teacher } from "@/lib/types";
 import type { RecordCardStudentData } from "@/lib/record-card-data";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
@@ -22,7 +22,29 @@ export default function RecordCardAllClient({
   const [paperSize, setPaperSize] = useState<PaperSize>("long");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [printSelectedOnly, setPrintSelectedOnly] = useState(false);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Flip printSelectedOnly to hide non-selected cards behind a print-only
+  // class, wait for that to commit to the DOM, then open the print dialog —
+  // and clear the flag once it closes so a later plain print isn't scoped.
+  useEffect(() => {
+    if (!printSelectedOnly) return;
+    window.print();
+    function handleAfterPrint() {
+      setPrintSelectedOnly(false);
+    }
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, [printSelectedOnly]);
+
+  function handlePrint() {
+    if (selected.size > 0) {
+      setPrintSelectedOnly(true);
+    } else {
+      window.print();
+    }
+  }
 
   function toggleSelected(id: string) {
     setSelected((prev) => {
@@ -133,10 +155,10 @@ export default function RecordCardAllClient({
                 : "Save PDF (all students)"}
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110"
           >
-            Print all
+            {selected.size > 0 ? `Print (${selected.size} selected)` : "Print all"}
           </button>
         </div>
       </div>
@@ -157,8 +179,8 @@ export default function RecordCardAllClient({
             </label>
           </div>
           <p className="mt-1 text-sm text-ink/60">
-            Check students to limit &quot;Save PDF&quot; to just them — leave
-            none checked to export everyone.
+            Check students to limit &quot;Save PDF&quot; and &quot;Print&quot;
+            to just them — leave none checked to include everyone.
           </p>
           <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
             {allData.map((d) => (
@@ -191,6 +213,9 @@ export default function RecordCardAllClient({
               ref={(el) => {
                 cardRefs.current[data.student.id] = el;
               }}
+              className={
+                printSelectedOnly && !selected.has(data.student.id) ? "print:hidden" : ""
+              }
             >
               <RecordCardSheet
                 classRow={classRow}
