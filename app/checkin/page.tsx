@@ -210,8 +210,13 @@ export default function PublicCheckinPage() {
 
       {step === "scan" && (
         <>
-          <p className="mt-4 max-w-xs text-center text-rule">
-            Scan the session QR your teacher is projecting.
+          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-brass">
+            Step 1 of 2 — Scan your teacher&apos;s session QR
+          </p>
+          <p className="mt-2 max-w-xs text-center text-rule">
+            Point your camera at the QR code your teacher is projecting on
+            the screen or board. It changes every session, so make sure
+            you&apos;re looking at today&apos;s code.
           </p>
           <div className="loupe mt-8 h-72 w-72">
             <div id={SESSION_READER_ID} className="h-72 w-72" />
@@ -221,12 +226,20 @@ export default function PublicCheckinPage() {
 
       {step === "code" && sessionInfo && (
         <div className="mt-8 w-full max-w-xs">
-          <div className="ledger-page rounded-sm border border-rule p-6 text-ink">
+          <p className="text-center font-mono text-xs uppercase tracking-[0.2em] text-brass">
+            Step 2 of 2 — Identify yourself
+          </p>
+          <div className="ledger-page mt-3 rounded-sm border border-rule p-6 text-ink">
             <p className="font-display text-xl font-semibold">
               {sessionInfo.className}
             </p>
             <p className="font-mono text-sm text-ink/70">
               {sessionInfo.date}
+            </p>
+            <p className="mt-3 text-sm text-ink/70">
+              Now enter the personal code printed on your QR card, or scan
+              that card instead — this is how we mark the right student
+              present.
             </p>
 
             {codeMode === "type" ? (
