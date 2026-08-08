@@ -27,6 +27,18 @@ export default async function RecordCardPage({
 
   if (!classRow || !student) notFound();
 
+  const { data: classmates } = await supabase
+    .from("students")
+    .select("id, name")
+    .eq("class_id", classId)
+    .order("name", { ascending: true });
+
+  const roster = (classmates as { id: string; name: string }[] | null) ?? [];
+  const currentIndex = roster.findIndex((s) => s.id === studentId);
+  const previousStudent = currentIndex > 0 ? roster[currentIndex - 1] : null;
+  const nextStudent =
+    currentIndex >= 0 && currentIndex < roster.length - 1 ? roster[currentIndex + 1] : null;
+
   const { data: teacherRow } = await supabase
     .from("teachers")
     .select("*")
@@ -48,11 +60,14 @@ export default async function RecordCardPage({
 
   return (
     <RecordCardClient
+      classId={classId}
       classRow={classRow as ClassRow}
       teacher={teacher}
       data={data}
       config={classData.config as GradingConfig}
       logoUrl={logoUrl}
+      previousStudent={previousStudent}
+      nextStudent={nextStudent}
     />
   );
 }

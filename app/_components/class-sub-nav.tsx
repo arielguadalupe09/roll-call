@@ -72,6 +72,11 @@ export default function ClassSubNav() {
           href: `/gradebook/${classId}`,
           active: pathname === `/gradebook/${classId}`,
         },
+        {
+          label: "Record Cards",
+          href: `/record-card/${classId}`,
+          active: pathname.startsWith(`/record-card/${classId}`),
+        },
       ],
     },
   ];
