@@ -76,7 +76,6 @@ export default function SetupTab({
   });
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const weightSum = useMemo(
     () => CATEGORY_FIELDS.reduce((sum, f) => sum + (Number(values[f.key]) || 0), 0),
@@ -86,7 +85,6 @@ export default function SetupTab({
 
   async function handleSave() {
     setSaving(true);
-    setSaved(false);
     const supabase = createClient();
 
     const payload: Partial<GradingConfig> & { class_id: string } = {
@@ -113,8 +111,7 @@ export default function SetupTab({
       showToast(error.message);
       return;
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    showToast("Your grading configuration has been saved successfully.");
   }
 
   return (
@@ -295,11 +292,6 @@ export default function SetupTab({
         >
           {saving ? "Saving..." : "Save configuration"}
         </button>
-        {saved && (
-          <p className="text-sm text-teal">
-            Your grading configuration has been saved successfully.
-          </p>
-        )}
       </div>
     </div>
   );

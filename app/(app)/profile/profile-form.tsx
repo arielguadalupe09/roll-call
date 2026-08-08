@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/app/_components/toast";
 
 export default function ProfileForm({
   teacherId,
@@ -10,15 +11,14 @@ export default function ProfileForm({
   teacherId: string;
   initialFullName: string | null;
 }) {
+  const { showToast } = useToast();
   const [fullName, setFullName] = useState(initialFullName ?? "");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setSaved(false);
     setError(null);
 
     const supabase = createClient();
@@ -33,8 +33,7 @@ export default function ProfileForm({
       setError(updateError.message);
       return;
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    showToast("Your profile has been saved successfully.");
   }
 
   return (
@@ -62,9 +61,6 @@ export default function ProfileForm({
           >
             {saving ? "Saving..." : "Save"}
           </button>
-          {saved && (
-            <p className="text-sm text-teal">Your profile has been saved successfully.</p>
-          )}
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -75,15 +71,14 @@ export default function ProfileForm({
 }
 
 function ChangePasswordForm() {
+  const { showToast } = useToast();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordChanged, setPasswordChanged] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
-    setPasswordChanged(false);
     setPasswordError(null);
 
     if (newPassword.length < 6) {
@@ -108,8 +103,7 @@ function ChangePasswordForm() {
     }
     setNewPassword("");
     setConfirmPassword("");
-    setPasswordChanged(true);
-    setTimeout(() => setPasswordChanged(false), 2000);
+    showToast("Password updated.");
   }
 
   return (
@@ -149,7 +143,6 @@ function ChangePasswordForm() {
         >
           {changingPassword ? "Updating..." : "Update password"}
         </button>
-        {passwordChanged && <p className="text-sm text-teal">Password updated.</p>}
         {passwordError && <p className="text-sm text-danger">{passwordError}</p>}
       </div>
     </form>

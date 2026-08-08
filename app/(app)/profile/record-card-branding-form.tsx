@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/app/_components/toast";
 
 export default function RecordCardBrandingForm({
   teacherId,
@@ -16,11 +17,11 @@ export default function RecordCardBrandingForm({
   initialLogoUrl: string | null;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [schoolName, setSchoolName] = useState(initialSchoolName ?? "");
   const [campusLine, setCampusLine] = useState(initialCampusLine ?? "");
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +29,6 @@ export default function RecordCardBrandingForm({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setSaved(false);
     setError(null);
 
     const supabase = createClient();
@@ -46,8 +46,7 @@ export default function RecordCardBrandingForm({
       setError(updateError.message);
       return;
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    showToast("Your branding has been saved successfully.");
     router.refresh();
   }
 
@@ -155,9 +154,6 @@ export default function RecordCardBrandingForm({
         >
           {saving ? "Saving..." : "Save"}
         </button>
-        {saved && (
-          <p className="text-sm text-teal">Your branding has been saved successfully.</p>
-        )}
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
     </form>
