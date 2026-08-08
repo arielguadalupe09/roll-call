@@ -31,7 +31,26 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
 
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-sm border border-rule bg-white p-4 text-center">
+          <p className="font-display text-2xl font-semibold text-ink">{rows.length}</p>
+          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+            Total students
+          </p>
+        </div>
+        <div className="rounded-sm border border-rule bg-white p-4 text-center">
+          <p className="font-display text-2xl font-semibold text-ink">
+            {classOptions.length}
+          </p>
+          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Classes</p>
+        </div>
+        <div className="rounded-sm border border-rule bg-white p-4 text-center">
+          <p className="font-display text-2xl font-semibold text-ink">{filtered.length}</p>
+          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Showing</p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
         <input
           type="text"
           placeholder="Search by name, code, or class..."
