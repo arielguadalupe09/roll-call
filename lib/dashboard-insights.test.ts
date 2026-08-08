@@ -46,6 +46,7 @@ function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
     show_laboratory: true,
     show_major_exam: true,
     show_attendance: true,
+    record_card_layout: {},
     updated_at: "2026-01-01T00:00:00Z",
     ...overrides,
   };

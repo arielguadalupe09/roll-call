@@ -3,6 +3,12 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { GradingConfig } from "@/lib/types";
+import {
+  DEFAULT_SECTION_TITLES,
+  moveSection,
+  resolveSectionOrder,
+  type RecordCardSectionKey,
+} from "@/lib/record-card-layout";
 
 const CATEGORY_FIELDS = [
   { key: "weight_assignment", label: "Assignment" },
@@ -27,6 +33,16 @@ const SECTION_FIELDS = [
 
 type SectionKey = (typeof SECTION_FIELDS)[number]["key"];
 
+const SHOW_FIELD_BY_SECTION: Record<RecordCardSectionKey, SectionKey> = {
+  assignment: "show_assignment",
+  recitation: "show_recitation",
+  quiz: "show_quiz",
+  written: "show_written",
+  laboratory: "show_laboratory",
+  major_exam: "show_major_exam",
+  attendance: "show_attendance",
+};
+
 export default function SetupTab({
   classId,
   initialConfig,
@@ -45,6 +61,16 @@ export default function SetupTab({
   const [sections, setSections] = useState<Record<SectionKey, boolean>>(() => {
     const initial = {} as Record<SectionKey, boolean>;
     for (const f of SECTION_FIELDS) initial[f.key] = initialConfig[f.key];
+    return initial;
+  });
+  const [order, setOrder] = useState<RecordCardSectionKey[]>(() =>
+    resolveSectionOrder(initialConfig.record_card_layout),
+  );
+  const [titles, setTitles] = useState<Record<RecordCardSectionKey, string>>(() => {
+    const initial = {} as Record<RecordCardSectionKey, string>;
+    for (const key of Object.keys(DEFAULT_SECTION_TITLES) as RecordCardSectionKey[]) {
+      initial[key] = initialConfig.record_card_layout?.titles?.[key] ?? "";
+    }
     return initial;
   });
   const [saving, setSaving] = useState(false);
@@ -69,6 +95,12 @@ export default function SetupTab({
     };
     for (const f of CATEGORY_FIELDS) payload[f.key] = Number(values[f.key]) || 0;
     for (const f of SECTION_FIELDS) payload[f.key] = sections[f.key];
+    payload.record_card_layout = {
+      order,
+      titles: Object.fromEntries(
+        Object.entries(titles).filter(([, v]) => v.trim() !== ""),
+      ),
+    };
 
     const { error } = await supabase
       .from("grading_configs")
@@ -178,24 +210,77 @@ export default function SetupTab({
 
       <div className="mt-4 rounded-sm border border-rule bg-white p-4">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
-          Record Card sections
+          Record Card layout
         </p>
         <p className="mt-1 text-sm text-ink/60">
-          Choose which sections print on this class&apos;s Student Individual
-          Record Card.
+          Choose which sections print, their order, and a custom title for
+          each on this class&apos;s Student Individual Record Card.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {SECTION_FIELDS.map((f) => (
-            <label key={f.key} className="flex items-center gap-2 text-sm text-ink">
+        <div className="mt-3 flex flex-col gap-2">
+          {order.map((key, index) => (
+            <div
+              key={key}
+              className="flex items-center gap-3 rounded-sm border border-rule/60 p-2"
+            >
+              <div className="flex shrink-0 flex-col">
+                <button
+                  type="button"
+                  onClick={() => setOrder((prev) => moveSection(prev, key, "up"))}
+                  disabled={index === 0}
+                  aria-label={`Move ${DEFAULT_SECTION_TITLES[key]} up`}
+                  className="text-ink/50 hover:text-ink disabled:opacity-25"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 10l4-4 4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrder((prev) => moveSection(prev, key, "down"))}
+                  disabled={index === order.length - 1}
+                  aria-label={`Move ${DEFAULT_SECTION_TITLES[key]} down`}
+                  className="text-ink/50 hover:text-ink disabled:opacity-25"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 6l4 4 4-4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+
               <input
                 type="checkbox"
-                checked={sections[f.key]}
+                checked={sections[SHOW_FIELD_BY_SECTION[key]]}
                 onChange={(e) =>
-                  setSections((prev) => ({ ...prev, [f.key]: e.target.checked }))
+                  setSections((prev) => ({
+                    ...prev,
+                    [SHOW_FIELD_BY_SECTION[key]]: e.target.checked,
+                  }))
                 }
+                aria-label={`Show ${DEFAULT_SECTION_TITLES[key]}`}
               />
-              {f.label}
-            </label>
+
+              <input
+                type="text"
+                value={titles[key]}
+                onChange={(e) =>
+                  setTitles((prev) => ({ ...prev, [key]: e.target.value }))
+                }
+                placeholder={DEFAULT_SECTION_TITLES[key]}
+                className="flex-1 rounded-sm border border-rule bg-white/60 px-2 py-1 text-sm text-ink outline-none focus:border-brass"
+              />
+            </div>
           ))}
         </div>
       </div>

@@ -1,3 +1,5 @@
+import type { RecordCardLayout } from "./record-card-layout";
+
 export type Teacher = {
   id: string;
   email: string;
@@ -123,6 +125,7 @@ export type GradingConfig = {
   show_laboratory: boolean;
   show_major_exam: boolean;
   show_attendance: boolean;
+  record_card_layout: RecordCardLayout;
   updated_at: string;
 };
 

@@ -6,6 +6,11 @@ import type {
   MajorExamData,
   RecordCardStudentData,
 } from "@/lib/record-card-data";
+import {
+  resolveSectionOrder,
+  sectionTitle,
+  type RecordCardSectionKey,
+} from "@/lib/record-card-layout";
 
 const STATUS_LETTER: Record<AttendanceStatus, string> = {
   present: "P",
@@ -154,11 +159,11 @@ function DateGridBox({ title, entries }: { title: string; entries: GridEntry[] }
   );
 }
 
-function MajorExamBox({ data }: { data: MajorExamData }) {
+function MajorExamBox({ title, data }: { title: string; data: MajorExamData }) {
   return (
     <div className="border border-black">
       <p className="border-b border-black bg-gray-100 px-2 py-1 text-center text-xs font-bold uppercase text-black">
-        Major exam
+        {title}
       </p>
       <table className="w-full border-collapse text-xs">
         <tbody>
@@ -217,13 +222,13 @@ function SignatureRemarksRow() {
   );
 }
 
-function AttendanceBox({ entries }: { entries: AttendanceEntry[] }) {
+function AttendanceBox({ title, entries }: { title: string; entries: AttendanceEntry[] }) {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="border border-black">
       <p className="border-b border-black bg-gray-100 px-2 py-1 text-center text-xs font-bold uppercase text-black">
-        Attendance
+        {title}
       </p>
       {sorted.length === 0 ? (
         <p className="px-2 py-3 text-center text-xs text-black/50">
@@ -286,41 +291,51 @@ export default function RecordCardSheet({
   const { student, assignmentEntries, recitationEntries, quizEntries, writtenEntries, labEntries, majorExam, attendanceEntries } =
     data;
 
-  const showTopRow = config.show_assignment || config.show_recitation || config.show_quiz;
-  const showMidRow =
-    config.show_major_exam || config.show_written || config.show_laboratory;
+  const showBySection: Record<RecordCardSectionKey, boolean> = {
+    assignment: config.show_assignment,
+    recitation: config.show_recitation,
+    quiz: config.show_quiz,
+    major_exam: config.show_major_exam,
+    written: config.show_written,
+    laboratory: config.show_laboratory,
+    attendance: config.show_attendance,
+  };
+
+  const visibleSections = resolveSectionOrder(config.record_card_layout).filter(
+    (key) => showBySection[key],
+  );
+
+  function renderSection(key: RecordCardSectionKey) {
+    const title = sectionTitle(config.record_card_layout, key);
+    switch (key) {
+      case "assignment":
+        return <DateGridBox key={key} title={title} entries={assignmentEntries} />;
+      case "recitation":
+        return <DateGridBox key={key} title={title} entries={recitationEntries} />;
+      case "quiz":
+        return <DateGridBox key={key} title={title} entries={quizEntries} />;
+      case "written":
+        return <DateGridBox key={key} title={title} entries={writtenEntries} />;
+      case "laboratory":
+        return <DateGridBox key={key} title={title} entries={labEntries} />;
+      case "major_exam":
+        return <MajorExamBox key={key} title={title} data={majorExam} />;
+      case "attendance":
+        return (
+          <div key={key} className="col-span-3">
+            <AttendanceBox title={title} entries={attendanceEntries} />
+          </div>
+        );
+    }
+  }
 
   return (
     <div className={`record-card-page ${breakBeforePage ? "record-card-page-break" : ""}`}>
       <Header classRow={classRow} teacher={teacher} student={student} logoUrl={logoUrl} />
 
-      {showTopRow && (
+      {visibleSections.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
-          {config.show_assignment && (
-            <DateGridBox title="Assignment" entries={assignmentEntries} />
-          )}
-          {config.show_recitation && (
-            <DateGridBox title="Recitation" entries={recitationEntries} />
-          )}
-          {config.show_quiz && <DateGridBox title="Quizzes" entries={quizEntries} />}
-        </div>
-      )}
-
-      {showMidRow && (
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {config.show_major_exam && <MajorExamBox data={majorExam} />}
-          {config.show_written && (
-            <DateGridBox title="Written activities" entries={writtenEntries} />
-          )}
-          {config.show_laboratory && (
-            <DateGridBox title="Lab activities" entries={labEntries} />
-          )}
-        </div>
-      )}
-
-      {config.show_attendance && (
-        <div className="mt-2">
-          <AttendanceBox entries={attendanceEntries} />
+          {visibleSections.map((key) => renderSection(key))}
         </div>
       )}
 
