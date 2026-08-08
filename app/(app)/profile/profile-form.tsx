@@ -62,7 +62,9 @@ export default function ProfileForm({
           >
             {saving ? "Saving..." : "Save"}
           </button>
-          {saved && <p className="text-sm text-teal">Saved.</p>}
+          {saved && (
+            <p className="text-sm text-teal">Your profile has been saved successfully.</p>
+          )}
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>

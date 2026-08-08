@@ -293,7 +293,11 @@ export default function SetupTab({
         >
           {saving ? "Saving..." : "Save configuration"}
         </button>
-        {saved && <p className="text-sm text-teal">Saved.</p>}
+        {saved && (
+          <p className="text-sm text-teal">
+            Your grading configuration has been saved successfully.
+          </p>
+        )}
       </div>
     </div>
   );
