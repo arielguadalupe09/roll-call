@@ -35,7 +35,7 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-chalk text-ink font-sans">
+      <body className="h-full flex flex-col bg-chalk text-ink font-sans">
         {children}
       </body>
     </html>

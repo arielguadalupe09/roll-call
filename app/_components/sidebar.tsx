@@ -89,7 +89,7 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 -translate-x-full flex-col bg-chalk transition-transform duration-200 md:static md:z-auto md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 -translate-x-full flex-col bg-chalk transition-transform duration-200 md:static md:z-auto md:min-h-0 md:translate-x-0 ${
           open ? "translate-x-0" : ""
         }`}
       >
@@ -121,7 +121,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <p className="px-2 font-mono text-[10px] uppercase tracking-[0.2em] text-rule/70">
             Main
           </p>

@@ -30,13 +30,13 @@ export default async function AppShellLayout({
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col md:flex-row">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
       <Sidebar
         classes={(classes as ClassRow[] | null) ?? []}
         email={user?.email ?? ""}
         isAdmin={isAdmin}
       />
-      <main className="ledger-page min-w-0 flex-1 overflow-y-auto">
+      <main className="ledger-page min-h-0 min-w-0 flex-1 overflow-y-auto">
         <div className="border-b border-rule/60 bg-paper px-4 pt-6 pb-3 sm:px-8">
           <ClassSubNav />
         </div>
