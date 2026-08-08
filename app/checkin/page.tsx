@@ -8,6 +8,7 @@ const CODE_READER_ID = "student-code-reader";
 type SessionInfo = { classId: string; className: string; date: string };
 type Step = "scan" | "code" | "done";
 type CodeMode = "type" | "scan";
+type AnnouncementInfo = { id: string; title: string; body: string; created_at: string };
 
 export default function PublicCheckinPage() {
   const [step, setStep] = useState<Step>("scan");
@@ -16,6 +17,7 @@ export default function PublicCheckinPage() {
   const [token, setToken] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [studentName, setStudentName] = useState("");
+  const [announcements, setAnnouncements] = useState<AnnouncementInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -50,6 +52,7 @@ export default function PublicCheckinPage() {
     }
 
     setStudentName(data.name);
+    setAnnouncements(data.announcements ?? []);
     setStep("done");
   }, []);
 
@@ -192,6 +195,7 @@ export default function PublicCheckinPage() {
     setSessionInfo(null);
     setToken(null);
     setCode("");
+    setAnnouncements([]);
     setError(null);
   }
 
@@ -271,11 +275,33 @@ export default function PublicCheckinPage() {
       )}
 
       {step === "done" && (
-        <div className="stamp-in mt-12 flex flex-col items-center">
+        <div className="stamp-in mt-12 flex w-full max-w-xs flex-col items-center">
           <p className="rotate-[-6deg] border-4 border-brass px-6 py-4 text-center font-display text-2xl font-bold uppercase text-brass">
             Welcome, {studentName}
           </p>
           <p className="mt-4 text-rule">You&apos;re marked present.</p>
+
+          {announcements.length > 0 && (
+            <div className="mt-8 w-full">
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-rule">
+                Announcements
+              </p>
+              <ul className="mt-3 flex flex-col gap-3">
+                {announcements.map((a) => (
+                  <li
+                    key={a.id}
+                    className="ledger-page rounded-sm border border-rule p-4 text-left text-ink"
+                  >
+                    <p className="font-display text-lg font-semibold">{a.title}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-ink/80">{a.body}</p>
+                    <p className="mt-2 font-mono text-xs text-ink/50">
+                      {new Date(a.created_at).toLocaleString()}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

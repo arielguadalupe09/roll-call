@@ -64,5 +64,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ name: student.name });
+  const { data: announcements } = await supabase
+    .from("announcements")
+    .select("id, title, body, created_at")
+    .eq("class_id", session.class_id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return NextResponse.json({ name: student.name, announcements: announcements ?? [] });
 }
