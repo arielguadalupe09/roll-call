@@ -120,6 +120,16 @@
     print-color-adjust: exact !important;
   }
 
+  /* The app shell's own background (bg-chalk, dark navy) is never targeted
+     by "body *" below since that only hides body's children, not body
+     itself — so it was showing through as a dark bar anywhere the
+     printable container's own white background didn't reach (e.g. beyond
+     page 1 when content spans multiple pages). Force it white everywhere. */
+  html,
+  body {
+    background: white !important;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -163,6 +173,16 @@
   #schedule-print,
   #schedule-print * {
     visibility: visible;
+  }
+  /* Portrait is narrower than the grid's natural on-screen size (Time +
+     5 day columns) — shrink text/padding so nothing truncates or wraps
+     awkwardly across the page width. */
+  #schedule-print table {
+    font-size: 9px;
+  }
+  #schedule-print th,
+  #schedule-print td {
+    padding: 2px 4px !important;
   }
 }
 

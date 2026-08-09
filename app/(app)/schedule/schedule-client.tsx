@@ -17,8 +17,8 @@ const DAYS: DayOfWeek[] = [
 const SLOT_MINUTES = 30;
 const GRID_START = 7 * 60; // 7:00
 const GRID_END = 18 * 60; // 18:00
-const PDF_WIDTH_IN = 13;
-const PDF_HEIGHT_IN = 8.5;
+const PDF_WIDTH_IN = 8.5;
+const PDF_HEIGHT_IN = 13;
 
 function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
@@ -285,7 +285,7 @@ export default function ScheduleClient({
       const offsetY = (PDF_HEIGHT_IN - renderHeight) / 2;
 
       const pdf = new jsPDF({
-        orientation: "landscape",
+        orientation: "portrait",
         unit: "in",
         format: [PDF_WIDTH_IN, PDF_HEIGHT_IN],
       });
