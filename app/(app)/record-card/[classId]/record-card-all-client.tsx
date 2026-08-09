@@ -74,7 +74,7 @@ export default function RecordCardAllClient({
     try {
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
         import("jspdf"),
-        import("html2canvas"),
+        import("html2canvas-pro"),
       ]);
 
       const targets =
@@ -110,7 +110,8 @@ export default function RecordCardAllClient({
       pdf.save(
         `${classRow.name.replace(/\s+/g, "-").toLowerCase()}-record-cards${suffix}.pdf`,
       );
-    } catch {
+    } catch (err) {
+      console.error("Save PDF failed:", err);
       showToast("Could not generate the PDF. Please try again.");
     } finally {
       setExportingPdf(false);

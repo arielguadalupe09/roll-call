@@ -266,7 +266,7 @@ export default function ScheduleClient({
     try {
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
         import("jspdf"),
-        import("html2canvas"),
+        import("html2canvas-pro"),
       ]);
 
       const canvas = await html2canvas(printRef.current, {
@@ -303,7 +303,8 @@ export default function ScheduleClient({
           ? "my-schedule"
           : `${selectedTeacher?.full_name || selectedTeacher?.email || "teacher"}-schedule`;
       pdf.save(`${label.replace(/\s+/g, "-").toLowerCase()}.pdf`);
-    } catch {
+    } catch (err) {
+      console.error("Save PDF failed:", err);
       showToast("Could not generate the PDF. Please try again.");
     } finally {
       setExportingPdf(false);
@@ -388,7 +389,12 @@ export default function ScheduleClient({
 
   return (
     <div className="mx-auto max-w-5xl rounded-sm border border-rule bg-paper p-8">
-      <style>{`@page { size: ${PDF_WIDTH_IN}in ${PDF_HEIGHT_IN}in landscape; margin: 0.4in; }`}</style>
+      <style>{`
+        /* Explicit width > height already implies landscape — mixing in
+           the "landscape" keyword too is invalid CSS and gets the whole
+           rule dropped, silently falling back to portrait Letter. */
+        @page { size: ${PDF_WIDTH_IN}in ${PDF_HEIGHT_IN}in; margin: 0.4in; }
+      `}</style>
 
       <div className="no-print flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-semibold text-ink">

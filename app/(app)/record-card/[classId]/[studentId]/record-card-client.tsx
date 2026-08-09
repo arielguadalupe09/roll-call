@@ -41,7 +41,7 @@ export default function RecordCardClient({
     try {
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
         import("jspdf"),
-        import("html2canvas"),
+        import("html2canvas-pro"),
       ]);
 
       const { widthIn, heightIn } = PAPER_SIZES[paperSize];
@@ -64,7 +64,8 @@ export default function RecordCardClient({
         renderHeight,
       );
       pdf.save(`${data.student.name.replace(/\s+/g, "-").toLowerCase()}-record-card.pdf`);
-    } catch {
+    } catch (err) {
+      console.error("Save PDF failed:", err);
       showToast("Could not generate the PDF. Please try again.");
     } finally {
       setExportingPdf(false);

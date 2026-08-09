@@ -112,6 +112,14 @@
 }
 
 @media print {
+  /* Browsers strip background colors/images when printing by default (to
+     save ink) unless a page explicitly opts back in — needed for the
+     schedule's subject color-coding and any other printed shading. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   body * {
     visibility: hidden;
   }
