@@ -19,6 +19,7 @@ export default function AdminTeachersClient({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<"teacher" | "admin">("teacher");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -138,13 +139,22 @@ export default function AdminTeachersClient({
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) return;
+
+    if (role === "admin") {
+      const confirmed = await confirm(
+        `Create "${email.trim()}" with Admin access? They'll be able to create, edit, and delete teacher accounts.`,
+        { confirmLabel: "Create as admin" },
+      );
+      if (!confirmed) return;
+    }
+
     setLoading(true);
     setError(null);
 
     const res = await fetch("/api/admin/create-teacher", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, fullName }),
+      body: JSON.stringify({ email, password, fullName, isAdmin: role === "admin" }),
     });
     const data = await res.json();
     setLoading(false);
@@ -158,6 +168,7 @@ export default function AdminTeachersClient({
     setEmail("");
     setPassword("");
     setFullName("");
+    setRole("teacher");
   }
 
   return (
@@ -196,13 +207,33 @@ export default function AdminTeachersClient({
             className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
         </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-ink">Role</span>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as "teacher" | "admin")}
+            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+          >
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+          {role === "admin" && (
+            <p className="text-xs text-ink/60">
+              Admins can create, edit, and delete teacher accounts.
+            </p>
+          )}
+        </label>
         <div className="flex items-center gap-3">
           <button
             type="submit"
             disabled={loading}
             className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
           >
-            {loading ? "Creating..." : "Create teacher account"}
+            {loading
+              ? "Creating..."
+              : role === "admin"
+                ? "Create admin account"
+                : "Create teacher account"}
           </button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>

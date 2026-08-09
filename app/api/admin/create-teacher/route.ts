@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
-  const { email, password, fullName } = await request.json();
+  const { email, password, fullName, isAdmin } = await request.json();
 
   if (!email?.trim() || !password || password.length < 6) {
     return NextResponse.json(
@@ -45,23 +45,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let teacher = null;
-  if (fullName?.trim()) {
-    const { data: updated } = await admin
-      .from("teachers")
-      .update({ full_name: fullName.trim() })
-      .eq("id", created.user.id)
-      .select()
-      .single();
-    teacher = updated;
-  } else {
-    const { data: fetched } = await admin
-      .from("teachers")
-      .select("*")
-      .eq("id", created.user.id)
-      .single();
-    teacher = fetched;
-  }
+  // handle_new_user already inserted a teachers row (full_name null,
+  // is_admin false) via the on-signup trigger — only update it if the
+  // caller set a name or asked for admin access.
+  const updates: { full_name?: string; is_admin?: boolean } = {};
+  if (fullName?.trim()) updates.full_name = fullName.trim();
+  if (isAdmin) updates.is_admin = true;
+
+  const { data: teacher } =
+    Object.keys(updates).length > 0
+      ? await admin
+          .from("teachers")
+          .update(updates)
+          .eq("id", created.user.id)
+          .select()
+          .single()
+      : await admin.from("teachers").select("*").eq("id", created.user.id).single();
 
   return NextResponse.json({ teacher });
 }
