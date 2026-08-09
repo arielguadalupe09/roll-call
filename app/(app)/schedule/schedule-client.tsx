@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { colorForSubject } from "@/lib/schedule-colors";
 import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 import type { DayOfWeek, ScheduleEntry, TeacherOption } from "@/lib/types";
 
 const DAYS: DayOfWeek[] = [
@@ -73,6 +74,7 @@ export default function ScheduleClient({
   logoUrl: string | null;
 }) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [mode, setMode] = useState<"mine" | "shared">("mine");
 
   const [entries, setEntries] = useState(initialEntries);
@@ -267,6 +269,13 @@ export default function ScheduleClient({
 
   async function handleSavePdf() {
     if (!printRef.current) return;
+    const label =
+      mode === "mine"
+        ? "your schedule"
+        : `${selectedTeacher?.full_name || selectedTeacher?.email || "this teacher"}'s schedule`;
+    const confirmed = await confirm(`Save ${label} as a PDF?`, { confirmLabel: "Save" });
+    if (!confirmed) return;
+
     setExportingPdf(true);
 
     try {
@@ -316,11 +325,11 @@ export default function ScheduleClient({
         renderHeight,
       );
 
-      const label =
+      const filenameLabel =
         mode === "mine"
           ? "my-schedule"
           : `${selectedTeacher?.full_name || selectedTeacher?.email || "teacher"}-schedule`;
-      pdf.save(`${label.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      pdf.save(`${filenameLabel.replace(/\s+/g, "-").toLowerCase()}.pdf`);
     } catch (err) {
       console.error("Save PDF failed:", err);
       showToast("Could not generate the PDF. Please try again.");
