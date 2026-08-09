@@ -59,12 +59,18 @@ export default function ScheduleClient({
   allTeachers,
   initialSharedWithIds,
   sharedTeachers,
+  schoolName,
+  campusLine,
+  logoUrl,
 }: {
   teacherId: string;
   initialEntries: ScheduleEntry[];
   allTeachers: TeacherOption[];
   initialSharedWithIds: string[];
   sharedTeachers: TeacherOption[];
+  schoolName: string | null;
+  campusLine: string | null;
+  logoUrl: string | null;
 }) {
   const { showToast } = useToast();
   const [mode, setMode] = useState<"mine" | "shared">("mine");
@@ -276,6 +282,14 @@ export default function ScheduleClient({
         // html2canvas doesn't apply — filter those elements (Edit/Remove
         // links) out explicitly so the exported PDF matches what prints.
         ignoreElements: (el) => el.classList.contains("no-print"),
+        // Same reason: the app shell's dark bg-chalk lives on <html>/<body>
+        // and is only overridden white under @media print (which
+        // html2canvas ignores), so it bleeds in behind the captured node
+        // unless we clear it on the clone html2canvas actually renders.
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.style.backgroundColor = "#ffffff";
+          clonedDoc.body.style.backgroundColor = "#ffffff";
+        },
       });
       const imgAspect = canvas.width / canvas.height;
       const pageAspect = PDF_WIDTH_IN / PDF_HEIGHT_IN;
@@ -687,6 +701,20 @@ export default function ScheduleClient({
       </div>
 
       <div id="schedule-print" ref={printRef} className="mt-6 bg-white p-4">
+        <div className="mb-3 flex items-center gap-3 border-b border-black/20 pb-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden border border-black/30 bg-gray-100">
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="School logo" className="h-full w-full object-contain" />
+            )}
+          </div>
+          <div>
+            <p className="font-display text-base font-bold uppercase leading-tight text-ink">
+              {schoolName || "School name not set"}
+            </p>
+            <p className="text-xs uppercase text-ink/70">{campusLine || ""}</p>
+          </div>
+        </div>
         <p className="mb-3 font-display text-lg font-semibold text-ink">
           {mode === "mine"
             ? "Instructor's Schedule"

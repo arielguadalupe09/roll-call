@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ScheduleEntry, TeacherOption } from "@/lib/types";
+import type { ScheduleEntry, Teacher, TeacherOption } from "@/lib/types";
 import ScheduleClient from "./schedule-client";
 
 export default async function SchedulePage() {
@@ -11,6 +11,21 @@ export default async function SchedulePage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  const { data: teacherRow } = await supabase
+    .from("teachers")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+  const teacher = teacherRow as Teacher | null;
+
+  let logoUrl: string | null = null;
+  if (teacher?.card_logo_path) {
+    const { data: signed } = await supabase.storage
+      .from("card-logos")
+      .createSignedUrl(teacher.card_logo_path, 3600);
+    logoUrl = signed?.signedUrl ?? null;
+  }
 
   const { data: entries } = await supabase
     .from("schedule_entries")
@@ -54,6 +69,9 @@ export default async function SchedulePage() {
         ((myShares as { viewer_id: string }[] | null) ?? []).map((r) => r.viewer_id)
       }
       sharedTeachers={sharedTeachers}
+      schoolName={teacher?.card_school_name ?? null}
+      campusLine={teacher?.card_campus_line ?? null}
+      logoUrl={logoUrl}
     />
   );
 }
