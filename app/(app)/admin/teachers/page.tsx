@@ -37,7 +37,10 @@ export default async function AdminTeachersPage() {
           with the email and password you set here.
         </p>
 
-        <AdminTeachersClient initialTeachers={(teachers as Teacher[] | null) ?? []} />
+        <AdminTeachersClient
+          initialTeachers={(teachers as Teacher[] | null) ?? []}
+          currentUserId={user.id}
+        />
       </div>
     </div>
   );

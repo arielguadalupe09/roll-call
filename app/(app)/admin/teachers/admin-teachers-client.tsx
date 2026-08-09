@@ -8,8 +8,10 @@ import { useConfirm } from "@/app/_components/confirm-provider";
 
 export default function AdminTeachersClient({
   initialTeachers,
+  currentUserId,
 }: {
   initialTeachers: Teacher[];
+  currentUserId: string;
 }) {
   const { showToast } = useToast();
   const confirm = useConfirm();
@@ -24,6 +26,38 @@ export default function AdminTeachersClient({
   const [editName, setEditName] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [settingAdminId, setSettingAdminId] = useState<string | null>(null);
+
+  async function handleSetAdmin(teacher: Teacher, nextIsAdmin: boolean) {
+    const confirmed = await confirm(
+      nextIsAdmin
+        ? `Make "${teacher.email}" an admin? They'll be able to create, edit, and delete teacher accounts.`
+        : `Remove admin access from "${teacher.email}"? They'll become a regular teacher.`,
+      { confirmLabel: nextIsAdmin ? "Make admin" : "Remove admin", danger: !nextIsAdmin },
+    );
+    if (!confirmed) return;
+
+    setSettingAdminId(teacher.id);
+    const res = await fetch("/api/admin/set-teacher-admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teacherId: teacher.id, isAdmin: nextIsAdmin }),
+    });
+    const data = await res.json();
+    setSettingAdminId(null);
+
+    if (!res.ok) {
+      showToast(data.error ?? "Could not update the account's role.");
+      return;
+    }
+
+    setTeachers((prev) =>
+      prev.map((t) => (t.id === teacher.id ? (data.teacher as Teacher) : t)),
+    );
+    showToast(
+      nextIsAdmin ? `"${teacher.email}" is now an admin.` : `"${teacher.email}" is now a teacher.`,
+    );
+  }
 
   async function handleResetPassword(teacher: Teacher) {
     const newPassword = window.prompt(
@@ -204,12 +238,20 @@ export default function AdminTeachersClient({
                   )}
                 </td>
                 <td className="py-2 px-3">
-                  {t.is_admin ? (
+                  {t.id === currentUserId ? (
                     <span className="rounded-sm bg-brass/20 px-2 py-0.5 font-mono text-xs font-semibold text-brass">
-                      Admin
+                      Admin (you)
                     </span>
                   ) : (
-                    <span className="font-mono text-xs text-ink/50">Teacher</span>
+                    <select
+                      value={t.is_admin ? "admin" : "teacher"}
+                      onChange={(e) => handleSetAdmin(t, e.target.value === "admin")}
+                      disabled={settingAdminId === t.id}
+                      className="rounded-sm border border-rule bg-white px-2 py-1 font-mono text-xs text-ink outline-none focus:border-brass disabled:opacity-60"
+                    >
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   )}
                 </td>
                 <td className="py-2 px-3 font-mono text-xs text-ink/60">
