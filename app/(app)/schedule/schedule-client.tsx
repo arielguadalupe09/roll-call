@@ -278,6 +278,10 @@ export default function ScheduleClient({
       const canvas = await html2canvas(printRef.current, {
         scale: 2,
         backgroundColor: "#ffffff",
+        // The school logo is fetched from a signed Supabase Storage URL —
+        // a different origin — so without this html2canvas silently skips
+        // it (tainted canvas) and leaves the empty placeholder box.
+        useCORS: true,
         // .no-print only takes effect under @media print, which
         // html2canvas doesn't apply — filter those elements (Edit/Remove
         // links) out explicitly so the exported PDF matches what prints.
@@ -702,12 +706,12 @@ export default function ScheduleClient({
 
       <div id="schedule-print" ref={printRef} className="mt-6 bg-white p-4">
         <div className="mb-3 flex items-center gap-3 border-b border-black/20 pb-3">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden border border-black/30 bg-gray-100">
-            {logoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
+          {logoUrl && (
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={logoUrl} alt="School logo" className="h-full w-full object-contain" />
-            )}
-          </div>
+            </div>
+          )}
           <div>
             <p className="font-display text-base font-bold uppercase leading-tight text-ink">
               {schoolName || "School name not set"}
