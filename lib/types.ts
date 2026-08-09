@@ -8,6 +8,7 @@ export type Teacher = {
   card_school_name: string | null;
   card_campus_line: string | null;
   card_logo_path: string | null;
+  schedule_shared: boolean;
   created_at: string;
 };
 

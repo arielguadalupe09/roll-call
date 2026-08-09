@@ -146,6 +146,16 @@
     break-before: page;
     page-break-before: always;
   }
+
+  #schedule-print {
+    position: absolute;
+    inset: 0;
+    background: white;
+  }
+  #schedule-print,
+  #schedule-print * {
+    visibility: visible;
+  }
 }
 
 /* On-screen only: give each Record Card its own visible "sheet" so
