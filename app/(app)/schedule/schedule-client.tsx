@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { colorForSubject } from "@/lib/schedule-colors";
 import { useToast } from "@/app/_components/toast";
-import type { DayOfWeek, ScheduleEntry } from "@/lib/types";
+import type { DayOfWeek, ScheduleEntry, TeacherOption } from "@/lib/types";
 
 const DAYS: DayOfWeek[] = [
   "Monday",
@@ -51,20 +51,20 @@ type CoverageCell =
   | { kind: "start"; entry: ScheduleEntry; span: number }
   | { kind: "covered" };
 
-type SharedTeacher = { id: string; full_name: string | null; email: string };
-
 const TERM_KEY_SEP = "|||";
 
 export default function ScheduleClient({
   teacherId,
   initialEntries,
-  initialShared,
+  allTeachers,
+  initialSharedWithIds,
   sharedTeachers,
 }: {
   teacherId: string;
   initialEntries: ScheduleEntry[];
-  initialShared: boolean;
-  sharedTeachers: SharedTeacher[];
+  allTeachers: TeacherOption[];
+  initialSharedWithIds: string[];
+  sharedTeachers: TeacherOption[];
 }) {
   const { showToast } = useToast();
   const [mode, setMode] = useState<"mine" | "shared">("mine");
@@ -87,8 +87,11 @@ export default function ScheduleClient({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [shared, setShared] = useState(initialShared);
-  const [savingShared, setSavingShared] = useState(false);
+  const [sharedWithIds, setSharedWithIds] = useState<Set<string>>(
+    () => new Set(initialSharedWithIds),
+  );
+  const [addTeacherId, setAddTeacherId] = useState("");
+  const [savingShare, setSavingShare] = useState(false);
 
   const [selectedTeacherId, setSelectedTeacherId] = useState(sharedTeachers[0]?.id ?? "");
   const [sharedEntries, setSharedEntries] = useState<ScheduleEntry[]>([]);
@@ -207,25 +210,53 @@ export default function ScheduleClient({
   const [activeSchoolYear, activeSemester] =
     mode === "mine" ? [schoolYear, semester] : sharedTerm.split(TERM_KEY_SEP);
 
-  async function handleToggleShared(next: boolean) {
-    setSavingShared(true);
-    const supabase = createClient();
-    const { error: updateError } = await supabase
-      .from("teachers")
-      .update({ schedule_shared: next })
-      .eq("id", teacherId);
-    setSavingShared(false);
+  const shareableTeachers = useMemo(
+    () => allTeachers.filter((t) => !sharedWithIds.has(t.id)),
+    [allTeachers, sharedWithIds],
+  );
+  const sharedWithTeachers = useMemo(
+    () => allTeachers.filter((t) => sharedWithIds.has(t.id)),
+    [allTeachers, sharedWithIds],
+  );
 
-    if (updateError) {
-      showToast(updateError.message);
+  async function handleAddShare() {
+    if (!addTeacherId) return;
+    setSavingShare(true);
+    const supabase = createClient();
+    const { error: insertError } = await supabase
+      .from("schedule_shares")
+      .insert({ owner_id: teacherId, viewer_id: addTeacherId });
+    setSavingShare(false);
+
+    if (insertError) {
+      showToast(insertError.message);
       return;
     }
-    setShared(next);
-    showToast(
-      next
-        ? "Your schedule is now visible to other teachers (read-only)."
-        : "Your schedule is no longer shared.",
-    );
+    const teacher = allTeachers.find((t) => t.id === addTeacherId);
+    setSharedWithIds((prev) => new Set(prev).add(addTeacherId));
+    setAddTeacherId("");
+    showToast(`Schedule shared with ${teacher?.full_name || teacher?.email}.`);
+  }
+
+  async function handleRemoveShare(viewerId: string) {
+    setSavingShare(true);
+    const supabase = createClient();
+    const { error: deleteError } = await supabase
+      .from("schedule_shares")
+      .delete()
+      .eq("owner_id", teacherId)
+      .eq("viewer_id", viewerId);
+    setSavingShare(false);
+
+    if (deleteError) {
+      showToast(deleteError.message);
+      return;
+    }
+    setSharedWithIds((prev) => {
+      const next = new Set(prev);
+      next.delete(viewerId);
+      return next;
+    });
   }
 
   async function handleSavePdf() {
@@ -395,16 +426,65 @@ export default function ScheduleClient({
 
       {mode === "mine" && (
         <>
-          <label className="no-print mt-4 flex items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={shared}
-              onChange={(e) => handleToggleShared(e.target.checked)}
-              disabled={savingShared}
-            />
-            Share my schedule with other teachers (view-only — they can never
-            edit or delete your entries)
-          </label>
+          <div className="no-print mt-4 rounded-sm border border-rule bg-white p-4">
+            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+              Share my schedule (view-only)
+            </p>
+            <p className="mt-1 text-sm text-ink/60">
+              Pick specific teachers who can view your schedule — they can
+              never edit or delete your entries.
+            </p>
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-ink">Add teacher</span>
+                <select
+                  value={addTeacherId}
+                  onChange={(e) => setAddTeacherId(e.target.value)}
+                  disabled={shareableTeachers.length === 0}
+                  className="min-w-[14rem] rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass disabled:opacity-60"
+                >
+                  <option value="">
+                    {shareableTeachers.length === 0
+                      ? "No other teacher accounts yet"
+                      : "Select a teacher…"}
+                  </option>
+                  {shareableTeachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.full_name || t.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={handleAddShare}
+                disabled={!addTeacherId || savingShare}
+                className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
+              >
+                Share
+              </button>
+            </div>
+            {sharedWithTeachers.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {sharedWithTeachers.map((t) => (
+                  <li
+                    key={t.id}
+                    className="flex items-center gap-2 rounded-sm border border-rule bg-paper px-3 py-1.5 text-sm text-ink"
+                  >
+                    {t.full_name || t.email}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveShare(t.id)}
+                      disabled={savingShare}
+                      className="text-xs text-danger underline underline-offset-2 disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <div className="no-print mt-4 flex flex-wrap gap-4">
             <label className="flex flex-col gap-1">

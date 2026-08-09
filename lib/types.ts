@@ -8,7 +8,6 @@ export type Teacher = {
   card_school_name: string | null;
   card_campus_line: string | null;
   card_logo_path: string | null;
-  schedule_shared: boolean;
   created_at: string;
 };
 
@@ -186,4 +185,16 @@ export type ScheduleEntry = {
   section: string | null;
   room: string | null;
   created_at: string;
+};
+
+export type ScheduleShare = {
+  owner_id: string;
+  viewer_id: string;
+  created_at: string;
+};
+
+export type TeacherOption = {
+  id: string;
+  full_name: string | null;
+  email: string;
 };
