@@ -2,10 +2,34 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
-import { computeClassStats, computeInsights, type ClassStats } from "@/lib/dashboard-insights";
+import {
+  computeClassStats,
+  computeInsights,
+  TREND_DROP_THRESHOLD,
+  type ClassStats,
+} from "@/lib/dashboard-insights";
 import CreateClassForm from "./create-class-form";
 import ArchiveButton from "./archive-button";
 import ArchivedClasses from "./archived-classes";
+import {
+  ActiveArchivedBar,
+  AttendanceByClassChart,
+  AttendanceRing,
+  AttentionBreakdown,
+  StudentsSparkline,
+} from "./dashboard-charts";
+
+function TileIcon({ path }: { path: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-ink/40">
+      <path d={path} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14 5.8v5.7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z";
+const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
+const ICON_ALERT = "M8 2.5 14 13H2L8 2.5zM8 6.5v3M8 11.2v.1";
 
 function attendanceBadge(rate: number | null) {
   if (rate == null) {
@@ -83,6 +107,16 @@ export default async function DashboardPage() {
     insights.filter((i) => i.severity === "warning").map((i) => i.text),
   ).size;
 
+  const lowAttendanceClassCount = stats.filter((s) => s.lowAttendanceStudentCount > 0).length;
+  const droppedTrendClassCount = stats.filter(
+    (s) => s.weekTrend && s.weekTrend.previous - s.weekTrend.current > TREND_DROP_THRESHOLD,
+  ).length;
+  const ungradedClassCount = stats.filter((s) => !s.gradingConfigured).length;
+  const studentsPerClass = classList.map((c) => ({
+    name: c.name,
+    count: studentsByClass.get(c.id)?.length ?? 0,
+  }));
+
   return (
     <div className="px-8 py-10">
       <div className="mx-auto max-w-3xl">
@@ -96,34 +130,60 @@ export default async function DashboardPage() {
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <a
             href="#class-list"
-            className="rounded-sm border border-rule bg-white p-4 text-center transition hover:border-brass"
+            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
           >
-            <p className="font-display text-2xl font-semibold text-ink">{classList.length}</p>
-            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Classes</p>
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Classes</p>
+              <TileIcon path={ICON_CLASSES} />
+            </div>
+            <p className="mt-1 font-display text-3xl font-semibold text-ink">{classList.length}</p>
+            <ActiveArchivedBar active={classList.length} archived={archivedClasses.length} />
           </a>
           <Link
             href="/students"
-            className="rounded-sm border border-rule bg-white p-4 text-center transition hover:border-brass"
+            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
           >
-            <p className="font-display text-2xl font-semibold text-ink">{totalStudents}</p>
-            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Students</p>
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Students</p>
+              <TileIcon path={ICON_STUDENTS} />
+            </div>
+            <p className="mt-1 font-display text-3xl font-semibold text-ink">{totalStudents}</p>
+            <StudentsSparkline classes={studentsPerClass} />
           </Link>
           <Link
             href="/attendance"
-            className="rounded-sm border border-rule bg-white p-4 text-center transition hover:border-brass"
+            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
           >
-            <p className="font-display text-2xl font-semibold text-ink">
-              {overallAttendanceRate != null ? `${Math.round(overallAttendanceRate * 100)}%` : "—"}
-            </p>
-            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Attendance</p>
+            <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Attendance</p>
+            <div className="mt-1 flex items-center gap-3">
+              <AttendanceRing rate={overallAttendanceRate} />
+              <p className="text-xs text-ink/60">
+                Average across {ratesWithData.length > 0 ? classList.length : 0} class
+                {classList.length === 1 ? "" : "es"}
+              </p>
+            </div>
           </Link>
           <a
             href="#insights"
-            className="rounded-sm border border-rule bg-white p-4 text-center transition hover:border-brass"
+            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
           >
-            <p className="font-display text-2xl font-semibold text-ink">{classesNeedingAttention}</p>
-            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Need attention</p>
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Need attention</p>
+              <TileIcon path={ICON_ALERT} />
+            </div>
+            <p className="mt-1 font-display text-3xl font-semibold text-ink">{classesNeedingAttention}</p>
+            <AttentionBreakdown
+              items={[
+                { label: "Low attendance", count: lowAttendanceClassCount },
+                { label: "Attendance dropped", count: droppedTrendClassCount },
+                { label: "Grading not set up", count: ungradedClassCount },
+              ]}
+            />
           </a>
+        </div>
+
+        <div className="mt-6">
+          <AttendanceByClassChart stats={stats} />
         </div>
 
         <div id="insights" className="mt-6 scroll-mt-6 rounded-sm border border-rule bg-white p-4">

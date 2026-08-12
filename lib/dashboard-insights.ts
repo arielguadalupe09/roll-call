@@ -14,8 +14,8 @@ export type Insight = {
   text: string;
 };
 
-const LOW_ATTENDANCE_THRESHOLD = 0.75;
-const TREND_DROP_THRESHOLD = 0.15;
+export const LOW_ATTENDANCE_THRESHOLD = 0.75;
+export const TREND_DROP_THRESHOLD = 0.15;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function daysAgo(n: number): string {

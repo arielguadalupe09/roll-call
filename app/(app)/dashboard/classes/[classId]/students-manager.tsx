@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
 import { toLastNameFirst } from "@/lib/name-format";
-import type { Student } from "@/lib/types";
+import type { ClassRow, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import IconButton from "@/app/_components/icon-button";
@@ -44,6 +44,14 @@ export default function StudentsManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [transferIds, setTransferIds] = useState<string[] | null>(null);
+  const [transferClasses, setTransferClasses] = useState<
+    Pick<ClassRow, "id" | "name">[]
+  >([]);
+  const [transferClassesLoading, setTransferClassesLoading] = useState(false);
+  const [transferTarget, setTransferTarget] = useState("");
+  const [transferSaving, setTransferSaving] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
   const confirm = useConfirm();
@@ -275,6 +283,68 @@ export default function StudentsManager({
     router.refresh();
   }
 
+  async function openTransfer(ids: string[]) {
+    if (ids.length === 0) return;
+    setTransferIds(ids);
+    setTransferTarget("");
+    setTransferError(null);
+    setTransferClassesLoading(true);
+
+    const supabase = createClient();
+    const { data, error: classesError } = await supabase
+      .from("classes")
+      .select("id, name")
+      .eq("archived", false)
+      .neq("id", classId)
+      .order("name", { ascending: true });
+
+    if (classesError) {
+      setTransferError(classesError.message);
+    } else {
+      setTransferClasses((data as Pick<ClassRow, "id" | "name">[] | null) ?? []);
+    }
+    setTransferClassesLoading(false);
+  }
+
+  function closeTransfer() {
+    setTransferIds(null);
+    setTransferTarget("");
+    setTransferError(null);
+  }
+
+  async function confirmTransfer() {
+    if (!transferIds || !transferTarget) return;
+    setTransferSaving(true);
+    setTransferError(null);
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("students")
+      .update({ class_id: transferTarget })
+      .in("id", transferIds);
+
+    setTransferSaving(false);
+
+    if (updateError) {
+      setTransferError(updateError.message);
+      return;
+    }
+
+    const targetName =
+      transferClasses.find((c) => c.id === transferTarget)?.name ?? "the class";
+    const count = transferIds.length;
+    setStudents((prev) => prev.filter((s) => !transferIds.includes(s.id)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of transferIds) next.delete(id);
+      return next;
+    });
+    if (editingId && transferIds.includes(editingId)) cancelEdit();
+    showToast(`${count} student${count === 1 ? "" : "s"} transferred to "${targetName}"`);
+    closeTransfer();
+    router.refresh();
+  }
+
   return (
     <div className="mt-6">
       <form onSubmit={handleAdd} className="flex flex-wrap gap-3">
@@ -346,6 +416,12 @@ export default function StudentsManager({
                 >
                   Print QR for selected
                 </Link>
+                <button
+                  onClick={() => openTransfer(Array.from(selected))}
+                  className="text-sm text-ink underline underline-offset-2"
+                >
+                  Transfer selected
+                </button>
                 <button
                   onClick={handleRemoveSelected}
                   className="text-sm text-danger underline underline-offset-2"
@@ -438,6 +514,12 @@ export default function StudentsManager({
                             onClick={() => startEdit(s)}
                           />
                           <IconButton
+                            icon="transfer"
+                            color="ink"
+                            label="Transfer to another class"
+                            onClick={() => openTransfer([s.id])}
+                          />
+                          <IconButton
                             icon="delete"
                             color="danger"
                             label="Remove"
@@ -460,6 +542,67 @@ export default function StudentsManager({
           </table>
         </CollapsibleSection>
       </div>
+
+      {transferIds && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm rounded-sm border border-rule bg-white p-5 shadow-xl">
+            <p className="font-display text-lg font-semibold text-ink">
+              Transfer {transferIds.length} student{transferIds.length === 1 ? "" : "s"}
+            </p>
+            <p className="mt-1 text-sm text-ink/70">
+              Choose the class or section to move {transferIds.length === 1 ? "this student" : "these students"} to.
+            </p>
+
+            {transferClassesLoading ? (
+              <p className="mt-4 text-sm text-ink/60">Loading classes...</p>
+            ) : transferClasses.length === 0 ? (
+              <p className="mt-4 text-sm text-ink/60">
+                No other classes to transfer into. Create another class first.
+              </p>
+            ) : (
+              <select
+                value={transferTarget}
+                onChange={(e) => setTransferTarget(e.target.value)}
+                autoFocus
+                className="mt-4 w-full rounded-sm border border-rule bg-white px-3 py-2 text-ink outline-none focus:border-brass"
+              >
+                <option value="" disabled>
+                  Select a class or section...
+                </option>
+                {transferClasses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {transferError && (
+              <p className="mt-2 text-sm text-danger">{transferError}</p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={closeTransfer}
+                className="rounded-sm border border-rule px-4 py-2 text-sm font-medium text-ink transition hover:bg-ink/5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmTransfer}
+                disabled={!transferTarget || transferSaving}
+                className="rounded-sm bg-brass px-4 py-2 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
+              >
+                {transferSaving ? "Transferring..." : "Transfer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

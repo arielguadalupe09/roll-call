@@ -10,6 +10,14 @@
   --brass: #c9a227;
   --danger: #7a1f2b;
   --teal: #2c7da0;
+
+  /* Chart-fill variants of teal/brass/danger: same brand hues, lightness and
+     chroma tuned so small bar/ring fills stay legible (validated via the
+     dataviz skill's palette checks -- the text-sized --teal/--danger above
+     read as too dark/low-chroma once used as a filled area instead of text). */
+  --chart-good: #2f8fb8;
+  --chart-warning: #c9a227;
+  --chart-critical: #b3384a;
 }
 
 @theme inline {
@@ -20,6 +28,9 @@
   --color-brass: var(--brass);
   --color-danger: var(--danger);
   --color-teal: var(--teal);
+  --color-chart-good: var(--chart-good);
+  --color-chart-warning: var(--chart-warning);
+  --color-chart-critical: var(--chart-critical);
 
   --font-display: var(--font-display-src);
   --font-sans: var(--font-sans-src);

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type IconName = "edit" | "delete" | "reset" | "record";
+type IconName = "edit" | "delete" | "reset" | "record" | "transfer";
 
 const ICON_PATHS: Record<IconName, React.ReactNode> = {
   edit: (
@@ -43,12 +43,23 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
       fill="none"
     />
   ),
+  transfer: (
+    <path
+      d="M2.5 5.5h9m0 0L8.5 2.5m3 3L8.5 8.5M13.5 10.5h-9m0 0L7.5 13.5m-3-3L7.5 7.5"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  ),
 };
 
 const COLOR_CLASSES = {
   brass: "bg-brass/15 text-brass hover:bg-brass/25",
   teal: "bg-teal/15 text-teal hover:bg-teal/25",
   danger: "bg-danger/15 text-danger hover:bg-danger/25",
+  ink: "bg-ink/10 text-ink hover:bg-ink/20",
 };
 
 export default function IconButton({
