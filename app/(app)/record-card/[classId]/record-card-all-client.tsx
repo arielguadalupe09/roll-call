@@ -6,6 +6,7 @@ import type { RecordCardStudentData } from "@/lib/record-card-data";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import RecordCardSheet from "../record-card-sheet";
 import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 
 export default function RecordCardAllClient({
   classRow,
@@ -21,6 +22,7 @@ export default function RecordCardAllClient({
   logoUrl: string | null;
 }) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [paperSize, setPaperSize] = useState<PaperSize>("long");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -69,6 +71,15 @@ export default function RecordCardAllClient({
 
   async function handleSavePdf() {
     if (allData.length === 0) return;
+
+    const targets =
+      selected.size > 0 ? allData.filter((d) => selected.has(d.student.id)) : allData;
+    const confirmed = await confirm(
+      `Save ${targets.length} student${targets.length === 1 ? "" : "s"}' record card${targets.length === 1 ? "" : "s"} as a PDF?`,
+      { confirmLabel: "Save PDF" },
+    );
+    if (!confirmed) return;
+
     setExportingPdf(true);
 
     try {
@@ -77,8 +88,6 @@ export default function RecordCardAllClient({
         import("html2canvas-pro"),
       ]);
 
-      const targets =
-        selected.size > 0 ? allData.filter((d) => selected.has(d.student.id)) : allData;
       const { widthIn, heightIn } = PAPER_SIZES[paperSize];
       const orientation = widthIn > heightIn ? "landscape" : "portrait";
       const pdf = new jsPDF({ orientation, unit: "in", format: [widthIn, heightIn] });

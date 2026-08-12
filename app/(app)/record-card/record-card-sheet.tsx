@@ -36,7 +36,11 @@ function Header({
     <div className="mb-3">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden border border-black bg-gray-200">
+          <div
+            className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden ${
+              logoUrl ? "" : "border border-black bg-gray-200"
+            }`}
+          >
             {logoUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="School logo" className="h-full w-full object-contain" />

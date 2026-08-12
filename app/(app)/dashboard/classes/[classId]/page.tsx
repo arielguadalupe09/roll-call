@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { ClassRow, Student } from "@/lib/types";
+import type { ClassRow, Student, Teacher } from "@/lib/types";
 import StudentsManager from "./students-manager";
 import SubjectEditor from "./subject-editor";
+import ClassRecordInfoForm from "./class-record-info-form";
 import ArchiveButton from "../../archive-button";
 
 export default async function ClassDetailPage({
@@ -21,11 +22,18 @@ export default async function ClassDetailPage({
 
   if (!classRow) notFound();
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("*")
-    .eq("class_id", classId)
-    .order("name", { ascending: true });
+  const [{ data: students }, { data: teacher }] = await Promise.all([
+    supabase
+      .from("students")
+      .select("*")
+      .eq("class_id", classId)
+      .order("name", { ascending: true }),
+    supabase
+      .from("teachers")
+      .select("*")
+      .eq("id", (classRow as ClassRow).teacher_id)
+      .single(),
+  ]);
 
   return (
     <div className="px-8 py-10">
@@ -43,6 +51,11 @@ export default async function ClassDetailPage({
         <SubjectEditor
           classId={classId}
           initialSubject={(classRow as ClassRow).subject}
+        />
+        <ClassRecordInfoForm
+          classId={classId}
+          initialClass={classRow as ClassRow}
+          initialFacultyRank={(teacher as Teacher | null)?.faculty_rank ?? null}
         />
 
         <StudentsManager

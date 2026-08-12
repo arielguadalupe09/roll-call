@@ -24,6 +24,7 @@ function Cell({ children }: { children: React.ReactNode }) {
 }
 
 export default function OverviewTab({
+  classId,
   students,
   config,
   assignments,
@@ -34,6 +35,7 @@ export default function OverviewTab({
   majorExamScores,
   recitationLogs,
 }: {
+  classId: string;
   students: Student[];
   config: GradingConfig;
   assignments: Assignment[];
@@ -112,6 +114,14 @@ export default function OverviewTab({
 
   return (
     <div className="mt-6">
+      <div className="flex justify-end">
+        <a
+          href={`/api/export/dhvsu-class-record/${classId}`}
+          className="rounded-sm border border-teal px-3 py-1.5 text-sm font-medium text-teal transition hover:bg-teal/10"
+        >
+          Export Class Record (.xlsx)
+        </a>
+      </div>
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>
         <div className="overflow-x-auto rounded-sm border border-rule">
           <table className="w-full min-w-max border-collapse text-left">

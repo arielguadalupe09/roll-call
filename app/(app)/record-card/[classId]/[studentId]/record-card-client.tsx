@@ -7,6 +7,7 @@ import type { RecordCardStudentData } from "@/lib/record-card-data";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import RecordCardSheet from "../../record-card-sheet";
 import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 
 type RosterEntry = { id: string; name: string };
 
@@ -30,12 +31,19 @@ export default function RecordCardClient({
   nextStudent: RosterEntry | null;
 }) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [paperSize, setPaperSize] = useState<PaperSize>("long");
   const [exportingPdf, setExportingPdf] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   async function handleSavePdf() {
     if (!cardRef.current) return;
+
+    const confirmed = await confirm(`Save ${data.student.name}'s record card as a PDF?`, {
+      confirmLabel: "Save PDF",
+    });
+    if (!confirmed) return;
+
     setExportingPdf(true);
 
     try {

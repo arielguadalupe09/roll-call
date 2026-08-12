@@ -8,6 +8,7 @@ export type Teacher = {
   card_school_name: string | null;
   card_campus_line: string | null;
   card_logo_path: string | null;
+  faculty_rank: string | null;
   created_at: string;
 };
 
@@ -17,6 +18,18 @@ export type ClassRow = {
   name: string;
   subject: string | null;
   archived: boolean;
+  program_type: string | null;
+  academic_year: string | null;
+  semester: string | null;
+  course_code: string | null;
+  total_units: string | null;
+  course_type: string | null;
+  year_level: string | null;
+  campus: string | null;
+  college: string | null;
+  department: string | null;
+  program: string | null;
+  session_schedule: string | null;
   created_at: string;
 };
 
