@@ -52,6 +52,53 @@ export function toLastNameFirst(rawName: string): string {
   return givenNames ? `${surname}, ${givenNames}` : surname;
 }
 
+const normalizeHeader = (k: string) => k.trim().toLowerCase().replace(/[^a-z]/g, "");
+
+const LAST_NAME_HEADERS = new Set(["lastname", "surname", "familyname"]);
+const FIRST_NAME_HEADERS = new Set(["firstname", "givenname"]);
+const MIDDLE_NAME_HEADERS = new Set([
+  "middlename",
+  "middleinitial",
+  "mi",
+  "middle",
+]);
+const FULL_NAME_HEADERS = new Set(["name", "fullname", "studentname"]);
+
+// Builds "Lastname, Firstname M.I." roster names from an imported
+// spreadsheet's rows. Many school class-list templates (including this
+// app's own DHVSU export) use separate Last Name / First Name / M.I.
+// columns rather than one combined "Name" column -- picking up only the
+// first column in that case silently drops every student's first and
+// middle name, so this checks for the split-column shape first and only
+// falls back to a single free-text name column when it isn't present.
+export function namesFromImportRows(rows: Record<string, unknown>[]): string[] {
+  if (rows.length === 0) return [];
+  const keys = Object.keys(rows[0]);
+
+  const lastNameKey = keys.find((k) => LAST_NAME_HEADERS.has(normalizeHeader(k)));
+  const firstNameKey = keys.find((k) => FIRST_NAME_HEADERS.has(normalizeHeader(k)));
+
+  if (lastNameKey && firstNameKey) {
+    const middleNameKey = keys.find((k) => MIDDLE_NAME_HEADERS.has(normalizeHeader(k)));
+    return rows
+      .map((r) => {
+        const last = String(r[lastNameKey] ?? "").trim();
+        const first = String(r[firstNameKey] ?? "").trim();
+        const middleRaw = middleNameKey ? String(r[middleNameKey] ?? "").trim() : "";
+        const mi = middleRaw ? `${middleRaw[0].toUpperCase()}.` : "";
+        if (!last && !first) return "";
+        return [last, [first, mi].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      })
+      .filter((n) => n.length > 0);
+  }
+
+  const nameKey = keys.find((k) => FULL_NAME_HEADERS.has(normalizeHeader(k))) ?? keys[0];
+  return rows
+    .map((r) => String(r[nameKey] ?? "").trim())
+    .filter((n) => n.length > 0)
+    .map((n) => toLastNameFirst(n));
+}
+
 // Splits a "Lastname, Firstname M.I." roster name back into parts for
 // printable forms (e.g. the Student Individual Record Card's separate
 // FIRST NAME / LAST NAME / M.I cells). The trailing token is treated as a

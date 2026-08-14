@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
-import { toLastNameFirst } from "@/lib/name-format";
+import { namesFromImportRows, toLastNameFirst } from "@/lib/name-format";
 import type { ClassRow, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
@@ -144,12 +144,7 @@ export default function StudentsManager({
       return;
     }
 
-    const keys = Object.keys(rows[0]);
-    const nameKey = keys.find((k) => k.trim().toLowerCase() === "name") ?? keys[0];
-    const names = rows
-      .map((r) => String(r[nameKey] ?? "").trim())
-      .filter((n) => n.length > 0)
-      .map((n) => toLastNameFirst(n));
+    const names = namesFromImportRows(rows);
 
     if (names.length === 0) {
       setError("No student names found in that file.");
