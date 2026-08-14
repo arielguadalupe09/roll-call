@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { namesFromImportRows, parseStudentName, toLastNameFirst } from "./name-format";
+import {
+  namesFromImportMatrix,
+  namesFromImportRows,
+  parseStudentName,
+  toLastNameFirst,
+} from "./name-format";
 
 describe("toLastNameFirst", () => {
   it("moves a trailing surname to the front", () => {
@@ -54,8 +59,67 @@ describe("namesFromImportRows", () => {
     expect(namesFromImportRows(rows)).toEqual(["Cruz, Juan"]);
   });
 
+  it("treats an 'N/A' middle name as no middle name, not a literal initial", () => {
+    const rows = [{ "Last Name": "Bondoc", "First Name": "Vincent", "Middle Name": "N/A" }];
+    expect(namesFromImportRows(rows)).toEqual(["Bondoc, Vincent"]);
+  });
+
   it("returns an empty list for an empty sheet", () => {
     expect(namesFromImportRows([])).toEqual([]);
+  });
+});
+
+describe("namesFromImportMatrix", () => {
+  it("treats row 1 as the header row when it already looks like one", () => {
+    const matrix = [
+      ["Last Name", "First Name", "M.I."],
+      ["Andaya", "Juan", "R"],
+      ["Bautista", "Maria", ""],
+    ];
+    expect(namesFromImportMatrix(matrix)).toEqual(["Andaya, Juan R.", "Bautista, Maria"]);
+  });
+
+  it("skips a letterhead/title block and finds the real header row further down", () => {
+    // The shape that broke: an official class-list export with a
+    // school-name/course/section block above the actual column headers.
+    const matrix = [
+      ["Pampanga State University"],
+      ["College of Computing Studies"],
+      ["CWTS BSHM 1B", "", "", "Official Class List"],
+      [],
+      ["No.", "Last Name", "First Name", "M.I.", "Student No."],
+      [1, "Andaya", "Juan", "R", "2023-00001"],
+      [2, "Bautista", "Maria", "", "2023-00002"],
+    ];
+    expect(namesFromImportMatrix(matrix)).toEqual(["Andaya, Juan R.", "Bautista, Maria"]);
+  });
+
+  it("treats every row as a bare name when nothing looks like a header row", () => {
+    const matrix = [
+      ["Juan Dela Cruz"],
+      ["Cruz, Ana"],
+    ];
+    expect(namesFromImportMatrix(matrix)).toEqual(["Dela Cruz, Juan", "Cruz, Ana"]);
+  });
+
+  it("assumes Last/First/Middle column order for a bare no-header multi-column sheet", () => {
+    // The actual shape reported broken: no header row at all, just three
+    // bare columns (Last Name, First Name, Middle Name), "N/A" standing in
+    // for an absent middle name.
+    const matrix = [
+      ["ALQUIROZ", "SHIELLA MAE", "PINEDA"],
+      ["ANDAYA", "SLYTHY CHAYSE", "DIZON"],
+      ["BONDOC", "VINCENT", "N/A"],
+    ];
+    expect(namesFromImportMatrix(matrix)).toEqual([
+      "ALQUIROZ, SHIELLA MAE P.",
+      "ANDAYA, SLYTHY CHAYSE D.",
+      "BONDOC, VINCENT",
+    ]);
+  });
+
+  it("returns an empty list for an empty sheet", () => {
+    expect(namesFromImportMatrix([])).toEqual([]);
   });
 });
 

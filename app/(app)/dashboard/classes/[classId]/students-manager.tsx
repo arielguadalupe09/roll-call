@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
-import { namesFromImportRows, toLastNameFirst } from "@/lib/name-format";
+import { namesFromImportMatrix, toLastNameFirst } from "@/lib/name-format";
 import type { ClassRow, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
@@ -134,17 +134,22 @@ export default function StudentsManager({
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    // Read as a raw matrix rather than sheet_to_json's row-1-is-the-header
+    // default -- school class-list exports often have a title/letterhead
+    // block above the real column headers, and namesFromImportMatrix scans
+    // for the actual header row instead of assuming it's row 1.
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
       defval: "",
     });
 
-    if (rows.length === 0) {
+    if (matrix.length === 0) {
       setError("That file has no rows.");
       setImporting(false);
       return;
     }
 
-    const names = namesFromImportRows(rows);
+    const names = namesFromImportMatrix(matrix);
 
     if (names.length === 0) {
       setError("No student names found in that file.");

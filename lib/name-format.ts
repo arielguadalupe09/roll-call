@@ -85,7 +85,8 @@ export function namesFromImportRows(rows: Record<string, unknown>[]): string[] {
         const last = String(r[lastNameKey] ?? "").trim();
         const first = String(r[firstNameKey] ?? "").trim();
         const middleRaw = middleNameKey ? String(r[middleNameKey] ?? "").trim() : "";
-        const mi = middleRaw ? `${middleRaw[0].toUpperCase()}.` : "";
+        const isPlaceholder = normalizeHeader(middleRaw) === "na";
+        const mi = middleRaw && !isPlaceholder ? `${middleRaw[0].toUpperCase()}.` : "";
         if (!last && !first) return "";
         return [last, [first, mi].filter(Boolean).join(" ")].filter(Boolean).join(", ");
       })
@@ -97,6 +98,74 @@ export function namesFromImportRows(rows: Record<string, unknown>[]): string[] {
     .map((r) => String(r[nameKey] ?? "").trim())
     .filter((n) => n.length > 0)
     .map((n) => toLastNameFirst(n));
+}
+
+const HEADER_SEARCH_ROWS = 20;
+
+function looksLikeHeaderRow(row: unknown[]): boolean {
+  return row.some((cell) => {
+    const key = normalizeHeader(String(cell ?? ""));
+    return LAST_NAME_HEADERS.has(key) || FIRST_NAME_HEADERS.has(key) || FULL_NAME_HEADERS.has(key);
+  });
+}
+
+// Official school class-list exports are rarely a clean header-in-row-1
+// table -- there's often a letterhead/title block (school name, course,
+// section) above the real column headers. Reading row 1 as the header row
+// in that case picks up junk keys and every name column gets missed, which
+// is exactly what happened importing a DHVSU-style class list. This scans
+// the first few rows for the one that actually looks like a name header
+// row instead of assuming it's row 1, then hands off to namesFromImportRows.
+export function namesFromImportMatrix(matrix: unknown[][]): string[] {
+  if (matrix.length === 0) return [];
+
+  const searchLimit = Math.min(matrix.length, HEADER_SEARCH_ROWS);
+  let headerRowIndex = -1;
+  for (let i = 0; i < searchLimit; i++) {
+    if (looksLikeHeaderRow(matrix[i])) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  if (headerRowIndex === -1) {
+    const columnCount = Math.max(0, ...matrix.map((row) => row.length));
+
+    if (columnCount >= 2) {
+      // No header row, but multiple bare columns -- the common shape for
+      // this app's class lists (and the one that broke on a real import):
+      // Last Name, First Name, [Middle Name], with no header labeling them
+      // at all. Assumes that fixed column order rather than guessing.
+      const rows: Record<string, unknown>[] = matrix.map((row) => ({
+        "Last Name": row[0] ?? "",
+        "First Name": row[1] ?? "",
+        "Middle Name": row[2] ?? "",
+      }));
+      return namesFromImportRows(rows);
+    }
+
+    // A single bare column, no header -- e.g. one full name per row.
+    // Treat every row (including the first) as a name instead of
+    // discarding row 1 as a bogus header, which would drop its student.
+    return matrix
+      .map((row) => row.map((cell) => String(cell ?? "").trim()).filter(Boolean).join(" "))
+      .filter((n) => n.length > 0)
+      .map((n) => toLastNameFirst(n));
+  }
+
+  const headerRow = matrix[headerRowIndex].map((cell) => String(cell ?? "").trim());
+  const rows: Record<string, unknown>[] = matrix
+    .slice(headerRowIndex + 1)
+    .filter((row) => row.some((cell) => String(cell ?? "").trim() !== ""))
+    .map((row) => {
+      const record: Record<string, unknown> = {};
+      headerRow.forEach((key, i) => {
+        if (key) record[key] = row[i] ?? "";
+      });
+      return record;
+    });
+
+  return namesFromImportRows(rows);
 }
 
 // Splits a "Lastname, Firstname M.I." roster name back into parts for
