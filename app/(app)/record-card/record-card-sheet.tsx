@@ -113,7 +113,15 @@ function Header({
   );
 }
 
-function DateGridBox({ title, entries }: { title: string; entries: GridEntry[] }) {
+function DateGridBox({
+  title,
+  entries,
+  usePrelims,
+}: {
+  title: string;
+  entries: GridEntry[];
+  usePrelims: boolean;
+}) {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
@@ -135,6 +143,18 @@ function DateGridBox({ title, entries }: { title: string; entries: GridEntry[] }
                   </td>
                 ))}
               </tr>
+              {usePrelims && (
+                <tr>
+                  <td className="border border-black px-1 py-1 font-semibold uppercase">Prelim</td>
+                  {sorted.map((e, i) => (
+                    <td key={i} className="border border-black px-1 py-1 text-center whitespace-nowrap">
+                      {e.period === "prelim" && e.score != null
+                        ? `${e.score}/${e.maxScore}`
+                        : ""}
+                    </td>
+                  ))}
+                </tr>
+              )}
               <tr>
                 <td className="border border-black px-1 py-1 font-semibold uppercase">Midterm</td>
                 {sorted.map((e, i) => (
@@ -163,7 +183,15 @@ function DateGridBox({ title, entries }: { title: string; entries: GridEntry[] }
   );
 }
 
-function MajorExamBox({ title, data }: { title: string; data: MajorExamData }) {
+function MajorExamBox({
+  title,
+  data,
+  usePrelims,
+}: {
+  title: string;
+  data: MajorExamData;
+  usePrelims: boolean;
+}) {
   return (
     <div className="border border-black">
       <p className="border-b border-black bg-gray-100 px-2 py-1 text-center text-xs font-bold uppercase text-black">
@@ -171,6 +199,14 @@ function MajorExamBox({ title, data }: { title: string; data: MajorExamData }) {
       </p>
       <table className="w-full border-collapse text-xs">
         <tbody>
+          {usePrelims && (
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold uppercase">Prelim</td>
+              <td className="border border-black px-2 py-1 text-center">
+                {data.prelimScore != null ? `${data.prelimScore}/${data.prelimMax}` : ""}
+              </td>
+            </tr>
+          )}
           <tr>
             <td className="border border-black px-2 py-1 font-semibold uppercase">Midterm</td>
             <td className="border border-black px-2 py-1 text-center">
@@ -195,7 +231,7 @@ function MajorExamBox({ title, data }: { title: string; data: MajorExamData }) {
   );
 }
 
-function TwoRowBox({ title }: { title: string }) {
+function TwoRowBox({ title, usePrelims }: { title: string; usePrelims: boolean }) {
   return (
     <div className="border border-black">
       <p className="border-b border-black bg-gray-100 px-2 py-1 text-center text-xs font-bold uppercase text-black">
@@ -203,6 +239,12 @@ function TwoRowBox({ title }: { title: string }) {
       </p>
       <table className="w-full border-collapse text-xs">
         <tbody>
+          {usePrelims && (
+            <tr>
+              <td className="border border-black px-2 py-2 font-semibold uppercase">Prelim</td>
+              <td className="border border-black px-2 py-2" />
+            </tr>
+          )}
           <tr>
             <td className="border border-black px-2 py-2 font-semibold uppercase">Midterm</td>
             <td className="border border-black px-2 py-2" />
@@ -217,16 +259,24 @@ function TwoRowBox({ title }: { title: string }) {
   );
 }
 
-function SignatureRemarksRow() {
+function SignatureRemarksRow({ usePrelims }: { usePrelims: boolean }) {
   return (
     <div className="mt-3 grid grid-cols-2 gap-3">
-      <TwoRowBox title="Instructor's signature" />
-      <TwoRowBox title="Remarks" />
+      <TwoRowBox title="Instructor's signature" usePrelims={usePrelims} />
+      <TwoRowBox title="Remarks" usePrelims={usePrelims} />
     </div>
   );
 }
 
-function AttendanceBox({ title, entries }: { title: string; entries: AttendanceEntry[] }) {
+function AttendanceBox({
+  title,
+  entries,
+  usePrelims,
+}: {
+  title: string;
+  entries: AttendanceEntry[];
+  usePrelims: boolean;
+}) {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
@@ -250,6 +300,16 @@ function AttendanceBox({ title, entries }: { title: string; entries: AttendanceE
                   </td>
                 ))}
               </tr>
+              {usePrelims && (
+                <tr>
+                  <td className="border border-black px-1 py-1 font-semibold uppercase">Prelim</td>
+                  {sorted.map((e, i) => (
+                    <td key={i} className="border border-black px-1 py-1 text-center whitespace-nowrap">
+                      {e.period === "prelim" ? STATUS_LETTER[e.status] : ""}
+                    </td>
+                  ))}
+                </tr>
+              )}
               <tr>
                 <td className="border border-black px-1 py-1 font-semibold uppercase">Midterm</td>
                 {sorted.map((e, i) => (
@@ -336,19 +396,19 @@ export default function RecordCardSheet({
     const title = sectionTitle(config.record_card_layout, key);
     switch (key) {
       case "assignment":
-        return <DateGridBox title={title} entries={assignmentEntries} />;
+        return <DateGridBox title={title} entries={assignmentEntries} usePrelims={config.use_prelims} />;
       case "recitation":
-        return <DateGridBox title={title} entries={recitationEntries} />;
+        return <DateGridBox title={title} entries={recitationEntries} usePrelims={config.use_prelims} />;
       case "quiz":
-        return <DateGridBox title={title} entries={quizEntries} />;
+        return <DateGridBox title={title} entries={quizEntries} usePrelims={config.use_prelims} />;
       case "written":
-        return <DateGridBox title={title} entries={writtenEntries} />;
+        return <DateGridBox title={title} entries={writtenEntries} usePrelims={config.use_prelims} />;
       case "laboratory":
-        return <DateGridBox title={title} entries={labEntries} />;
+        return <DateGridBox title={title} entries={labEntries} usePrelims={config.use_prelims} />;
       case "major_exam":
-        return <MajorExamBox title={title} data={majorExam} />;
+        return <MajorExamBox title={title} data={majorExam} usePrelims={config.use_prelims} />;
       case "attendance":
-        return <AttendanceBox title={title} entries={attendanceEntries} />;
+        return <AttendanceBox title={title} entries={attendanceEntries} usePrelims={config.use_prelims} />;
     }
   }
 
@@ -366,7 +426,7 @@ export default function RecordCardSheet({
         </div>
       ))}
 
-      <SignatureRemarksRow />
+      <SignatureRemarksRow usePrelims={config.use_prelims} />
     </div>
   );
 }

@@ -39,6 +39,13 @@ export async function GET(
 
   const classData = await fetchClassGradingData(supabase, classId);
 
+  if (classData.config?.use_prelims) {
+    return NextResponse.json(
+      { error: "DHVSU export only supports Midterm/Finals classes. Turn off Prelims in Setup to export." },
+      { status: 409 },
+    );
+  }
+
   let buffer: Buffer;
   try {
     buffer = await buildDhvsuClassRecord({

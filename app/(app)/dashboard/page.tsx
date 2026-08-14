@@ -53,10 +53,10 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: classes } = await supabase
-    .from("classes")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data: classes }, { data: teacherRow }] = await Promise.all([
+    supabase.from("classes").select("*").order("created_at", { ascending: false }),
+    supabase.from("teachers").select("default_use_prelims").eq("id", user.id).single(),
+  ]);
 
   const allClasses = (classes as ClassRow[] | null) ?? [];
   const classList = allClasses.filter((c) => !c.archived);
@@ -207,7 +207,10 @@ export default async function DashboardPage() {
         </div>
 
         <div className="mt-6 rounded-sm border border-rule bg-white p-4">
-          <CreateClassForm teacherId={user.id} />
+          <CreateClassForm
+            teacherId={user.id}
+            defaultUsePrelims={teacherRow?.default_use_prelims ?? false}
+          />
         </div>
 
         <ul id="class-list" className="mt-8 flex scroll-mt-6 flex-col gap-2">

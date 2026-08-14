@@ -9,6 +9,7 @@ export type Teacher = {
   card_campus_line: string | null;
   card_logo_path: string | null;
   faculty_rank: string | null;
+  default_use_prelims: boolean;
   created_at: string;
 };
 
@@ -80,7 +81,7 @@ export type Material = {
   created_at: string;
 };
 
-export type Period = "midterm" | "finals";
+export type Period = "prelim" | "midterm" | "finals";
 
 export type Assignment = {
   id: string;
@@ -128,8 +129,11 @@ export type GradingConfig = {
   weight_written: number;
   weight_laboratory: number;
   weight_major_exam: number;
+  use_prelims: boolean;
+  prelim_weight: number;
   midterm_weight: number;
   finals_weight: number;
+  prelim_end_date: string | null;
   midterm_end_date: string | null;
   show_assignment: boolean;
   show_recitation: boolean;

@@ -10,9 +10,11 @@ import { useToast } from "@/app/_components/toast";
 export default function AssignmentsClient({
   classId,
   initialAssignments,
+  usePrelims = false,
 }: {
   classId: string;
   initialAssignments: Assignment[];
+  usePrelims?: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -135,6 +137,7 @@ export default function AssignmentsClient({
               onChange={(e) => setPeriod(e.target.value as Period)}
               className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
             >
+              {usePrelims && <option value="prelim">Prelim</option>}
               <option value="midterm">Midterm</option>
               <option value="finals">Finals</option>
             </select>
@@ -179,6 +182,7 @@ export default function AssignmentsClient({
                   }
                   className="rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-xs uppercase text-ink outline-none focus:border-brass"
                 >
+                  {usePrelims && <option value="prelim">Prelim</option>}
                   <option value="midterm">Midterm</option>
                   <option value="finals">Finals</option>
                 </select>

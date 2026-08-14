@@ -1,11 +1,17 @@
 import ExcelJS from "exceljs";
 import path from "path";
 import { buildRecordCardData, periodForDate, type ClassGradingData, type GridEntry } from "@/lib/record-card-data";
-import type { Attendance, AttendanceStatus, ClassRow, Period, Student, Teacher } from "@/lib/types";
+import type { Attendance, AttendanceStatus, ClassRow, Student, Teacher } from "@/lib/types";
 
 const TEMPLATE_PATH = path.join(process.cwd(), "lib/templates/dhvsu-1st-3rd-year.xlsx");
 
-const TERM_SHEETS: Record<Period, { score: string; attendance: string }> = {
+// This template only has Midterm/Final Term sheets -- deliberately narrower
+// than the app-wide `Period` type (which also has "prelim"). The gradebook
+// UI disables this export entirely for classes with a third period enabled,
+// so this file never needs to handle "prelim".
+type DhvsuPeriod = "midterm" | "finals";
+
+const TERM_SHEETS: Record<DhvsuPeriod, { score: string; attendance: string }> = {
   midterm: { score: "Midterm", attendance: "MT Attendance" },
   finals: { score: "Final Term", attendance: "FT Attendance" },
 };
@@ -37,7 +43,7 @@ const STATUS_CODE: Record<AttendanceStatus, string> = {
   absent: "A",
 };
 
-function average(entries: GridEntry[], period: Period): number | null {
+function average(entries: GridEntry[], period: DhvsuPeriod): number | null {
   const withScores = entries.filter((e) => e.period === period && e.score != null && e.maxScore > 0);
   if (withScores.length === 0) return null;
   const pct = withScores.map((e) => (e.score! / e.maxScore) * 100);
@@ -151,7 +157,7 @@ function fillStudentList(wb: ExcelJS.Workbook, students: Student[]) {
 
 function fillTermSheet(
   wb: ExcelJS.Workbook,
-  period: Period,
+  period: DhvsuPeriod,
   students: Student[],
   classData: ClassGradingData,
 ) {
@@ -188,15 +194,19 @@ function fillTermSheet(
 
 function fillAttendanceSheet(
   wb: ExcelJS.Workbook,
-  period: Period,
+  period: DhvsuPeriod,
   students: Student[],
   classData: ClassGradingData,
 ) {
   const ws = sheet(wb, TERM_SHEETS[period].attendance);
-  const midtermEndDate = classData.config?.midterm_end_date ?? null;
+  const cutoffs = classData.config ?? {
+    use_prelims: false,
+    prelim_end_date: null,
+    midterm_end_date: null,
+  };
 
   const periodAttendance = classData.attendance.filter(
-    (a) => periodForDate(a.date, midtermEndDate) === period,
+    (a) => periodForDate(a.date, cutoffs) === period,
   );
   const sessionDates = Array.from(new Set(periodAttendance.map((a) => a.date))).sort();
 

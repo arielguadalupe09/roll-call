@@ -7,12 +7,15 @@ import { useToast } from "@/app/_components/toast";
 export default function ProfileForm({
   teacherId,
   initialFullName,
+  initialDefaultUsePrelims,
 }: {
   teacherId: string;
   initialFullName: string | null;
+  initialDefaultUsePrelims: boolean;
 }) {
   const { showToast } = useToast();
   const [fullName, setFullName] = useState(initialFullName ?? "");
+  const [defaultUsePrelims, setDefaultUsePrelims] = useState(initialDefaultUsePrelims);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +27,10 @@ export default function ProfileForm({
     const supabase = createClient();
     const { error: updateError } = await supabase
       .from("teachers")
-      .update({ full_name: fullName.trim() || null })
+      .update({
+        full_name: fullName.trim() || null,
+        default_use_prelims: defaultUsePrelims,
+      })
       .eq("id", teacherId);
 
     setSaving(false);
@@ -53,6 +59,22 @@ export default function ProfileForm({
           Shown as the Instructor name on printable documents like the Student
           Individual Record Card.
         </p>
+
+        <label className="mt-4 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={defaultUsePrelims}
+            onChange={(e) => setDefaultUsePrelims(e.target.checked)}
+          />
+          <span className="text-sm font-medium text-ink">
+            Default new classes to 3 grading periods (Prelims)
+          </span>
+        </label>
+        <p className="mt-1 text-sm text-ink/60">
+          Applies to classes you create from now on. Each class still has its
+          own switch in Gradebook &rarr; Setup.
+        </p>
+
         <div className="mt-4 flex items-center gap-3">
           <button
             type="submit"

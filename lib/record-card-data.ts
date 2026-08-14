@@ -22,6 +22,8 @@ export type GridEntry = {
 };
 
 export type MajorExamData = {
+  prelimScore: number | null;
+  prelimMax: number | null;
   midtermScore: number | null;
   midtermMax: number | null;
   finalsScore: number | null;
@@ -46,9 +48,14 @@ export type RecordCardStudentData = {
   attendanceEntries: AttendanceEntry[];
 };
 
-export function periodForDate(date: string, midtermEndDate: string | null): Period {
-  if (!midtermEndDate) return "midterm";
-  return date <= midtermEndDate ? "midterm" : "finals";
+export type PeriodCutoffs = Pick<GradingConfig, "use_prelims" | "prelim_end_date" | "midterm_end_date">;
+
+export function periodForDate(date: string, cutoffs: PeriodCutoffs): Period {
+  if (cutoffs.use_prelims && cutoffs.prelim_end_date && date <= cutoffs.prelim_end_date) {
+    return "prelim";
+  }
+  if (!cutoffs.midterm_end_date) return cutoffs.use_prelims ? "prelim" : "midterm";
+  return date <= cutoffs.midterm_end_date ? "midterm" : "finals";
 }
 
 // Fetches everything needed to build a Record Card for every student in a
@@ -128,7 +135,11 @@ export function buildRecordCardData(
   student: Student,
   classData: ClassGradingData,
 ): RecordCardStudentData {
-  const midtermEndDate = classData.config?.midterm_end_date ?? null;
+  const cutoffs: PeriodCutoffs = classData.config ?? {
+    use_prelims: false,
+    prelim_end_date: null,
+    midterm_end_date: null,
+  };
 
   const submissionByAssignment = new Map(
     classData.submissions
@@ -146,7 +157,7 @@ export function buildRecordCardData(
     .filter((log) => log.student_id === student.id)
     .map((log) => ({
       date: log.date,
-      period: periodForDate(log.date, midtermEndDate),
+      period: periodForDate(log.date, cutoffs),
       score: log.score,
       maxScore: 5,
     }));
@@ -172,18 +183,29 @@ export function buildRecordCardData(
       .filter((s) => s.student_id === student.id)
       .map((s) => [s.major_exam_id, s]),
   );
+  const prelimExam = classData.majorExams.find((e) => e.period === "prelim") ?? null;
   const midtermExam = classData.majorExams.find((e) => e.period === "midterm") ?? null;
   const finalsExam = classData.majorExams.find((e) => e.period === "finals") ?? null;
+  const prelimExamScore = prelimExam
+    ? (scoreByMajorExam.get(prelimExam.id)?.score ?? null)
+    : null;
   const midtermExamScore = midtermExam
     ? (scoreByMajorExam.get(midtermExam.id)?.score ?? null)
     : null;
   const finalsExamScore = finalsExam
     ? (scoreByMajorExam.get(finalsExam.id)?.score ?? null)
     : null;
-  const majorExamAverage =
-    midtermExamScore != null && finalsExamScore != null
-      ? (midtermExamScore + finalsExamScore) / 2
-      : null;
+  // Requires every period *in the class's active set* to be graded before
+  // showing an average -- not just whichever major_exams rows happen to
+  // exist yet, so a class that's only ever created (and graded) its Midterm
+  // exam still shows a blank Average rather than a misleading solo score.
+  const requiredExamScores = (
+    cutoffs.use_prelims ? [prelimExamScore, midtermExamScore, finalsExamScore] : [midtermExamScore, finalsExamScore]
+  );
+  const majorExamAverage = requiredExamScores.every((score) => score != null)
+    ? (requiredExamScores as number[]).reduce((sum, score) => sum + score, 0) /
+      requiredExamScores.length
+    : null;
 
   const statusByDateForStudent = new Map(
     classData.attendance
@@ -193,7 +215,7 @@ export function buildRecordCardData(
   const classSessionDates = Array.from(new Set(classData.attendance.map((a) => a.date))).sort();
   const attendanceEntries: AttendanceEntry[] = classSessionDates.map((date) => ({
     date,
-    period: periodForDate(date, midtermEndDate),
+    period: periodForDate(date, cutoffs),
     status: statusByDateForStudent.get(date) ?? "absent",
   }));
 
@@ -205,6 +227,8 @@ export function buildRecordCardData(
     writtenEntries: entriesForCategory("written"),
     labEntries: entriesForCategory("laboratory"),
     majorExam: {
+      prelimScore: prelimExamScore,
+      prelimMax: prelimExam?.max_score ?? null,
       midtermScore: midtermExamScore,
       midtermMax: midtermExam?.max_score ?? null,
       finalsScore: finalsExamScore,

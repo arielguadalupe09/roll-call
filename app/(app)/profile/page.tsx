@@ -39,6 +39,7 @@ export default async function ProfilePage() {
         <ProfileForm
           teacherId={user.id}
           initialFullName={teacher?.full_name ?? null}
+          initialDefaultUsePrelims={teacher?.default_use_prelims ?? false}
         />
 
         <RecordCardBrandingForm

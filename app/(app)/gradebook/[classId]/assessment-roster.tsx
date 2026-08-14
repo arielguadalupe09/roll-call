@@ -21,6 +21,7 @@ export default function AssessmentRoster({
   students,
   initialAssessments,
   initialScores,
+  usePrelims = false,
 }: {
   classId: string;
   category: AssessmentCategory;
@@ -28,6 +29,7 @@ export default function AssessmentRoster({
   students: Student[];
   initialAssessments: Assessment[];
   initialScores: AssessmentScore[];
+  usePrelims?: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -188,6 +190,7 @@ export default function AssessmentRoster({
               onChange={(e) => setPeriod(e.target.value as Period)}
               className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
             >
+              {usePrelims && <option value="prelim">Prelim</option>}
               <option value="midterm">Midterm</option>
               <option value="finals">Finals</option>
             </select>

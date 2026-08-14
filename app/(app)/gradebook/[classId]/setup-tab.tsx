@@ -56,8 +56,11 @@ export default function SetupTab({
     for (const f of CATEGORY_FIELDS) initial[f.key] = String(initialConfig[f.key]);
     return initial;
   });
+  const [usePrelims, setUsePrelims] = useState(initialConfig.use_prelims);
+  const [prelimWeight, setPrelimWeight] = useState(String(initialConfig.prelim_weight));
   const [midtermWeight, setMidtermWeight] = useState(String(initialConfig.midterm_weight));
   const [finalsWeight, setFinalsWeight] = useState(String(initialConfig.finals_weight));
+  const [prelimEndDate, setPrelimEndDate] = useState(initialConfig.prelim_end_date ?? "");
   const [midtermEndDate, setMidtermEndDate] = useState(initialConfig.midterm_end_date ?? "");
   const [sections, setSections] = useState<Record<SectionKey, boolean>>(() => {
     const initial = {} as Record<SectionKey, boolean>;
@@ -81,7 +84,10 @@ export default function SetupTab({
     () => CATEGORY_FIELDS.reduce((sum, f) => sum + (Number(values[f.key]) || 0), 0),
     [values],
   );
-  const periodSum = (Number(midtermWeight) || 0) + (Number(finalsWeight) || 0);
+  const periodSum =
+    (usePrelims ? Number(prelimWeight) || 0 : 0) +
+    (Number(midtermWeight) || 0) +
+    (Number(finalsWeight) || 0);
 
   async function handleSave() {
     setSaving(true);
@@ -89,8 +95,11 @@ export default function SetupTab({
 
     const payload: Partial<GradingConfig> & { class_id: string } = {
       class_id: classId,
+      use_prelims: usePrelims,
+      prelim_weight: Number(prelimWeight) || 0,
       midterm_weight: Number(midtermWeight) || 0,
       finals_weight: Number(finalsWeight) || 0,
+      prelim_end_date: usePrelims ? prelimEndDate || null : null,
       midterm_end_date: midtermEndDate || null,
     };
     for (const f of CATEGORY_FIELDS) payload[f.key] = Number(values[f.key]) || 0;
@@ -152,10 +161,40 @@ export default function SetupTab({
       </div>
 
       <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={usePrelims}
+            onChange={(e) => setUsePrelims(e.target.checked)}
+          />
+          <span className="text-sm font-medium text-ink">
+            Use Prelims (3 grading periods)
+          </span>
+        </label>
+        <p className="mt-1 text-sm text-ink/60">
+          For schools that grade Prelims, Midterms, and Finals separately
+          instead of just Midterm/Finals.
+        </p>
+      </div>
+
+      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
-          Combining Midterm + Finals into the Final Grade
+          Combining {usePrelims ? "Prelim + Midterm + Finals" : "Midterm + Finals"} into the Final Grade
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
+          {usePrelims && (
+            <label className="flex w-36 flex-col gap-1">
+              <span className="text-sm text-ink">Prelims weight (%)</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={prelimWeight}
+                onChange={(e) => setPrelimWeight(e.target.value)}
+                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              />
+            </label>
+          )}
           <label className="flex w-36 flex-col gap-1">
             <span className="text-sm text-ink">Midterm weight (%)</span>
             <input
@@ -190,20 +229,34 @@ export default function SetupTab({
 
       <div className="mt-4 rounded-sm border border-rule bg-white p-4">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
-          Recitation period cutoff
+          Recitation period cutoff{usePrelims ? "s" : ""}
         </p>
-        <label className="mt-3 flex w-56 flex-col gap-1">
-          <span className="text-sm text-ink">Midterm ends on</span>
-          <input
-            type="date"
-            value={midtermEndDate}
-            onChange={(e) => setMidtermEndDate(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
-          />
-        </label>
+        <div className="mt-3 flex flex-wrap gap-3">
+          {usePrelims && (
+            <label className="flex w-56 flex-col gap-1">
+              <span className="text-sm text-ink">Prelims ends on</span>
+              <input
+                type="date"
+                value={prelimEndDate}
+                onChange={(e) => setPrelimEndDate(e.target.value)}
+                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              />
+            </label>
+          )}
+          <label className="flex w-56 flex-col gap-1">
+            <span className="text-sm text-ink">Midterm ends on</span>
+            <input
+              type="date"
+              value={midtermEndDate}
+              onChange={(e) => setMidtermEndDate(e.target.value)}
+              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+            />
+          </label>
+        </div>
         <p className="mt-2 text-sm text-ink/60">
-          Recitation taps on or before this date count toward Midterm; taps
-          after it count toward Finals.
+          {usePrelims
+            ? "Recitation taps on or before the Prelims date count toward Prelims; taps after it up to the Midterm date count toward Midterm; anything later counts toward Finals."
+            : "Recitation taps on or before this date count toward Midterm; taps after it count toward Finals."}
         </p>
       </div>
 

@@ -2,6 +2,7 @@ import type { GradingConfig, Period } from "./types";
 import type { GridEntry, RecordCardStudentData } from "./record-card-data";
 
 export type FinalGrade = {
+  prelim: number | null;
   midterm: number | null;
   finals: number | null;
   final: number | null;
@@ -15,8 +16,18 @@ function categoryPercentage(entries: GridEntry[], period: Period): number | null
 }
 
 function majorExamPercentage(data: RecordCardStudentData, period: Period): number | null {
-  const score = period === "midterm" ? data.majorExam.midtermScore : data.majorExam.finalsScore;
-  const max = period === "midterm" ? data.majorExam.midtermMax : data.majorExam.finalsMax;
+  const score =
+    period === "prelim"
+      ? data.majorExam.prelimScore
+      : period === "midterm"
+        ? data.majorExam.midtermScore
+        : data.majorExam.finalsScore;
+  const max =
+    period === "prelim"
+      ? data.majorExam.prelimMax
+      : period === "midterm"
+        ? data.majorExam.midtermMax
+        : data.majorExam.finalsMax;
   if (score == null || !max) return null;
   return (score / max) * 100;
 }
@@ -55,12 +66,14 @@ export function computeFinalGrade(
   data: RecordCardStudentData,
   config: GradingConfig,
 ): FinalGrade {
+  const prelim = config.use_prelims ? periodGrade(data, config, "prelim") : null;
   const midterm = periodGrade(data, config, "midterm");
   const finals = periodGrade(data, config, "finals");
   const final = weightedAverage([
+    { percentage: prelim, weight: config.use_prelims ? config.prelim_weight : 0 },
     { percentage: midterm, weight: config.midterm_weight },
     { percentage: finals, weight: config.finals_weight },
   ]);
 
-  return { midterm, finals, final };
+  return { prelim, midterm, finals, final };
 }

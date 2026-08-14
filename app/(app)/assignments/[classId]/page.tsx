@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Assignment } from "@/lib/types";
+import type { Assignment, GradingConfig } from "@/lib/types";
 import AssignmentsClient from "./assignments-client";
 
 export default async function AssignmentsPage({
@@ -19,11 +19,14 @@ export default async function AssignmentsPage({
 
   if (!classRow) notFound();
 
-  const { data: assignments } = await supabase
-    .from("assignments")
-    .select("*")
-    .eq("class_id", classId)
-    .order("created_at", { ascending: false });
+  const [{ data: assignments }, { data: config }] = await Promise.all([
+    supabase
+      .from("assignments")
+      .select("*")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false }),
+    supabase.from("grading_configs").select("*").eq("class_id", classId).single(),
+  ]);
 
   return (
     <div className="px-8 py-10">
@@ -35,6 +38,7 @@ export default async function AssignmentsPage({
         <AssignmentsClient
           classId={classId}
           initialAssignments={(assignments as Assignment[] | null) ?? []}
+          usePrelims={(config as GradingConfig | null)?.use_prelims ?? false}
         />
       </div>
     </div>

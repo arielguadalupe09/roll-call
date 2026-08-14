@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { GradingConfig, ParticipationLog, Student } from "@/lib/types";
 import { summarizeParticipation } from "@/lib/participation";
+import { periodForDate } from "@/lib/record-card-data";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 
 function SummaryTable({
@@ -154,7 +155,7 @@ export default function RecitationTab({
 
   const cutoff = config.midterm_end_date;
 
-  if (!cutoff) {
+  if (!config.use_prelims && !cutoff) {
     return (
       <div className="mt-6">
         <p className="mb-4 rounded-sm border border-brass bg-brass/10 px-3 py-2 text-sm text-ink">
@@ -170,8 +171,22 @@ export default function RecitationTab({
     );
   }
 
-  const midtermLogs = recitationLogs.filter((l) => l.date <= cutoff);
-  const finalsLogs = recitationLogs.filter((l) => l.date > cutoff);
+  if (config.use_prelims) {
+    const prelimLogs = recitationLogs.filter((l) => periodForDate(l.date, config) === "prelim");
+    const midtermLogs = recitationLogs.filter((l) => periodForDate(l.date, config) === "midterm");
+    const finalsLogs = recitationLogs.filter((l) => periodForDate(l.date, config) === "finals");
+
+    return (
+      <div className="mt-6 flex flex-col gap-4">
+        <SummaryTable title="Prelims" logs={prelimLogs} students={students} />
+        <SummaryTable title="Midterm" logs={midtermLogs} students={students} />
+        <SummaryTable title="Finals" logs={finalsLogs} students={students} />
+      </div>
+    );
+  }
+
+  const midtermLogs = recitationLogs.filter((l) => l.date <= (cutoff as string));
+  const finalsLogs = recitationLogs.filter((l) => l.date > (cutoff as string));
 
   return (
     <div className="mt-6 flex flex-col gap-4">

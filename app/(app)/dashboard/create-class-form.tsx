@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 
-export default function CreateClassForm({ teacherId }: { teacherId: string }) {
+export default function CreateClassForm({
+  teacherId,
+  defaultUsePrelims = false,
+}: {
+  teacherId: string;
+  defaultUsePrelims?: boolean;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,17 +25,29 @@ export default function CreateClassForm({ teacherId }: { teacherId: string }) {
     setError(null);
 
     const supabase = createClient();
-    const { error: insertError } = await supabase
+    const { data: newClass, error: insertError } = await supabase
       .from("classes")
-      .insert({ name: name.trim(), teacher_id: teacherId });
-
-    setLoading(false);
+      .insert({ name: name.trim(), teacher_id: teacherId })
+      .select()
+      .single();
 
     if (insertError) {
+      setLoading(false);
       setError(insertError.message);
       return;
     }
 
+    // The DB trigger that auto-creates this class's grading_configs row has
+    // already run by the time insert() resolves, so this is a plain update,
+    // not a race against that trigger.
+    if (defaultUsePrelims && newClass) {
+      await supabase
+        .from("grading_configs")
+        .update({ use_prelims: true })
+        .eq("class_id", newClass.id);
+    }
+
+    setLoading(false);
     showToast(`"${name.trim()}" added`);
     setName("");
     router.refresh();

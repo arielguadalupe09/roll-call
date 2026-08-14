@@ -22,8 +22,11 @@ function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
     weight_written: 20,
     weight_laboratory: 10,
     weight_major_exam: 10,
+    use_prelims: false,
+    prelim_weight: 0,
     midterm_weight: 50,
     finals_weight: 50,
+    prelim_end_date: null,
     midterm_end_date: "2026-07-15",
     show_assignment: true,
     show_recitation: true,
@@ -46,7 +49,15 @@ function emptyRecordCardData(overrides: Partial<RecordCardStudentData> = {}): Re
     quizEntries: [],
     writtenEntries: [],
     labEntries: [],
-    majorExam: { midtermScore: null, midtermMax: null, finalsScore: null, finalsMax: null, average: null },
+    majorExam: {
+      prelimScore: null,
+      prelimMax: null,
+      midtermScore: null,
+      midtermMax: null,
+      finalsScore: null,
+      finalsMax: null,
+      average: null,
+    },
     attendanceEntries: [],
     ...overrides,
   };
@@ -55,6 +66,7 @@ function emptyRecordCardData(overrides: Partial<RecordCardStudentData> = {}): Re
 describe("computeFinalGrade", () => {
   it("returns nulls when nothing has been graded yet", () => {
     expect(computeFinalGrade(emptyRecordCardData(), config())).toEqual({
+      prelim: null,
       midterm: null,
       finals: null,
       final: null,
@@ -68,7 +80,15 @@ describe("computeFinalGrade", () => {
       quizEntries: [{ date: "2026-07-01", period: "midterm", score: 100, maxScore: 100 }],
       writtenEntries: [{ date: "2026-07-01", period: "midterm", score: 100, maxScore: 100 }],
       labEntries: [{ date: "2026-07-01", period: "midterm", score: 100, maxScore: 100 }],
-      majorExam: { midtermScore: 100, midtermMax: 100, finalsScore: null, finalsMax: null, average: null },
+      majorExam: {
+        prelimScore: null,
+        prelimMax: null,
+        midtermScore: 100,
+        midtermMax: 100,
+        finalsScore: null,
+        finalsMax: null,
+        average: null,
+      },
     });
     const grade = computeFinalGrade(data, config());
     expect(grade.midterm).toBe(100);
@@ -120,5 +140,51 @@ describe("computeFinalGrade", () => {
       weight_major_exam: 0,
     });
     expect(computeFinalGrade(data, unconfigured).midterm).toBeNull();
+  });
+
+  describe("with Prelims enabled", () => {
+    function prelimsConfig(overrides: Partial<GradingConfig> = {}): GradingConfig {
+      return config({
+        use_prelims: true,
+        prelim_weight: 30,
+        midterm_weight: 30,
+        finals_weight: 40,
+        prelim_end_date: "2026-06-15",
+        weight_assignment: 100,
+        weight_recitation: 0,
+        weight_quiz: 0,
+        weight_written: 0,
+        weight_laboratory: 0,
+        weight_major_exam: 0,
+        ...overrides,
+      });
+    }
+
+    it("computes a prelim grade and folds it into the weighted final", () => {
+      const data = emptyRecordCardData({
+        assignmentEntries: [
+          { date: "2026-06-01", period: "prelim", score: 90, maxScore: 100 },
+          { date: "2026-07-01", period: "midterm", score: 80, maxScore: 100 },
+          { date: "2026-08-01", period: "finals", score: 60, maxScore: 100 },
+        ],
+      });
+      const grade = computeFinalGrade(data, prelimsConfig());
+      expect(grade.prelim).toBe(90);
+      expect(grade.midterm).toBe(80);
+      expect(grade.finals).toBe(60);
+      expect(grade.final).toBeCloseTo(90 * 0.3 + 80 * 0.3 + 60 * 0.4, 5);
+    });
+
+    it("stays null and out of the final average when Prelims is off", () => {
+      const data = emptyRecordCardData({
+        assignmentEntries: [
+          { date: "2026-06-01", period: "prelim", score: 90, maxScore: 100 },
+          { date: "2026-07-01", period: "midterm", score: 80, maxScore: 100 },
+        ],
+      });
+      const grade = computeFinalGrade(data, config({ weight_assignment: 100 }));
+      expect(grade.prelim).toBeNull();
+      expect(grade.midterm).toBe(80);
+    });
   });
 });

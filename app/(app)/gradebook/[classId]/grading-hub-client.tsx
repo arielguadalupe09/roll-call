@@ -113,7 +113,11 @@ export default function GradingHubClient({
       {tab === "setup" && <SetupTab classId={classId} initialConfig={config} />}
 
       {tab === "assignments" && (
-        <AssignmentsClient classId={classId} initialAssignments={assignments} />
+        <AssignmentsClient
+          classId={classId}
+          initialAssignments={assignments}
+          usePrelims={config.use_prelims}
+        />
       )}
 
       {tab === "quiz" && (
@@ -124,6 +128,7 @@ export default function GradingHubClient({
           students={students}
           initialAssessments={quizAssessments}
           initialScores={scoresFor(quizAssessments)}
+          usePrelims={config.use_prelims}
         />
       )}
 
@@ -135,6 +140,7 @@ export default function GradingHubClient({
           students={students}
           initialAssessments={writtenAssessments}
           initialScores={scoresFor(writtenAssessments)}
+          usePrelims={config.use_prelims}
         />
       )}
 
@@ -146,6 +152,7 @@ export default function GradingHubClient({
           students={students}
           initialAssessments={labAssessments}
           initialScores={scoresFor(labAssessments)}
+          usePrelims={config.use_prelims}
         />
       )}
 
@@ -155,6 +162,7 @@ export default function GradingHubClient({
           students={students}
           initialExams={majorExams}
           initialScores={majorExamScores}
+          usePrelims={config.use_prelims}
         />
       )}
 

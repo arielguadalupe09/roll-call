@@ -131,17 +131,34 @@ export default function MajorExamTab({
   students,
   initialExams,
   initialScores,
+  usePrelims,
 }: {
   classId: string;
   students: Student[];
   initialExams: MajorExam[];
   initialScores: MajorExamScore[];
+  usePrelims: boolean;
 }) {
+  const prelimExam = initialExams.find((e) => e.period === "prelim") ?? null;
   const midtermExam = initialExams.find((e) => e.period === "midterm") ?? null;
   const finalsExam = initialExams.find((e) => e.period === "finals") ?? null;
 
   return (
     <div className="mt-6 flex flex-col gap-4">
+      {usePrelims && (
+        <ExamSection
+          classId={classId}
+          period="prelim"
+          label="Prelim Exam"
+          initialExam={prelimExam}
+          students={students}
+          initialScores={
+            prelimExam
+              ? initialScores.filter((s) => s.major_exam_id === prelimExam.id)
+              : []
+          }
+        />
+      )}
       <ExamSection
         classId={classId}
         period="midterm"
