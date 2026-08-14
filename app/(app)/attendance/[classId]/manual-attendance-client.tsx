@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<
   excused: {
     label: "E",
     full: "Excused",
-    active: "bg-ink text-chalk border-ink",
+    active: "bg-ink text-paper border-ink",
     inactive: "text-ink/70 border-ink/30 hover:bg-ink/5",
   },
   late: {
