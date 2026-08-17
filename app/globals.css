@@ -148,23 +148,41 @@
   #print-sheet * {
     visibility: visible;
   }
+  /* 4 columns x 3 rows = 12 cards per sheet on a short/Letter bond paper
+     page (the common case), sized so it also comfortably fits the taller
+     long/legal options with room to spare. Overrides the on-screen
+     2/3-column responsive grid, which was tuned for browser viewing, not
+     for a deliberate per-page card count. */
   #print-sheet {
     position: absolute;
     inset: 0;
     background: white;
     display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.15in !important;
+    padding: 0.2in !important;
   }
   #print-sheet > div {
     break-inside: avoid;
     page-break-inside: avoid;
+    padding: 0.12in !important;
   }
   /* The QR's on-screen 128px is sized for the browser preview, not the
      printed page -- pin it to a fixed physical size instead, so it's
      reliably scannable and consistent across paper sizes regardless of how
-     wide the on-screen grid cell happened to stretch. */
+     wide the on-screen grid cell happened to stretch. Sized to fit 4
+     across a short/Letter page (7.7in printable width) with margin to
+     spare, alongside the name/code text below it. */
   #print-sheet .qr-code {
-    width: 1.5in !important;
-    height: 1.5in !important;
+    width: 1.35in !important;
+    height: 1.35in !important;
+  }
+  #print-sheet .card-name {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+  #print-sheet .card-code {
+    font-size: 9px !important;
   }
   .no-print {
     display: none !important;

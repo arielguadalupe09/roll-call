@@ -14,7 +14,7 @@ export default function PrintSheet({
   subject: string | null;
   students: Student[];
 }) {
-  const [paperSize, setPaperSize] = useState<PaperSize>("long");
+  const [paperSize, setPaperSize] = useState<PaperSize>("short");
 
   return (
     <div>
@@ -68,10 +68,10 @@ export default function PrintSheet({
               </p>
             )}
             <QRCodeSVG value={s.code} size={128} className="qr-code" />
-            <p className="font-display text-lg font-semibold text-black">
+            <p className="card-name font-display text-lg font-semibold text-black">
               {s.name}
             </p>
-            <p className="font-mono text-sm tracking-widest text-gray-700">
+            <p className="card-code font-mono text-sm tracking-widest text-gray-700">
               {s.code}
             </p>
           </div>
