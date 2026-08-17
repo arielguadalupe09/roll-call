@@ -116,9 +116,19 @@ export function namesFromImportRows(rows: Record<string, unknown>[]): string[] {
         const first = String(r[firstNameKey] ?? "").trim();
         const middleRaw = middleNameKey ? String(r[middleNameKey] ?? "").trim() : "";
         const isPlaceholder = normalizeHeader(middleRaw) === "na";
-        const mi = middleRaw && !isPlaceholder ? `${middleRaw[0].toUpperCase()}.` : "";
         if (!last && !first) return "";
-        return [last, [first, mi].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+
+        // A separate Middle Name column is authoritative -- trust the split
+        // and don't second-guess First Name's own words. Without one, some
+        // class-list exports still cram a trailing initial into First Name
+        // itself (e.g. "Christian D"), so run it through the same
+        // trailing-word abbreviation the single-column fallback uses,
+        // rather than passing it through unpunctuated.
+        const given =
+          middleRaw && !isPlaceholder
+            ? `${first} ${middleRaw[0].toUpperCase()}.`.trim()
+            : abbreviateMiddleName(first.split(" ").filter(Boolean));
+        return [last, given].filter(Boolean).join(", ");
       })
       .filter((n) => n.length > 0);
   }

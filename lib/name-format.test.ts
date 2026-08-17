@@ -57,6 +57,11 @@ describe("namesFromImportRows", () => {
     expect(namesFromImportRows(rows)).toEqual(["Cruz, Ana"]);
   });
 
+  it("punctuates a trailing initial embedded in First Name when there's no separate Middle Name column", () => {
+    const rows = [{ "Last Name": "Aguas", "First Name": "Christian D" }];
+    expect(namesFromImportRows(rows)).toEqual(["Aguas, Christian D."]);
+  });
+
   it("skips fully blank rows but keeps a last-name-only row", () => {
     const rows = [
       { "Last Name": "Cruz", "First Name": "Ana" },
