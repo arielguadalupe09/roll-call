@@ -67,7 +67,7 @@ export default function PrintSheet({
                 {subject}
               </p>
             )}
-            <QRCodeSVG value={s.code} size={128} />
+            <QRCodeSVG value={s.code} size={128} className="qr-code" />
             <p className="font-display text-lg font-semibold text-black">
               {s.name}
             </p>

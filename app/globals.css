@@ -158,6 +158,14 @@
     break-inside: avoid;
     page-break-inside: avoid;
   }
+  /* The QR's on-screen 128px is sized for the browser preview, not the
+     printed page -- pin it to a fixed physical size instead, so it's
+     reliably scannable and consistent across paper sizes regardless of how
+     wide the on-screen grid cell happened to stretch. */
+  #print-sheet .qr-code {
+    width: 1.5in !important;
+    height: 1.5in !important;
+  }
   .no-print {
     display: none !important;
   }
