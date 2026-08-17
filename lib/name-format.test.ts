@@ -7,8 +7,8 @@ import {
 } from "./name-format";
 
 describe("toLastNameFirst", () => {
-  it("moves a trailing surname to the front", () => {
-    expect(toLastNameFirst("Juan Reyes Cruz")).toBe("Cruz, Juan Reyes");
+  it("moves a trailing surname to the front and abbreviates the middle name", () => {
+    expect(toLastNameFirst("Juan Reyes Cruz")).toBe("Cruz, Juan R.");
   });
 
   it("keeps a compound surname prefix attached", () => {
@@ -16,8 +16,25 @@ describe("toLastNameFirst", () => {
     expect(toLastNameFirst("Juan De La Cruz")).toBe("De La Cruz, Juan");
   });
 
-  it("leaves an already-formatted name untouched", () => {
+  it("leaves a name with a single given name untouched", () => {
     expect(toLastNameFirst("Cruz, Juan")).toBe("Cruz, Juan");
+  });
+
+  it("abbreviates a full middle name even when the input already has a comma", () => {
+    // The bug this covers: a teacher typing "Lastname, Firstname Middlename"
+    // by hand (matching the app's own placeholder order) skipped
+    // reformatting entirely just because a comma was already present.
+    expect(toLastNameFirst("Bautista, Raymond Catacutan")).toBe("Bautista, Raymond C.");
+    expect(toLastNameFirst("Collado, Lei Ann Rivera")).toBe("Collado, Lei Ann R.");
+  });
+
+  it("normalizes an already-abbreviated middle initial instead of re-abbreviating it", () => {
+    expect(toLastNameFirst("Badiable, Natalie M.")).toBe("Badiable, Natalie M.");
+    expect(toLastNameFirst("Badiable, Natalie M")).toBe("Badiable, Natalie M.");
+  });
+
+  it("returns just the surname when nothing follows the comma", () => {
+    expect(toLastNameFirst("Cruz,")).toBe("Cruz");
   });
 });
 

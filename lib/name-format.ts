@@ -1,9 +1,13 @@
-// Reformats a freely-typed "Firstname Middle Lastname" style name into
-// "Lastname, Firstname Middle" for the class roster. Recognizes common
+// Reformats a freely-typed name into "Lastname, Firstname M.I." for the
+// class roster -- the format every other part of this app (record cards,
+// QR sheets, the manual-add placeholder) assumes. Recognizes common
 // Filipino/Spanish compound surname prefixes (e.g. "Dela Cruz", "De Guzman",
-// "San Juan") so they aren't split apart from their surname. Leaves anything
-// that already contains a comma untouched, since that's assumed to already
-// be in "Lastname, Firstname" order.
+// "San Juan") so they aren't split apart from their surname, and abbreviates
+// a trailing middle name down to its initial (a lone given name is left
+// alone -- "Cruz, Juan" stays "Cruz, Juan", not "Cruz, J."). Runs even when
+// the input already contains a comma, since teachers routinely type
+// "Lastname, Firstname Middlename" by hand without abbreviating it
+// themselves.
 const TWO_WORD_PREFIXES = new Set(["de la", "de los", "de las"]);
 const ONE_WORD_PREFIXES = new Set([
   "dela",
@@ -22,9 +26,33 @@ const ONE_WORD_PREFIXES = new Set([
   "st.",
 ]);
 
+function looksLikeInitial(word: string): boolean {
+  return /^[A-Za-z]{1,3}\.?$/.test(word);
+}
+
+// "Raymond Catacutan" -> "Raymond C."; "Lei Ann Rivera" -> "Lei Ann R.";
+// a single word, or a trailing word that already looks like an initial
+// ("Natalie M."), is left as-is.
+function abbreviateMiddleName(words: string[]): string {
+  if (words.length < 2) return words.join(" ");
+  const last = words[words.length - 1];
+  const abbreviated = looksLikeInitial(last)
+    ? `${last.replace(/\.$/, "")}.`
+    : `${last[0].toUpperCase()}.`;
+  return [...words.slice(0, -1), abbreviated].join(" ");
+}
+
 export function toLastNameFirst(rawName: string): string {
   const trimmed = rawName.trim().replace(/\s+/g, " ");
-  if (!trimmed || trimmed.includes(",")) return trimmed;
+  if (!trimmed) return trimmed;
+
+  if (trimmed.includes(",")) {
+    const commaIndex = trimmed.indexOf(",");
+    const lastName = trimmed.slice(0, commaIndex).trim();
+    const rest = trimmed.slice(commaIndex + 1).trim();
+    if (!rest) return lastName;
+    return `${lastName}, ${abbreviateMiddleName(rest.split(" "))}`;
+  }
 
   const words = trimmed.split(" ");
   if (words.length < 2) return trimmed;
@@ -48,8 +76,10 @@ export function toLastNameFirst(rawName: string): string {
   }
 
   const surname = words.slice(surnameStartIndex).join(" ");
-  const givenNames = words.slice(0, surnameStartIndex).join(" ");
-  return givenNames ? `${surname}, ${givenNames}` : surname;
+  const givenWords = words.slice(0, surnameStartIndex);
+  return givenWords.length > 0
+    ? `${surname}, ${abbreviateMiddleName(givenWords)}`
+    : surname;
 }
 
 const normalizeHeader = (k: string) => k.trim().toLowerCase().replace(/[^a-z]/g, "");
@@ -187,9 +217,8 @@ export function parseStudentName(name: string): {
   if (parts.length === 0) return { lastName, firstName: "", mi: "" };
 
   const last = parts[parts.length - 1];
-  const looksLikeMiddleInitial = /^[A-Za-z]{1,3}\.?$/.test(last);
 
-  if (parts.length > 1 && looksLikeMiddleInitial) {
+  if (parts.length > 1 && looksLikeInitial(last)) {
     return { lastName, firstName: parts.slice(0, -1).join(" "), mi: last };
   }
   return { lastName, firstName: rest, mi: "" };
