@@ -70,9 +70,11 @@ export default function PrintSheet({
               )}
             </div>
             <QRCodeSVG value={s.code} size={128} />
-            <p className="font-display text-lg font-semibold text-black">
-              {s.name}
-            </p>
+            <div className="flex h-14 w-full items-center justify-center px-1">
+              <p className="line-clamp-2 font-display text-lg font-semibold text-black">
+                {s.name}
+              </p>
+            </div>
             <p className="font-mono text-sm tracking-widest text-gray-700">
               {s.code}
             </p>
