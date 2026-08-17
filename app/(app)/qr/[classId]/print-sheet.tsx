@@ -62,11 +62,13 @@ export default function PrintSheet({
             key={s.id}
             className="flex flex-col items-center gap-2 rounded-sm border border-gray-300 p-4 text-center"
           >
-            {subject && (
-              <p className="font-mono text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {subject}
-              </p>
-            )}
+            <div className="flex h-8 w-full items-center justify-center px-1">
+              {subject && (
+                <p className="line-clamp-2 text-center font-mono text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {subject}
+                </p>
+              )}
+            </div>
             <QRCodeSVG value={s.code} size={128} />
             <p className="font-display text-lg font-semibold text-black">
               {s.name}
