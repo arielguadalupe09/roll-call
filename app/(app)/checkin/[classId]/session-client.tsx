@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { generateSessionToken } from "@/lib/codes";
 import { todayLocalDate } from "@/lib/date";
@@ -103,25 +102,6 @@ export default function SessionClient({
     setSession(data as Session);
   }
 
-  async function rotateToken() {
-    if (!session) return;
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
-    const { data, error: updateError } = await supabase
-      .from("sessions")
-      .update({ token: generateSessionToken() })
-      .eq("id", session.id)
-      .select()
-      .single();
-    setLoading(false);
-    if (updateError) {
-      setError(updateError.message);
-      return;
-    }
-    setSession(data as Session);
-  }
-
   async function endSession() {
     if (!session) return;
     setLoading(true);
@@ -169,30 +149,20 @@ export default function SessionClient({
       {session ? (
         <>
           <p className="mt-4 max-w-sm text-center text-sm text-rule">
-            Project this on your screen or board. Students open{" "}
+            Your students can check themselves in from their own phone at{" "}
             <span className="font-mono text-paper" suppressHydrationWarning>
               {origin || "your Roll Call link"}/checkin
             </span>{" "}
-            on their own phone, scan this code, then enter their personal
-            code to be marked present.
+            using their personal QR code — no need to scan anything from
+            this screen.
           </p>
 
-          <div className="mt-6 rounded-sm border-4 border-brass bg-white p-6">
-            <QRCodeSVG value={`SESSION|${session.token}`} size={240} />
-          </div>
           <p className="mt-6 font-mono text-5xl font-semibold text-brass">
             {count}
           </p>
           <p className="text-rule">students checked in</p>
 
           <div className="mt-8 flex gap-3">
-            <button
-              onClick={rotateToken}
-              disabled={loading}
-              className="rounded-sm border border-rule px-4 py-2 font-medium text-paper transition hover:bg-white/10 disabled:opacity-60"
-            >
-              New code
-            </button>
             <button
               onClick={endSession}
               disabled={loading}
@@ -202,16 +172,15 @@ export default function SessionClient({
             </button>
           </div>
           <p className="mt-3 max-w-sm text-center text-xs text-rule/70">
-            &quot;New code&quot; refreshes the QR if it&apos;s been shared
-            beyond your class. &quot;End session&quot; closes it so no more
-            students can check in today.
+            &quot;End session&quot; closes it so no more students can check
+            in today.
           </p>
         </>
       ) : (
         <>
           <p className="mt-4 max-w-xs text-center text-rule">
-            Starting a session generates a QR code your students scan to
-            check themselves in for today.
+            Starting a session lets your students check themselves in using
+            their own personal QR code for today.
           </p>
           <button
             onClick={startSession}
