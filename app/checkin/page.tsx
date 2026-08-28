@@ -72,7 +72,7 @@ export default function PublicCheckinPage() {
       startPromise = scanner
         .start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: 240 },
+          { fps: 10, qrbox: 220 },
           (decodedText) => handleCodeDecoded(decodedText),
           () => {},
         )
