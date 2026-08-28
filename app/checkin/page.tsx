@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 const CODE_READER_ID = "student-code-reader";
 const DEVICE_ID_KEY = "rollcall_device_id";
@@ -20,6 +20,24 @@ function getDeviceId(): string {
   return id;
 }
 
+// display-mode doesn't change mid-session, so this never needs to notify
+// subscribers — useSyncExternalStore still gives the correct hydration-safe
+// answer: false on the server (and briefly on the client, matching it),
+// then the real value once mounted, without a manual effect+setState.
+function subscribeNoop() {
+  return () => {};
+}
+function getIsStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // iOS Safari's own flag — there's no `display-mode` media query support there.
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+function getIsStandaloneServer() {
+  return false;
+}
+
 export default function PublicCheckinPage() {
   const [step, setStep] = useState<Step>("code");
   const [codeMode, setCodeMode] = useState<CodeMode>("scan");
@@ -31,6 +49,41 @@ export default function PublicCheckinPage() {
 
   const codeScannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const codeHandledRef = useRef(false);
+
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const installed = useSyncExternalStore(subscribeNoop, getIsStandalone, getIsStandaloneServer);
+
+  // Chrome/Android only offers "Add to Home Screen" as a full install (not
+  // just a bookmark shortcut) once a service worker is registered for this
+  // scope — see public/checkin-sw.js for why it does nothing beyond that.
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/checkin-sw.js").catch(() => {});
+    }
+
+    // Chrome/Android fire this instead of showing their own install UI,
+    // once this page meets the installability bar (manifest + icons +
+    // service worker) — capturing it lets us show our own "Install app"
+    // button and trigger the native prompt from it. Safari never fires
+    // this at all, hence the always-visible fallback instructions below.
+    function onBeforeInstallPrompt(e: Event) {
+      e.preventDefault();
+      setInstallPrompt(e);
+    }
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+  }, []);
+
+  async function handleInstallClick() {
+    const promptEvent = installPrompt as Event & {
+      prompt: () => Promise<void>;
+      userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+    };
+    if (!promptEvent) return;
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+    setInstallPrompt(null);
+  }
 
   const confirmCode = useCallback(async (rawCode: string) => {
     if (!rawCode.trim()) return;
@@ -134,6 +187,24 @@ export default function PublicCheckinPage() {
       <h1 className="mt-2 font-display text-3xl font-semibold">
         Student check-in
       </h1>
+
+      {!installed && (
+        <div className="mt-4 flex max-w-xs flex-col items-center gap-2 text-center">
+          {installPrompt ? (
+            <button
+              onClick={handleInstallClick}
+              className="rounded-sm border border-brass px-4 py-2 text-sm font-medium text-brass transition hover:bg-brass/10"
+            >
+              Install app
+            </button>
+          ) : (
+            <p className="text-xs text-rule">
+              On iPhone: tap Share, then &quot;Add to Home Screen&quot; for
+              one-tap check-in next time.
+            </p>
+          )}
+        </div>
+      )}
 
       {step === "code" && (
         <div className="mt-8 w-full max-w-xs">
