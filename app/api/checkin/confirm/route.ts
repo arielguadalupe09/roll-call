@@ -26,17 +26,36 @@ export async function POST(request: NextRequest) {
   }
 
   // A student's code locks to whichever device it's first successfully
-  // used from, so a classmate can't check them in from their own phone.
-  // Checked here, before the session lookup, so a mismatched device never
-  // learns whether a session happens to be open.
-  if (deviceId && student.device_id && student.device_id !== deviceId) {
-    return NextResponse.json(
-      {
-        error:
-          "This code is already linked to another device. Ask your teacher to reset it if this is your phone.",
-      },
-      { status: 403 },
-    );
+  // used from, so a classmate can't check them in from their own phone --
+  // and a device locks to whichever student it first checks in, so that
+  // same phone can't then check in a second, third, ... classmate just
+  // because *they* don't have a device bound yet. Both checked here,
+  // before the session lookup, so a blocked device never learns whether a
+  // session happens to be open.
+  if (deviceId) {
+    const { data: deviceOwner } = await supabase
+      .from("students")
+      .select("id")
+      .eq("device_id", deviceId)
+      .neq("id", student.id)
+      .maybeSingle();
+
+    if (deviceOwner) {
+      return NextResponse.json(
+        { error: "This device has already been used to check in a different student." },
+        { status: 403 },
+      );
+    }
+
+    if (student.device_id && student.device_id !== deviceId) {
+      return NextResponse.json(
+        {
+          error:
+            "This code is already linked to another device. Ask your teacher to reset it if this is your phone.",
+        },
+        { status: 403 },
+      );
+    }
   }
 
   // No date filter here on purpose -- this route runs in UTC while the
