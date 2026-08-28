@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const code = body?.code;
+  const deviceId = typeof body?.deviceId === "string" && body.deviceId ? body.deviceId : null;
 
   if (!code || typeof code !== "string") {
     return NextResponse.json({ error: "Missing code." }, { status: 400 });
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   const { data: student } = await supabase
     .from("students")
-    .select("id, name, class_id")
+    .select("id, name, class_id, device_id")
     .eq("code", code.trim().toUpperCase())
     .maybeSingle();
 
@@ -21,6 +22,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "That code doesn't match any student." },
       { status: 404 },
+    );
+  }
+
+  // A student's code locks to whichever device it's first successfully
+  // used from, so a classmate can't check them in from their own phone.
+  // Checked here, before the session lookup, so a mismatched device never
+  // learns whether a session happens to be open.
+  if (deviceId && student.device_id && student.device_id !== deviceId) {
+    return NextResponse.json(
+      {
+        error:
+          "This code is already linked to another device. Ask your teacher to reset it if this is your phone.",
+      },
+      { status: 403 },
     );
   }
 
@@ -64,6 +79,12 @@ export async function POST(request: NextRequest) {
       { error: "Could not record attendance." },
       { status: 500 },
     );
+  }
+
+  // Bind the device only now that check-in actually succeeded, so a
+  // blocked or failed attempt never claims a device on someone's behalf.
+  if (deviceId && !student.device_id) {
+    await supabase.from("students").update({ device_id: deviceId }).eq("id", student.id);
   }
 
   const { data: announcements } = await supabase

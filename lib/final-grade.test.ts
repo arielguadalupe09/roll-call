@@ -9,6 +9,7 @@ function student(): Student {
     class_id: "class-1",
     name: "Student One",
     code: "ABC123",
+    device_id: null,
     created_at: "2026-01-01T00:00:00Z",
   };
 }

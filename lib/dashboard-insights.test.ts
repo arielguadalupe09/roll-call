@@ -27,7 +27,14 @@ function classRow(overrides: Partial<ClassRow> = {}): ClassRow {
 }
 
 function student(id: string): Student {
-  return { id, class_id: "class-1", name: id, code: id, created_at: "2026-01-01T00:00:00Z" };
+  return {
+    id,
+    class_id: "class-1",
+    name: id,
+    code: id,
+    device_id: null,
+    created_at: "2026-01-01T00:00:00Z",
+  };
 }
 
 function attendanceRow(overrides: Partial<Attendance> & { id: string; student_id: string; date: string; status: Attendance["status"] }): Attendance {

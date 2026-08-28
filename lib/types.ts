@@ -39,6 +39,7 @@ export type Student = {
   class_id: string;
   name: string;
   code: string;
+  device_id: string | null;
   created_at: string;
 };
 

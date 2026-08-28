@@ -3,10 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const CODE_READER_ID = "student-code-reader";
+const DEVICE_ID_KEY = "rollcall_device_id";
 
 type Step = "code" | "done";
 type CodeMode = "type" | "scan";
 type AnnouncementInfo = { id: string; title: string; body: string; created_at: string };
+
+// Only ever called from a browser event handler (form submit, QR decode
+// callback) — never during this page's static prerender — so touching
+// localStorage here needs no SSR guard.
+function getDeviceId(): string {
+  const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+  if (existing) return existing;
+  const id = crypto.randomUUID();
+  window.localStorage.setItem(DEVICE_ID_KEY, id);
+  return id;
+}
 
 export default function PublicCheckinPage() {
   const [step, setStep] = useState<Step>("code");
@@ -28,7 +40,7 @@ export default function PublicCheckinPage() {
     const res = await fetch("/api/checkin/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: rawCode.trim() }),
+      body: JSON.stringify({ code: rawCode.trim(), deviceId: getDeviceId() }),
     });
     const data = await res.json();
     setLoading(false);

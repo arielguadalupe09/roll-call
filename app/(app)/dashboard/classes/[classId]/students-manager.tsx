@@ -222,6 +222,27 @@ export default function StudentsManager({
     }
   }
 
+  async function resetDevice(studentId: string, studentName: string) {
+    const confirmed = await confirm(
+      `Reset the check-in device for "${studentName}"? They'll be able to self check-in from a different phone next time.`,
+      { confirmLabel: "Reset" },
+    );
+    if (!confirmed) return;
+
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("students")
+      .update({ device_id: null })
+      .eq("id", studentId);
+
+    if (!updateError) {
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? { ...s, device_id: null } : s)),
+      );
+      showToast(`Reset check-in device for "${studentName}"`);
+    }
+  }
+
   async function handleRemoveSelected() {
     if (selected.size === 0) return;
     const confirmed = await confirm(
@@ -519,6 +540,14 @@ export default function StudentsManager({
                             label="Transfer to another class"
                             onClick={() => openTransfer([s.id])}
                           />
+                          {s.device_id && (
+                            <IconButton
+                              icon="reset"
+                              color="teal"
+                              label="Reset check-in device"
+                              onClick={() => resetDevice(s.id, s.name)}
+                            />
+                          )}
                           <IconButton
                             icon="delete"
                             color="danger"
