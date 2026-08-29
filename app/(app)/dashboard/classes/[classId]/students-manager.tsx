@@ -497,8 +497,24 @@ export default function StudentsManager({
                           className="w-full rounded-sm border border-brass bg-white px-2 py-1 text-ink outline-none"
                         />
                       ) : (
-                        <span className="font-semibold uppercase tracking-wide">
-                          {s.name}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="font-semibold uppercase tracking-wide">
+                            {s.name}
+                          </span>
+                          {s.device_id && (
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              aria-hidden="true"
+                              className="shrink-0 text-ink/40"
+                            >
+                              <title>Checked in from a locked device</title>
+                              <rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+                              <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                            </svg>
+                          )}
                         </span>
                       )}
                     </td>

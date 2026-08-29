@@ -4,18 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { generateSessionToken } from "@/lib/codes";
 import { todayLocalDate } from "@/lib/date";
-import type { Session } from "@/lib/types";
+import type { Session, Student } from "@/lib/types";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 export default function SessionClient({
   classId,
   className,
+  students,
 }: {
   classId: string;
   className: string;
+  students: Student[];
 }) {
   const [date, setDate] = useState(todayLocalDate());
   const [session, setSession] = useState<Session | null>(null);
-  const [count, setCount] = useState(0);
+  const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dateRef = useRef(date);
@@ -32,7 +35,7 @@ export default function SessionClient({
 
     (async () => {
       const supabase = createClient();
-      const [{ data: sessionData }, { count: attendanceCount }] =
+      const [{ data: sessionData }, { data: attendanceRows }] =
         await Promise.all([
           supabase
             .from("sessions")
@@ -45,14 +48,14 @@ export default function SessionClient({
             .maybeSingle(),
           supabase
             .from("attendance")
-            .select("*", { count: "exact", head: true })
+            .select("student_id")
             .eq("class_id", classId)
             .eq("date", date),
         ]);
 
       if (cancelled) return;
       setSession((sessionData as Session | null) ?? null);
-      setCount(attendanceCount ?? 0);
+      setCheckedInIds(new Set((attendanceRows ?? []).map((a) => a.student_id as string)));
     })();
 
     return () => {
@@ -74,7 +77,7 @@ export default function SessionClient({
         },
         (payload) => {
           if (payload.new.date === dateRef.current) {
-            setCount((prev) => prev + 1);
+            setCheckedInIds((prev) => new Set(prev).add(payload.new.student_id as string));
           }
         },
       )
@@ -119,6 +122,9 @@ export default function SessionClient({
     setSession(null);
   }
 
+  const checkedIn = students.filter((s) => checkedInIds.has(s.id));
+  const missing = students.filter((s) => !checkedInIds.has(s.id));
+
   return (
     <div>
       <div className="flex flex-col items-center bg-chalk px-6 py-10 text-paper">
@@ -158,9 +164,50 @@ export default function SessionClient({
           </p>
 
           <p className="mt-6 font-mono text-5xl font-semibold text-brass">
-            {count}
+            {checkedIn.length}
           </p>
-          <p className="text-rule">students checked in</p>
+          <p className="text-rule">
+            of {students.length} student{students.length === 1 ? "" : "s"} checked in
+          </p>
+
+          {students.length > 0 && (
+            <div className="mt-6 w-full max-w-sm text-left">
+              <CollapsibleSection
+                title="Checked in"
+                subtitle={`${checkedIn.length} student${checkedIn.length === 1 ? "" : "s"}`}
+              >
+                {checkedIn.length === 0 ? (
+                  <p className="text-sm text-ink/60">No one yet.</p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5">
+                    {checkedIn.map((s) => (
+                      <li key={s.id} className="text-sm text-ink">
+                        {s.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CollapsibleSection>
+              <div className="mt-3">
+                <CollapsibleSection
+                  title="Not yet checked in"
+                  subtitle={`${missing.length} remaining`}
+                >
+                  {missing.length === 0 ? (
+                    <p className="text-sm text-ink/60">Everyone&apos;s in.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-1.5">
+                      {missing.map((s) => (
+                        <li key={s.id} className="text-sm text-ink">
+                          {s.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CollapsibleSection>
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 flex gap-3">
             <button
