@@ -16,19 +16,24 @@ export default function ClassAssistant({ classId }: { classId: string }) {
     setError(null);
     setAnswer(null);
 
-    const res = await fetch("/api/assistant", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ classId, question: question.trim() }),
-    });
-    const data = await res.json();
-    setLoading(false);
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classId, question: question.trim() }),
+      });
+      const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      setError(data.error ?? "Could not get an answer.");
-      return;
+      if (!res.ok) {
+        setError(data?.error ?? `Could not get an answer (${res.status}).`);
+        return;
+      }
+      setAnswer(data?.answer ?? "");
+    } catch {
+      setError("Could not reach the assistant. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    setAnswer(data.answer);
   }
 
   return (

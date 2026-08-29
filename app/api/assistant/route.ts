@@ -52,15 +52,20 @@ export async function POST(request: NextRequest) {
   );
   const insights = computeInsights([stats]);
 
+  const attendanceRows = (attendance as Attendance[] | null) ?? [];
+  const sessionDates = new Set(attendanceRows.map((a) => a.date));
+  const attendedDatesByStudent = new Map<string, Set<string>>();
+  for (const a of attendanceRows) {
+    if (a.status !== "present" && a.status !== "late") continue;
+    const dates = attendedDatesByStudent.get(a.student_id) ?? new Set<string>();
+    dates.add(a.date);
+    attendedDatesByStudent.set(a.student_id, dates);
+  }
   const lowAttendanceNames = ((students as Student[] | null) ?? [])
     .filter((s) => {
-      const dates = new Set(
-        ((attendance as Attendance[] | null) ?? [])
-          .filter((a) => a.student_id === s.id && (a.status === "present" || a.status === "late"))
-          .map((a) => a.date),
-      );
-      const sessionDates = new Set(((attendance as Attendance[] | null) ?? []).map((a) => a.date));
-      return sessionDates.size > 0 && dates.size / sessionDates.size < 0.75;
+      if (sessionDates.size === 0) return false;
+      const attended = attendedDatesByStudent.get(s.id)?.size ?? 0;
+      return attended / sessionDates.size < 0.75;
     })
     .map((s) => s.name);
 
@@ -79,17 +84,35 @@ ${insights.length > 0 ? insights.map((i) => `- ${i.text}`).join("\n") : "- none"
   }
 
   const anthropic = new Anthropic();
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `Class data:\n${context}\n\nQuestion: ${question}`,
-      },
-    ],
-  });
+  let message;
+  try {
+    message = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `Class data:\n${context}\n\nQuestion: ${question}`,
+        },
+      ],
+    });
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      return NextResponse.json({ error: "The class assistant's API key is invalid." }, { status: 503 });
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      return NextResponse.json({ error: "Too many requests right now -- try again in a bit." }, { status: 429 });
+    }
+    if (err instanceof Anthropic.BadRequestError) {
+      // Covers "credit balance too low" among other 400s from the provider.
+      return NextResponse.json(
+        { error: `The class assistant couldn't answer: ${err.message}` },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json({ error: "Could not reach the class assistant." }, { status: 502 });
+  }
 
   const answer = message.content.find((block) => block.type === "text")?.text ?? "";
   return NextResponse.json({ answer });
