@@ -4,6 +4,7 @@ import type { ClassRow, Student, Teacher } from "@/lib/types";
 import StudentsManager from "./students-manager";
 import SubjectEditor from "./subject-editor";
 import ClassRecordInfoForm from "./class-record-info-form";
+import ClassAssistant from "./class-assistant";
 import ArchiveButton from "../../archive-button";
 
 export default async function ClassDetailPage({
@@ -48,6 +49,8 @@ export default async function ClassDetailPage({
             archived={(classRow as ClassRow).archived}
           />
         </div>
+        <ClassAssistant classId={classId} />
+
         <SubjectEditor
           classId={classId}
           initialSubject={(classRow as ClassRow).subject}
