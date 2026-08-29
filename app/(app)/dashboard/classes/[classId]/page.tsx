@@ -1,10 +1,16 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { ClassRow, Student, Teacher } from "@/lib/types";
+import type { Attendance, ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
+import {
+  computeClassStats,
+  computeInsights,
+  computeSessionSeries,
+  lowAttendanceStudentNames,
+} from "@/lib/dashboard-insights";
 import StudentsManager from "./students-manager";
 import SubjectEditor from "./subject-editor";
 import ClassRecordInfoForm from "./class-record-info-form";
-import ClassAssistant from "./class-assistant";
+import ClassAnalytics from "./class-analytics";
 import ArchiveButton from "../../archive-button";
 
 export default async function ClassDetailPage({
@@ -23,18 +29,33 @@ export default async function ClassDetailPage({
 
   if (!classRow) notFound();
 
-  const [{ data: students }, { data: teacher }] = await Promise.all([
-    supabase
-      .from("students")
-      .select("*")
-      .eq("class_id", classId)
-      .order("name", { ascending: true }),
-    supabase
-      .from("teachers")
-      .select("*")
-      .eq("id", (classRow as ClassRow).teacher_id)
-      .single(),
-  ]);
+  const [{ data: students }, { data: teacher }, { data: attendance }, { data: gradingConfig }] =
+    await Promise.all([
+      supabase
+        .from("students")
+        .select("*")
+        .eq("class_id", classId)
+        .order("name", { ascending: true }),
+      supabase
+        .from("teachers")
+        .select("*")
+        .eq("id", (classRow as ClassRow).teacher_id)
+        .single(),
+      supabase.from("attendance").select("*").eq("class_id", classId),
+      supabase.from("grading_configs").select("*").eq("class_id", classId).maybeSingle(),
+    ]);
+
+  const studentRows = (students as Student[] | null) ?? [];
+  const attendanceRows = (attendance as Attendance[] | null) ?? [];
+  const stats = computeClassStats(
+    classRow as ClassRow,
+    studentRows,
+    attendanceRows,
+    (gradingConfig as GradingConfig | null) ?? null,
+  );
+  const insights = computeInsights([stats]);
+  const sessionSeries = computeSessionSeries(studentRows, attendanceRows);
+  const lowAttendanceNames = lowAttendanceStudentNames(studentRows, attendanceRows);
 
   return (
     <div className="px-8 py-10">
@@ -49,7 +70,12 @@ export default async function ClassDetailPage({
             archived={(classRow as ClassRow).archived}
           />
         </div>
-        <ClassAssistant classId={classId} />
+        <ClassAnalytics
+          stats={stats}
+          insights={insights}
+          sessionSeries={sessionSeries}
+          lowAttendanceNames={lowAttendanceNames}
+        />
 
         <SubjectEditor
           classId={classId}

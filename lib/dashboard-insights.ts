@@ -100,6 +100,40 @@ export function computeClassStats(
   };
 }
 
+/** Per-session attendance rate, oldest to newest, for a single class' trend chart. */
+export function computeSessionSeries(
+  students: Student[],
+  attendance: Attendance[],
+): { date: string; rate: number }[] {
+  const sessionDates = Array.from(new Set(attendance.map((a) => a.date))).sort();
+  if (students.length === 0) return sessionDates.map((date) => ({ date, rate: 0 }));
+
+  const attendedByDate = new Map<string, number>();
+  for (const a of attendance.filter(isAttended)) {
+    attendedByDate.set(a.date, (attendedByDate.get(a.date) ?? 0) + 1);
+  }
+
+  return sessionDates.map((date) => ({
+    date,
+    rate: (attendedByDate.get(date) ?? 0) / students.length,
+  }));
+}
+
+/** Names of students below the low-attendance threshold, for a single class. */
+export function lowAttendanceStudentNames(students: Student[], attendance: Attendance[]): string[] {
+  const sessionDates = Array.from(new Set(attendance.map((a) => a.date)));
+  if (sessionDates.length === 0) return [];
+
+  const countByStudent = new Map<string, number>();
+  for (const a of attendance.filter(isAttended)) {
+    countByStudent.set(a.student_id, (countByStudent.get(a.student_id) ?? 0) + 1);
+  }
+
+  return students
+    .filter((s) => (countByStudent.get(s.id) ?? 0) / sessionDates.length < LOW_ATTENDANCE_THRESHOLD)
+    .map((s) => s.name);
+}
+
 export function computeInsights(stats: ClassStats[]): Insight[] {
   const insights: Insight[] = [];
 

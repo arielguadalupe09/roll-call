@@ -201,6 +201,29 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
   );
 }
 
+/** Per-session attendance rate over time, for a single class' analytics panel. */
+export function SessionTrendChart({ series }: { series: { date: string; rate: number }[] }) {
+  if (series.length === 0) {
+    return <p className="text-sm text-ink/60">No sessions recorded yet.</p>;
+  }
+
+  return (
+    <div className="flex h-24 items-end gap-1" role="img" aria-label="Attendance rate per session">
+      {series.map((point) => {
+        const pct = Math.round(point.rate * 100);
+        return (
+          <div
+            key={point.date}
+            title={`${point.date}: ${pct}%`}
+            className={`min-h-[3px] flex-1 rounded-t-sm ${TIER_BG[tierFor(point.rate)]}`}
+            style={{ height: `${Math.max(4, pct)}%` }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function Legend({ swatch, label }: { swatch: string; label: string }) {
   return (
     <span className="flex items-center gap-1">
