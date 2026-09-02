@@ -213,3 +213,27 @@
     margin-bottom: 0;
   }
 }
+
+/* A scrollbar that reads as part of the dark sidebar instead of the
+   browser's stock opaque gray bar — thin, low-contrast, still draggable. */
+.subtle-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 180, 203, 0.35) transparent;
+}
+
+.subtle-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.subtle-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.subtle-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(159, 180, 203, 0.35);
+  border-radius: 9999px;
+}
+
+.subtle-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(159, 180, 203, 0.55);
+}

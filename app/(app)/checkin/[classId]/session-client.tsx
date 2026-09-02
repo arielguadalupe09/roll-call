@@ -21,6 +21,8 @@ export default function SessionClient({
   const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const pendingVoiceActionRef = useRef<"start" | "end" | null>(null);
   const dateRef = useRef(date);
   // Only known once mounted in the browser — differs from the server-
   // rendered "" on purpose, so the mismatch is fine to suppress below.
@@ -29,6 +31,18 @@ export default function SessionClient({
   useEffect(() => {
     dateRef.current = date;
   }, [date]);
+
+  // Lets the Jarvis voice assistant land here and trigger the action itself
+  // (there's no server action to call directly — session-client only talks
+  // to Supabase from the browser), instead of just opening the page.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const voice = url.searchParams.get("voice");
+    if (voice !== "start" && voice !== "end") return;
+    pendingVoiceActionRef.current = voice;
+    url.searchParams.delete("voice");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,12 +70,25 @@ export default function SessionClient({
       if (cancelled) return;
       setSession((sessionData as Session | null) ?? null);
       setCheckedInIds(new Set((attendanceRows ?? []).map((a) => a.student_id as string)));
+      setSessionLoaded(true);
     })();
 
     return () => {
       cancelled = true;
     };
   }, [classId, date]);
+
+  useEffect(() => {
+    const action = pendingVoiceActionRef.current;
+    if (!action || !sessionLoaded) return;
+    pendingVoiceActionRef.current = null;
+    if (action === "start" && !session) {
+      startSession();
+    } else if (action === "end" && session) {
+      endSession();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionLoaded, session]);
 
   useEffect(() => {
     const supabase = createClient();
