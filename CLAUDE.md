@@ -56,9 +56,23 @@ NODE_EXTRA_CA_CERTS=./certs/corporate-proxy-ca.pem npx next build
 
 ## AI features
 
-There is no LLM-backed feature in the app anymore. Two attempts were tried and removed: a server-side Anthropic implementation (needed a paid `ANTHROPIC_API_KEY`) and a fully client-side `@mlc-ai/web-llm` (WebGPU) one (unreliable multi-hundred-MB model download in the browser, too slow/flaky for teachers in practice). Neither dependency should be reintroduced without discussing the trade-off with the user first.
+Two earlier LLM attempts were tried and removed: a server-side Anthropic implementation (needed a paid `ANTHROPIC_API_KEY`) and a fully client-side `@mlc-ai/web-llm` (WebGPU) one (unreliable multi-hundred-MB model download in the browser, too slow/flaky for teachers in practice). Any *new* LLM dependency (a different provider, a different model shape) still shouldn't be reintroduced without discussing the trade-off with the user first — the one exception below was discussed and deliberately scoped to avoid both failure modes.
 
 In their place, `app/(app)/dashboard/classes/[classId]/class-analytics.tsx` gives each class page a rule-based analytics panel — average attendance (`AttendanceRing`), week-over-week trend, a per-session attendance bar chart (`SessionTrendChart` in `dashboard-charts.tsx`), the same warning/info insights shown on the dashboard, and a list of students below the low-attendance threshold. All of it is plain computation over Supabase data, server-rendered, no model or network call involved:
 
 - `lib/dashboard-insights.ts` is the single source of truth for this logic — `computeClassStats`/`computeInsights` (shared with the dashboard's aggregate view) plus `computeSessionSeries`/`lowAttendanceStudentNames` (added for the per-class panel). Extend these rather than duplicating logic in a component.
 - Data (`students`/`attendance`/`grading_configs`) is fetched server-side in `classes/[classId]/page.tsx`, same pattern as `dashboard/page.tsx` — no client component needed for this panel.
+
+### Jarvis assistant
+
+`app/_components/jarvis-assistant.tsx` is a floating chat widget (mounted in `app/(app)/layout.tsx`, so it's on every authenticated page) for navigating the app and asking about class data — "open dashboard", "start a session for `<class>`", "how's this class doing", "who's below attendance", "what have you learned". It's rule-based, not a model:
+
+- `lib/voice-commands.ts` — pure keyword/pattern parser (`parseVoiceCommand`) that classifies typed text into a command, resolving class names against the live class list (exact → substring → word-overlap, plus a learned-alias shortcut) via `matchClass`/`resolveClassChoice`. Fully unit tested (`lib/voice-commands.test.ts`) — extend the pattern tables here for new phrasings rather than adding ad hoc string checks in the component.
+- `lib/voice-memory.ts` — the "learned alias" memory: `localStorage`-backed, `spoken phrase → classId`, written whenever a spoken/typed class name resolves (cleanly or via disambiguation click) and consulted before fuzzy matching next time. `describeClassAliases` renders it back as text for the "what have you learned" command. Not ML — just a lookup table that grows from your own corrections.
+- `lib/jarvis-analytics.ts` — formats `lib/dashboard-insights.ts` output (attendance %, trend, low-attendance count, warnings) into chat replies, for both a single class and an aggregate-across-all-classes view.
+
+**The one real LLM dependency in this app** is the fallback for text the rule-based parser can't classify (`VoiceCommand` type `"unrecognized"`):
+
+- `app/api/jarvis/route.ts` — a server-side-only proxy to Groq's free-tier OpenAI-compatible chat completions API (`GROQ_API_KEY` env var, never exposed client-side). Requires the teacher to be signed in (checked via `createClient()` from `lib/supabase/server`, same pattern as `app/api/export/dhvsu-class-record/[classId]/route.ts`) — this route would otherwise be an open, unauthenticated proxy to a rate-limited third-party API.
+- `lib/jarvis-ai.ts` — `buildJarvisSystemPrompt` builds the system prompt, grounded in a live analytics snapshot (same `formatAnalyticsAnswer` output already used for rule-based answers) so replies reflect real numbers instead of guessing.
+- **Degrades silently with zero config**: if `GROQ_API_KEY` isn't set (or the call fails for any reason), `askJarvisAI` in `jarvis-assistant.tsx` falls back to the plain "I didn't understand ..." message — the app works identically to the fully rule-based version with no key present. `GROQ_API_KEY` needs to be set in both `.env.local` (local dev) and Vercel's project environment variables (production) to activate it; it isn't set anywhere by default.

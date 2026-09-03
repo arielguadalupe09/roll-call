@@ -109,6 +109,30 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
     [classOptions],
   );
 
+  // Only reached when the rule-based parser can't classify what was typed.
+  // Grounds the reply in a live data snapshot (same idea as the analytics
+  // answers) and fails silently back to the plain "didn't understand"
+  // message if no key is configured or the call errors out.
+  const askJarvisAI = useCallback(
+    async (message: string) => {
+      try {
+        const context = await runAnalyticsQuery("overview", currentClassId ?? undefined);
+        const res = await fetch("/api/jarvis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, context }),
+        });
+        if (!res.ok) throw new Error("jarvis api error");
+        const data = (await res.json()) as { reply?: string };
+        if (!data.reply) throw new Error("empty reply");
+        pushMessage("assistant", data.reply);
+      } catch {
+        pushMessage("assistant", `I didn't understand "${message}".`);
+      }
+    },
+    [runAnalyticsQuery, currentClassId, pushMessage],
+  );
+
   const handleCommand = useCallback(
     (command: VoiceCommand) => {
       setPendingAmbiguous(null);
@@ -175,12 +199,12 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
           break;
         }
         case "unrecognized": {
-          pushMessage("assistant", `I didn't understand "${command.transcript}".`);
+          askJarvisAI(command.transcript);
           break;
         }
       }
     },
-    [router, pushMessage, runAnalyticsQuery, classOptions],
+    [router, pushMessage, runAnalyticsQuery, classOptions, askJarvisAI],
   );
 
   const resolveAmbiguous = useCallback(
