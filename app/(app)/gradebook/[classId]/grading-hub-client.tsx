@@ -127,6 +127,7 @@ export default function GradingHubClient({
           allStudents={allStudents}
           initialAssignments={assignments}
           usePrelims={config.use_prelims}
+          showHeading={false}
         />
       )}
 
