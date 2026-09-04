@@ -6,6 +6,7 @@ import { usePathname, useParams } from "next/navigation";
 import type { ClassRow } from "@/lib/types";
 import SignOutButton from "./sign-out-button";
 import SidebarIcon from "./sidebar-icons";
+import { useActiveClasses } from "./active-classes-context";
 
 function LogoBadge({ size = "h-9 w-9" }: { size?: string }) {
   return (
@@ -30,6 +31,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const params = useParams<{ classId?: string }>();
   const activeClassId = params?.classId;
+  const { extraActiveClassIds } = useActiveClasses();
 
   const isDashboardActive = pathname === "/dashboard";
   const isScheduleActive = pathname === "/schedule";
@@ -163,7 +165,12 @@ export default function Sidebar({
           </p>
           <div className="mt-1 flex flex-col gap-0.5">
             {classes.map((c) => {
-              const active = activeClassId === c.id;
+              // Normally driven by the URL's classId, but a page can
+              // override this (e.g. the multi-class assignment form's
+              // "Assign to classes" checkboxes) to highlight exactly
+              // whichever classes are selected there instead.
+              const active =
+                extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassId === c.id;
               return (
                 <Link
                   key={c.id}

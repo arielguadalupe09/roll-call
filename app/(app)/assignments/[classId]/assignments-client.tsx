@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Assignment, ClassRow, Period, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import { useActiveClasses } from "@/app/_components/active-classes-context";
 
 export default function AssignmentsClient({
   classId,
@@ -26,6 +27,7 @@ export default function AssignmentsClient({
   const router = useRouter();
   const { showToast } = useToast();
   const confirm = useConfirm();
+  const { setExtraActiveClassIds } = useActiveClasses();
   const [assignments, setAssignments] = useState(initialAssignments);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -36,6 +38,15 @@ export default function AssignmentsClient({
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Mirror the "Assign to classes" checkboxes onto the sidebar so it's
+  // obvious which sections this assignment will apply to — cleared on
+  // unmount so it doesn't linger once you navigate away from this form.
+  useEffect(() => {
+    setExtraActiveClassIds(selectedClassIds);
+    return () => setExtraActiveClassIds(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassIds]);
 
   function toggleClass(id: string) {
     setSelectedClassIds((prev) => {
