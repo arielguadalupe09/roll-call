@@ -82,6 +82,17 @@ export type Material = {
   created_at: string;
 };
 
+export type VideoLecture = {
+  id: string;
+  class_id: string;
+  title: string;
+  description: string | null;
+  video_url: string | null;
+  storage_path: string | null;
+  published: boolean;
+  created_at: string;
+};
+
 export type Period = "prelim" | "midterm" | "finals";
 
 export type Assignment = {

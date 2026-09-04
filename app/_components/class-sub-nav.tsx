@@ -82,6 +82,11 @@ export default function ClassSubNav() {
           href: `/materials/${classId}`,
           active: pathname === `/materials/${classId}`,
         },
+        {
+          label: "Lectures",
+          href: `/lectures/${classId}`,
+          active: pathname === `/lectures/${classId}`,
+        },
       ],
     },
     {
