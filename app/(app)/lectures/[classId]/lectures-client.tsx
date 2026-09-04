@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
-import { buildLectureStoragePath, formatRecordingSeconds } from "@/lib/video-lecture-path";
+import { buildLectureStoragePath, formatFileSize, formatRecordingSeconds } from "@/lib/video-lecture-path";
 import type { VideoLecture } from "@/lib/types";
 
 const RECORDING_CAP_SECONDS = 600;
@@ -29,14 +29,17 @@ export default function LecturesClient({
   const [description, setDescription] = useState("");
   const [mode, setMode] = useState<Mode>("upload");
   const [file, setFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const [externalUrl, setExternalUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [recording, setRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [liveStream, setLiveStream] = useState<MediaStream | null>(null);
 
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -53,6 +56,18 @@ export default function LecturesClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The <video> element only mounts once `recording` is true, so attaching
+  // the stream inline in handleStartRecording (before that state update has
+  // rendered) hit a null ref and silently did nothing — no self-view ever
+  // showed. Runs after the DOM reflects `liveStream`, so the ref is real.
+  useEffect(() => {
+    if (liveStream && videoPreviewRef.current) {
+      videoPreviewRef.current.srcObject = liveStream;
+      videoPreviewRef.current.muted = true;
+      videoPreviewRef.current.play().catch(() => {});
+    }
+  }, [liveStream]);
+
   function stopStream() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -68,30 +83,27 @@ export default function LecturesClient({
 
       streamRef.current = stream;
       chunksRef.current = [];
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-        videoPreviewRef.current.muted = true;
-        await videoPreviewRef.current.play();
-      }
 
       const recorder = new MediaRecorder(stream);
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       recorder.onstop = () => {
+        // Deliberately no DOM/ref manipulation here — the recorded preview
+        // is a plain React <video src={previewUrl}> below, keyed on the
+        // url, so React mounts a fresh element and the browser loads it
+        // normally. Reusing the same live-preview <video> element via
+        // imperative srcObject/src/load() switching was fragile (playback
+        // silently never actually started) and not worth chasing further.
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "video/webm" });
         setRecordedBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setPreviewUrl(url);
+        setPreviewUrl(URL.createObjectURL(blob));
         stopStream();
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = null;
-          videoPreviewRef.current.src = url;
-          videoPreviewRef.current.muted = false;
-        }
+        setLiveStream(null);
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
+      setLiveStream(stream);
       setRecording(true);
       setRecordingSeconds(0);
       intervalRef.current = setInterval(() => {
@@ -117,13 +129,14 @@ export default function LecturesClient({
     setPreviewUrl(null);
     setRecordedBlob(null);
     setRecordingSeconds(0);
-    if (videoPreviewRef.current) videoPreviewRef.current.src = "";
+    setLiveStream(null);
   }
 
   function resetForm() {
     setTitle("");
     setDescription("");
     setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setExternalUrl("");
     handleDiscardRecording();
   }
@@ -297,12 +310,53 @@ export default function LecturesClient({
         </div>
 
         {mode === "upload" && (
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="text-sm text-ink"
-          />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragActive(false);
+              const dropped = e.dataTransfer.files?.[0];
+              if (dropped) setFile(dropped);
+            }}
+            className={`flex cursor-pointer flex-col items-center gap-2 rounded-sm border-2 border-dashed px-4 py-8 text-center transition ${
+              dragActive ? "border-brass bg-brass/10" : "border-rule hover:border-brass"
+            }`}
+          >
+            <UploadIcon className="h-6 w-6 text-ink/40" />
+            {file ? (
+              <div>
+                <p className="text-sm font-medium text-ink">{file.name}</p>
+                <p className="text-xs text-ink/50">{formatFileSize(file.size)}</p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="mt-1 text-xs text-danger underline underline-offset-2"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-ink/60">
+                Drag a video here, or <span className="text-teal underline underline-offset-2">browse</span>
+              </p>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="hidden"
+            />
+          </div>
         )}
 
         {mode === "link" && (
@@ -317,13 +371,11 @@ export default function LecturesClient({
 
         {mode === "record" && (
           <div className="flex flex-col gap-2">
-            {(recording || previewUrl) && (
-              <video
-                ref={videoPreviewRef}
-                playsInline
-                controls={!!previewUrl && !recording}
-                className="w-full rounded-sm bg-chalk"
-              />
+            {recording && (
+              <video ref={videoPreviewRef} playsInline autoPlay muted className="w-full rounded-sm bg-chalk" />
+            )}
+            {!recording && previewUrl && (
+              <video key={previewUrl} src={previewUrl} controls playsInline className="w-full rounded-sm bg-chalk" />
             )}
             {!recording && !recordedBlob && (
               <div className="flex gap-2">
@@ -442,5 +494,19 @@ export default function LecturesClient({
         {lectures.length === 0 && <p className="text-ink/60">No lectures posted yet.</p>}
       </ul>
     </div>
+  );
+}
+
+function UploadIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 16V4M12 4l-4 4M12 4l4 4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

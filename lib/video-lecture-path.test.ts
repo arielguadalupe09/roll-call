@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLectureStoragePath, formatRecordingSeconds } from "./video-lecture-path";
+import { buildLectureStoragePath, formatFileSize, formatRecordingSeconds } from "./video-lecture-path";
 
 describe("buildLectureStoragePath", () => {
   it("preserves the file's extension", () => {
@@ -35,5 +35,23 @@ describe("formatRecordingSeconds", () => {
 
   it("formats the 10-minute recording cap", () => {
     expect(formatRecordingSeconds(600)).toBe("10:00");
+  });
+});
+
+describe("formatFileSize", () => {
+  it("formats bytes", () => {
+    expect(formatFileSize(500)).toBe("500 B");
+  });
+
+  it("formats kilobytes", () => {
+    expect(formatFileSize(2048)).toBe("2.0 KB");
+  });
+
+  it("formats megabytes", () => {
+    expect(formatFileSize(5 * 1024 * 1024)).toBe("5.0 MB");
+  });
+
+  it("formats gigabytes", () => {
+    expect(formatFileSize(1.5 * 1024 * 1024 * 1024)).toBe("1.5 GB");
   });
 });
