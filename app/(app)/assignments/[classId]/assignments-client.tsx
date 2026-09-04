@@ -4,76 +4,142 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Assignment, Period } from "@/lib/types";
+import type { Assignment, ClassRow, Period, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 
 export default function AssignmentsClient({
   classId,
+  teacherId,
+  teacherClasses,
+  allStudents,
   initialAssignments,
   usePrelims = false,
 }: {
   classId: string;
+  teacherId: string;
+  teacherClasses: ClassRow[];
+  allStudents: Student[];
   initialAssignments: Assignment[];
   usePrelims?: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [assignments, setAssignments] = useState(initialAssignments);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [maxScore, setMaxScore] = useState("100");
   const [period, setPeriod] = useState<Period>("midterm");
+  const [selectedClassIds, setSelectedClassIds] = useState<Set<string>>(new Set([classId]));
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  function toggleClass(id: string) {
+    setSelectedClassIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        setSelectedStudentIds((students) => {
+          const pruned = new Set(students);
+          for (const s of allStudents) {
+            if (s.class_id === id) pruned.delete(s.id);
+          }
+          return pruned;
+        });
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleStudent(id: string) {
+    setSelectedStudentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const visibleStudents = allStudents.filter((s) => selectedClassIds.has(s.class_id));
+  const studentsByClass = new Map<string, Student[]>();
+  for (const s of visibleStudents) {
+    const list = studentsByClass.get(s.class_id) ?? [];
+    list.push(s);
+    studentsByClass.set(s.class_id, list);
+  }
+
+  function toggleSelectAllVisible() {
+    setSelectedStudentIds((prev) => {
+      if (prev.size === visibleStudents.length && visibleStudents.length > 0) return new Set();
+      return new Set(visibleStudents.map((s) => s.id));
+    });
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || selectedClassIds.size === 0 || selectedStudentIds.size === 0) {
+      setError("Pick at least one class and one student.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
     const supabase = createClient();
-    const { data, error: insertError } = await supabase
-      .from("assignments")
-      .insert({
-        class_id: classId,
-        title: title.trim(),
-        description: description.trim() || null,
-        due_date: dueDate || null,
-        max_score: Number(maxScore) || 100,
-        period,
-      })
-      .select()
-      .single();
+    const { data, error: rpcError } = await supabase.rpc("create_assignment_with_links", {
+      p_teacher_id: teacherId,
+      p_title: title.trim(),
+      p_description: description.trim() || null,
+      p_due_date: dueDate || null,
+      p_max_score: Number(maxScore) || 100,
+      p_period: period,
+      p_class_ids: Array.from(selectedClassIds),
+      p_student_ids: Array.from(selectedStudentIds),
+    });
 
     setLoading(false);
 
-    if (insertError) {
-      setError(insertError.message);
+    if (rpcError) {
+      setError(rpcError.message);
       return;
     }
 
-    setAssignments((prev) => [data as Assignment, ...prev]);
+    if (selectedClassIds.has(classId)) {
+      setAssignments((prev) => [data as Assignment, ...prev]);
+    }
     setTitle("");
     setDescription("");
     setDueDate("");
     setMaxScore("100");
     setPeriod("midterm");
+    setSelectedClassIds(new Set([classId]));
+    setSelectedStudentIds(new Set());
     router.refresh();
   }
 
   async function handleDelete(id: string) {
-    const supabase = createClient();
-    const { error: deleteError } = await supabase
-      .from("assignments")
-      .delete()
-      .eq("id", id);
+    const confirmed = await confirm(
+      "Remove this assignment from this class? If it's not assigned to any other class, it'll be deleted entirely.",
+      { confirmLabel: "Remove", danger: true },
+    );
+    if (!confirmed) return;
 
-    if (!deleteError) {
-      setAssignments((prev) => prev.filter((a) => a.id !== id));
-      router.refresh();
+    const supabase = createClient();
+    const { error: rpcError } = await supabase.rpc("unlink_assignment_class", {
+      p_assignment_id: id,
+      p_class_id: classId,
+    });
+
+    if (rpcError) {
+      showToast(rpcError.message);
+      return;
     }
+    setAssignments((prev) => prev.filter((a) => a.id !== id));
+    router.refresh();
   }
 
   async function handlePeriodChange(id: string, nextPeriod: Period) {
@@ -143,6 +209,70 @@ export default function AssignmentsClient({
             </select>
           </label>
         </div>
+
+        <div>
+          <p className="text-sm font-medium text-ink">Assign to classes</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {teacherClasses.map((c) => (
+              <label
+                key={c.id}
+                className={`flex cursor-pointer items-center gap-1.5 rounded-sm border px-2.5 py-1 text-sm transition ${
+                  selectedClassIds.has(c.id)
+                    ? "border-brass bg-brass/10 text-ink"
+                    : "border-rule text-ink/70 hover:border-brass"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedClassIds.has(c.id)}
+                  onChange={() => toggleClass(c.id)}
+                  className="accent-brass"
+                />
+                {c.name}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {visibleStudents.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-ink">Assign to students</p>
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-teal">
+                <input
+                  type="checkbox"
+                  checked={selectedStudentIds.size === visibleStudents.length}
+                  onChange={toggleSelectAllVisible}
+                  className="accent-brass"
+                />
+                Select all
+              </label>
+            </div>
+            <div className="mt-1 max-h-64 overflow-y-auto rounded-sm border border-rule p-3">
+              {teacherClasses
+                .filter((c) => studentsByClass.has(c.id))
+                .map((c) => (
+                  <div key={c.id} className="mb-3 last:mb-0">
+                    <p className="font-mono text-xs uppercase tracking-wide text-ink/50">{c.name}</p>
+                    <div className="mt-1 flex flex-col gap-1">
+                      {studentsByClass.get(c.id)!.map((s) => (
+                        <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                          <input
+                            type="checkbox"
+                            checked={selectedStudentIds.has(s.id)}
+                            onChange={() => toggleStudent(s.id)}
+                            className="accent-brass"
+                          />
+                          {s.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
           <button
             type="submit"

@@ -30,12 +30,12 @@ function toRow(s: Submission | undefined): Row {
 }
 
 export default function SubmissionRoster({
-  classId,
+  teacherId,
   assignment,
   students,
   initialSubmissions,
 }: {
-  classId: string;
+  teacherId: string;
   assignment: Assignment;
   students: Student[];
   initialSubmissions: Submission[];
@@ -158,7 +158,7 @@ export default function SubmissionRoster({
     updateRow(studentId, { uploading: true });
 
     const supabase = createClient();
-    const path = `${classId}/${assignment.id}/${studentId}/${file.name}`;
+    const path = `${teacherId}/${assignment.id}/${studentId}/${file.name}`;
 
     const { error: uploadError } = await supabase.storage
       .from("submissions")

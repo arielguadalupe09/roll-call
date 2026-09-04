@@ -97,13 +97,18 @@ export type Period = "prelim" | "midterm" | "finals";
 
 export type Assignment = {
   id: string;
-  class_id: string;
+  teacher_id: string;
   title: string;
   description: string | null;
   due_date: string | null;
   max_score: number;
   period: Period;
   created_at: string;
+};
+
+export type AssignmentClass = {
+  assignment_id: string;
+  class_id: string;
 };
 
 export type SubmissionStatus = "missing" | "submitted" | "graded";

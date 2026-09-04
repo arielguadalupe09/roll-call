@@ -4,6 +4,7 @@ import type {
   Assessment,
   AssessmentScore,
   Assignment,
+  ClassRow,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -21,13 +22,23 @@ export default async function GradebookPage({
   const { classId } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: classRow } = await supabase
     .from("classes")
     .select("*")
     .eq("id", classId)
     .single();
 
-  if (!classRow) notFound();
+  if (!classRow || !user) notFound();
+
+  const { data: links } = await supabase
+    .from("assignment_classes")
+    .select("assignment_id")
+    .eq("class_id", classId);
+  const linkedIds = (links as { assignment_id: string }[] | null)?.map((l) => l.assignment_id) ?? [];
 
   const [
     { data: students },
@@ -36,17 +47,16 @@ export default async function GradebookPage({
     { data: assessments },
     { data: majorExams },
     { data: recitationLogs },
+    { data: teacherClasses },
   ] = await Promise.all([
     supabase
       .from("students")
       .select("*")
       .eq("class_id", classId)
       .order("name", { ascending: true }),
-    supabase
-      .from("assignments")
-      .select("*")
-      .eq("class_id", classId)
-      .order("created_at", { ascending: false }),
+    linkedIds.length
+      ? supabase.from("assignments").select("*").in("id", linkedIds).order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as Assignment[] }),
     supabase.from("grading_configs").select("*").eq("class_id", classId).single(),
     supabase
       .from("assessments")
@@ -59,7 +69,22 @@ export default async function GradebookPage({
       .select("*")
       .eq("class_id", classId)
       .eq("type", "recitation"),
+    supabase
+      .from("classes")
+      .select("*")
+      .eq("teacher_id", user.id)
+      .eq("archived", false)
+      .order("name", { ascending: true }),
   ]);
+
+  const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
+  const { data: allStudents } = teacherClassIds.length
+    ? await supabase
+        .from("students")
+        .select("*")
+        .in("class_id", teacherClassIds)
+        .order("name", { ascending: true })
+    : { data: [] as Student[] };
 
   const assignmentIds = (assignments as Assignment[] | null)?.map((a) => a.id) ?? [];
   const { data: submissions } = assignmentIds.length
@@ -86,6 +111,9 @@ export default async function GradebookPage({
         <div className="mt-6">
           <GradingHubClient
             classId={classId}
+            teacherId={user.id}
+            teacherClasses={(teacherClasses as ClassRow[] | null) ?? []}
+            allStudents={(allStudents as Student[] | null) ?? []}
             students={(students as Student[] | null) ?? []}
             config={config as GradingConfig}
             assignments={(assignments as Assignment[] | null) ?? []}

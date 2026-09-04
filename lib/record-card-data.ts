@@ -68,18 +68,14 @@ export async function fetchClassGradingData(
 ) {
   const [
     { data: config },
-    { data: assignments },
+    { data: assignmentLinks },
     { data: assessments },
     { data: majorExams },
     { data: recitationLogs },
     { data: attendance },
   ] = await Promise.all([
     supabase.from("grading_configs").select("*").eq("class_id", classId).single(),
-    supabase
-      .from("assignments")
-      .select("*")
-      .eq("class_id", classId)
-      .order("due_date", { ascending: true }),
+    supabase.from("assignment_classes").select("assignment_id").eq("class_id", classId),
     supabase
       .from("assessments")
       .select("*")
@@ -94,6 +90,20 @@ export async function fetchClassGradingData(
       .order("date", { ascending: true }),
     supabase.from("attendance").select("*").eq("class_id", classId),
   ]);
+
+  // Assignments can now be shared across multiple classes (assignment_classes
+  // is the join), so the class's assignment list is resolved in two steps
+  // instead of a direct .eq("class_id", classId).
+  const linkedAssignmentIds = (assignmentLinks as { assignment_id: string }[] | null)?.map(
+    (l) => l.assignment_id,
+  ) ?? [];
+  const { data: assignments } = linkedAssignmentIds.length
+    ? await supabase
+        .from("assignments")
+        .select("*")
+        .in("id", linkedAssignmentIds)
+        .order("due_date", { ascending: true })
+    : { data: [] as Assignment[] };
 
   const assignmentList = (assignments as Assignment[] | null) ?? [];
   const assignmentIds = assignmentList.map((a) => a.id);

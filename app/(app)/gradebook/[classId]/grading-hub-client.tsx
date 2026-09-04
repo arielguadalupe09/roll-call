@@ -5,6 +5,7 @@ import type {
   Assessment,
   AssessmentScore,
   Assignment,
+  ClassRow,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -32,6 +33,9 @@ type Tab =
 
 export default function GradingHubClient({
   classId,
+  teacherId,
+  teacherClasses,
+  allStudents,
   students,
   config,
   assignments,
@@ -43,6 +47,9 @@ export default function GradingHubClient({
   recitationLogs,
 }: {
   classId: string;
+  teacherId: string;
+  teacherClasses: ClassRow[];
+  allStudents: Student[];
   students: Student[];
   config: GradingConfig;
   assignments: Assignment[];
@@ -115,6 +122,9 @@ export default function GradingHubClient({
       {tab === "assignments" && (
         <AssignmentsClient
           classId={classId}
+          teacherId={teacherId}
+          teacherClasses={teacherClasses}
+          allStudents={allStudents}
           initialAssignments={assignments}
           usePrelims={config.use_prelims}
         />

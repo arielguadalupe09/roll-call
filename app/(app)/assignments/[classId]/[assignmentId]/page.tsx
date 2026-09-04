@@ -11,31 +11,53 @@ export default async function AssignmentRosterPage({
   const { classId, assignmentId } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: classRow } = await supabase
     .from("classes")
     .select("*")
     .eq("id", classId)
     .single();
 
-  if (!classRow) notFound();
+  if (!classRow || !user) notFound();
+
+  const { count: linkCount } = await supabase
+    .from("assignment_classes")
+    .select("*", { count: "exact", head: true })
+    .eq("assignment_id", assignmentId)
+    .eq("class_id", classId);
+
+  if (!linkCount) notFound();
 
   const { data: assignment } = await supabase
     .from("assignments")
     .select("*")
     .eq("id", assignmentId)
-    .eq("class_id", classId)
     .single();
 
   if (!assignment) notFound();
 
-  const [{ data: students }, { data: submissions }] = await Promise.all([
+  const [{ data: submissions }, { data: classStudents }] = await Promise.all([
+    supabase.from("submissions").select("*").eq("assignment_id", assignmentId),
     supabase
       .from("students")
       .select("*")
       .eq("class_id", classId)
       .order("name", { ascending: true }),
-    supabase.from("submissions").select("*").eq("assignment_id", assignmentId),
   ]);
+
+  const submissionsList = (submissions as Submission[] | null) ?? [];
+  const studentIdsWithSubmission = new Set(submissionsList.map((s) => s.student_id));
+  const classStudentIds = new Set(((classStudents as Student[] | null) ?? []).map((s) => s.id));
+
+  // The roster shows only this class's slice of the shared assignment —
+  // students who have a submission row for it AND belong to this class.
+  const students = ((classStudents as Student[] | null) ?? []).filter((s) =>
+    studentIdsWithSubmission.has(s.id),
+  );
+  const rosterSubmissions = submissionsList.filter((s) => classStudentIds.has(s.student_id));
 
   return (
     <div className="px-8 py-10">
@@ -48,10 +70,10 @@ export default async function AssignmentRosterPage({
         )}
 
         <SubmissionRoster
-          classId={classId}
+          teacherId={user.id}
           assignment={assignment as Assignment}
-          students={(students as Student[] | null) ?? []}
-          initialSubmissions={(submissions as Submission[] | null) ?? []}
+          students={students}
+          initialSubmissions={rosterSubmissions}
         />
       </div>
     </div>

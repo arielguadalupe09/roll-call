@@ -115,7 +115,7 @@ describe("buildRecordCardData", () => {
   it("maps a student's own submission onto their assignment, ignoring other students'", () => {
     const assignment: Assignment = {
       id: "a1",
-      class_id: "class-1",
+      teacher_id: "teacher-1",
       title: "HW1",
       description: null,
       due_date: "2026-07-10",
