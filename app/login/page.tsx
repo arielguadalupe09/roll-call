@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import gsap from "gsap";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
 
@@ -32,6 +33,7 @@ type Mode = "signin" | "signup" | "forgot";
 
 export default function LoginPage() {
   const router = useRouter();
+  const rootRef = useRef<HTMLElement>(null);
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -102,36 +104,80 @@ export default function LoginPage() {
     setMode(next);
   }
 
+  useEffect(() => {
+    const mm = gsap.matchMedia(rootRef);
+
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap
+        .timeline({ defaults: { ease: "power3.out" } })
+        .from("[data-animate='left-decor']", {
+          scale: 0,
+          opacity: 0,
+          duration: 0.9,
+          stagger: 0.15,
+          ease: "power2.out",
+        })
+        .from(
+          "[data-animate='left-item']",
+          { opacity: 0, y: 16, duration: 0.5, stagger: 0.08 },
+          "-=0.55",
+        )
+        .from(
+          "[data-animate='feature-item']",
+          { opacity: 0, x: -12, duration: 0.4, stagger: 0.06 },
+          "-=0.2",
+        )
+        .from(
+          "[data-animate='form-card']",
+          { opacity: 0, y: 24, duration: 0.6 },
+          "-=0.6",
+        );
+    });
+
+    return () => mm.revert();
+  }, []);
+
   return (
-    <main className="flex min-h-full flex-1 flex-col md:flex-row">
+    <main ref={rootRef} className="flex min-h-full flex-1 flex-col md:flex-row">
       <div className="relative flex flex-col justify-center overflow-hidden bg-chalk px-8 py-16 sm:px-14 md:w-1/2 md:py-0">
         <div
+          data-animate="left-decor"
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brass/10"
           aria-hidden="true"
         />
         <div
+          data-animate="left-decor"
           className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-teal/10"
           aria-hidden="true"
         />
 
         <div className="relative">
-          <LogoBadge />
-          <span className="mt-6 inline-block rounded-full border border-rule/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-rule">
+          <div data-animate="left-item">
+            <LogoBadge />
+          </div>
+          <span
+            data-animate="left-item"
+            className="mt-6 inline-block rounded-full border border-rule/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-rule"
+          >
             Teacher Portal
           </span>
-          <h1 className="mt-4 font-display text-4xl font-semibold text-paper">
+          <h1 data-animate="left-item" className="mt-4 font-display text-4xl font-semibold text-paper">
             GAINS
           </h1>
-          <p className="mt-3 max-w-sm font-display text-lg italic text-rule">
+          <p data-animate="left-item" className="mt-3 max-w-sm font-display text-lg italic text-rule">
             Attendance and grading, simplified.
           </p>
-          <p className="mt-1 max-w-sm text-sm text-rule/80">
+          <p data-animate="left-item" className="mt-1 max-w-sm text-sm text-rule/80">
             Pampanga State University — College of Computing Studies
           </p>
 
           <ul className="mt-8 flex max-w-sm flex-col gap-2.5">
             {FEATURES.map((feature) => (
-              <li key={feature} className="flex items-start gap-2 text-sm text-paper/90">
+              <li
+                key={feature}
+                data-animate="feature-item"
+                className="flex items-start gap-2 text-sm text-paper/90"
+              >
                 <SidebarIcon name="attendance" className="mt-0.5 h-4 w-4 shrink-0 text-brass" />
                 {feature}
               </li>
@@ -141,7 +187,10 @@ export default function LoginPage() {
       </div>
 
       <div className="ledger-page flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-8 shadow-xl">
+        <div
+          data-animate="form-card"
+          className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-8 shadow-xl"
+        >
           <div className="flex flex-col items-center text-center">
             <LogoBadge size="h-12 w-12" />
             <h2 className="mt-4 font-display text-xl font-semibold text-ink">
