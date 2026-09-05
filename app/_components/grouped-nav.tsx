@@ -103,7 +103,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
             {isOpen && (
               <div
                 onClick={() => setOpenGroup(null)}
-                className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] overflow-hidden rounded-sm border border-rule bg-white py-1 shadow-lg"
+                className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] overflow-hidden rounded-xl border border-rule/60 bg-white py-1 shadow-lg"
               >
                 {item.tools.map((tool) => (
                   <ToolControl key={tool.label} tool={tool} variant="dropdown" />

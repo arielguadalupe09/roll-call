@@ -91,19 +91,19 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
   return (
     <div className="mt-6">
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-sm border border-rule bg-white p-4 text-center">
+        <div className="rounded-2xl border border-rule/60 bg-white p-4 text-center shadow-sm">
           <p className="font-display text-2xl font-semibold text-ink">{rows.length}</p>
           <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
             Total students
           </p>
         </div>
-        <div className="rounded-sm border border-rule bg-white p-4 text-center">
+        <div className="rounded-2xl border border-rule/60 bg-white p-4 text-center shadow-sm">
           <p className="font-display text-2xl font-semibold text-ink">
             {classOptions.length}
           </p>
           <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Classes</p>
         </div>
-        <div className="rounded-sm border border-rule bg-white p-4 text-center">
+        <div className="rounded-2xl border border-rule/60 bg-white p-4 text-center shadow-sm">
           <p className="font-display text-2xl font-semibold text-ink">{filtered.length}</p>
           <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Showing</p>
         </div>
@@ -139,7 +139,7 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
       </div>
 
       {pendingFixes && pendingFixes.length > 0 && (
-        <div className="mt-4 rounded-sm border border-brass bg-brass/10 p-4">
+        <div className="mt-4 rounded-2xl border border-brass/60 bg-brass/10 p-4">
           <p className="font-medium text-ink">
             {pendingFixes.length} name{pendingFixes.length === 1 ? "" : "s"} across all
             classes {pendingFixes.length === 1 ? "doesn&apos;t" : "don&apos;t"} match
@@ -181,7 +181,7 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-sm border border-rule">
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">

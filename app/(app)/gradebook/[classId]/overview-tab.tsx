@@ -139,7 +139,7 @@ export default function OverviewTab({
         )}
       </div>
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>
-        <div className="overflow-x-auto rounded-sm border border-rule">
+        <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
           <table className="w-full min-w-max border-collapse text-left">
             <thead>
               <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">

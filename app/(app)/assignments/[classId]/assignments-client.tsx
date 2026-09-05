@@ -192,7 +192,7 @@ export default function AssignmentsClient({
       <div className="mt-6">
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-3 rounded-sm border border-rule bg-white p-4"
+          className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
         >
           <input
             type="text"
@@ -319,7 +319,7 @@ export default function AssignmentsClient({
 
         <ul className="mt-6 flex flex-col gap-3">
           {assignments.map((a) => (
-            <li key={a.id} className="rounded-sm border border-rule bg-white p-4">
+            <li key={a.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:border-brass/60 hover:shadow-md">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <Link

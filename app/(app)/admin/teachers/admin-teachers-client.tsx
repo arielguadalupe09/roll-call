@@ -175,7 +175,7 @@ export default function AdminTeachersClient({
     <div className="mt-6">
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-sm border border-rule bg-white p-4"
+        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
       >
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium text-ink">Email</span>
@@ -239,7 +239,7 @@ export default function AdminTeachersClient({
         </div>
       </form>
 
-      <div className="mt-6 overflow-x-auto rounded-sm border border-rule">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">

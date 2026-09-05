@@ -130,7 +130,7 @@ export default function SetupTab({
         splits recitation taps into Midterm vs. Finals.
       </p>
 
-      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
           Category weights (%)
         </p>
@@ -160,7 +160,7 @@ export default function SetupTab({
         </p>
       </div>
 
-      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -177,7 +177,7 @@ export default function SetupTab({
         </p>
       </div>
 
-      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
           Combining {usePrelims ? "Prelim + Midterm + Finals" : "Midterm + Finals"} into the Final Grade
         </p>
@@ -227,7 +227,7 @@ export default function SetupTab({
         </p>
       </div>
 
-      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
           Recitation period cutoff{usePrelims ? "s" : ""}
         </p>
@@ -260,7 +260,7 @@ export default function SetupTab({
         </p>
       </div>
 
-      <div className="mt-4 rounded-sm border border-rule bg-white p-4">
+      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
         <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
           Record Card layout
         </p>

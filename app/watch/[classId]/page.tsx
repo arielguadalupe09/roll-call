@@ -49,7 +49,7 @@ export default async function WatchPage({
 
         <ul className="mt-6 flex flex-col gap-6">
           {withUrls.map((lecture) => (
-            <li key={lecture.id} className="rounded-sm border border-rule bg-white p-4">
+            <li key={lecture.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
               <p className="font-display text-lg font-semibold text-ink">{lecture.title}</p>
               {lecture.description && (
                 <p className="mt-1 whitespace-pre-wrap text-ink/80">{lecture.description}</p>

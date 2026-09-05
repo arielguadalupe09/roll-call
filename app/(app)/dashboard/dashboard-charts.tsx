@@ -1,4 +1,5 @@
 import type { ClassStats } from "@/lib/dashboard-insights";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 
 type Tier = "good" | "warning" | "critical";
 
@@ -144,26 +145,23 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
   const hasNoData = rows.some((r) => r.attendanceRate == null);
 
   return (
-    <div className="rounded-sm border border-rule bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-display text-lg font-semibold text-ink">Attendance by class</p>
-          <p className="mt-0.5 text-sm text-ink/60">
-            Session attendance rate for each of your active classes.
-          </p>
-        </div>
+    <CollapsibleSection
+      title="Attendance by class"
+      subtitle="Session attendance rate for each of your active classes."
+      defaultOpen
+      actions={
         <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide text-ink/60">
           <Legend swatch="bg-chart-good" label="≥ 90%" />
           <Legend swatch="bg-chart-warning" label="75–89%" />
           <Legend swatch="bg-chart-critical" label="< 75%" />
           {hasNoData && <Legend swatch="bg-ink/15" label="No data" />}
         </div>
-      </div>
-
+      }
+    >
       {rows.length === 0 ? (
-        <p className="mt-4 text-sm text-ink/60">No classes yet.</p>
+        <p className="text-sm text-ink/60">No classes yet.</p>
       ) : (
-        <div className="mt-4 flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2.5">
           {rows.map((s) => {
             const rate = s.attendanceRate;
             const pct = rate == null ? 0 : Math.round(rate * 100);
@@ -197,7 +195,7 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
           })}
         </div>
       )}
-    </div>
+    </CollapsibleSection>
   );
 }
 

@@ -286,12 +286,12 @@ export default function RecordsClient({
         </div>
 
         {dates.length === 0 ? (
-          <p className="mt-6 rounded-sm border border-rule bg-white p-4 text-ink/60">
+          <p className="mt-6 rounded-2xl border border-rule/60 bg-white p-4 text-ink/60 shadow-sm">
             No records yet.
           </p>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
-            <div className="overflow-x-auto rounded-sm border border-rule">
+            <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
@@ -336,7 +336,7 @@ export default function RecordsClient({
               </table>
             </div>
 
-            <div className="overflow-x-auto rounded-sm border border-rule">
+            <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
@@ -364,7 +364,7 @@ export default function RecordsClient({
               </table>
             </div>
 
-            <div className="overflow-x-auto rounded-sm border border-rule">
+            <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">

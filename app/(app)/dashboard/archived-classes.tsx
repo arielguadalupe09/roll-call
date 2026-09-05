@@ -24,7 +24,7 @@ export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
           {classes.map((c) => (
             <li
               key={c.id}
-              className="flex flex-col gap-2 rounded-sm border border-rule bg-white/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-2xl border border-rule/60 bg-white/60 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
                 <span className="font-display text-lg font-semibold text-ink/70">

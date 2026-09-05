@@ -154,7 +154,7 @@ export default function AssessmentRoster({
     <div className="mt-6">
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-sm border border-rule bg-white p-4"
+        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
       >
         <input
           type="text"

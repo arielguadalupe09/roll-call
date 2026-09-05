@@ -176,7 +176,7 @@ export default function RecordCardAllClient({
       </div>
 
       {allData.length > 0 && (
-        <div className="no-print mx-auto mb-6 max-w-4xl rounded-sm border border-rule bg-white p-4">
+        <div className="no-print mx-auto mb-6 max-w-4xl rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
               Jump to a student

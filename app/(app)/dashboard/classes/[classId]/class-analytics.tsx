@@ -15,7 +15,7 @@ export default function ClassAnalytics({
   const trend = stats.weekTrend;
 
   return (
-    <div className="mt-6 rounded-sm border border-rule bg-white p-4">
+    <div className="mt-6 rounded-2xl border border-rule/60 bg-white p-5 shadow-sm">
       <p className="font-display text-lg font-semibold text-ink">Class analytics</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-6">

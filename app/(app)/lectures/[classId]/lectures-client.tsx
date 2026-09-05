@@ -265,7 +265,7 @@ export default function LecturesClient({
 
       <form
         onSubmit={handleSave}
-        className="flex flex-col gap-3 rounded-sm border border-rule bg-white p-4"
+        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
       >
         <input
           type="text"
@@ -445,7 +445,7 @@ export default function LecturesClient({
 
       <ul className="mt-6 flex flex-col gap-3">
         {lectures.map((lecture) => (
-          <li key={lecture.id} className="rounded-sm border border-rule bg-white p-4">
+          <li key={lecture.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-display text-lg font-semibold text-ink">{lecture.title}</p>

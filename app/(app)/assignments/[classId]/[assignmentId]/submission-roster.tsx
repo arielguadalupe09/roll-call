@@ -230,7 +230,7 @@ export default function SubmissionRoster({
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-sm border border-rule">
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">

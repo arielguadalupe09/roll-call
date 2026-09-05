@@ -459,7 +459,7 @@ export default function ScheduleClient({
 
       {mode === "mine" && (
         <>
-          <div className="no-print mt-4 rounded-sm border border-rule bg-white p-4">
+          <div className="no-print mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
             <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
               Share my schedule (view-only)
             </p>
@@ -738,7 +738,7 @@ export default function ScheduleClient({
             </span>
           )}
         </p>
-        <div className="overflow-x-auto rounded-sm border border-rule">
+        <div className="overflow-x-auto rounded-2xl border border-rule/60">
           <table className="w-full table-fixed border-collapse text-left">
             <thead>
               <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">

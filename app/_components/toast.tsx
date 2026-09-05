@@ -50,7 +50,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {message && (
         <div
           role="status"
-          className="toast-in fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-sm bg-brass px-4 py-3 font-medium text-chalk shadow-lg"
+          className="toast-in fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-brass px-4 py-3 font-medium text-chalk shadow-lg"
         >
           <span>{message}</span>
           {action && (

@@ -84,7 +84,7 @@ export default function ClassRecordInfoForm({
       </button>
 
       {expanded && (
-        <div className="mt-3 rounded-sm border border-rule bg-white p-4">
+        <div className="mt-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
           <p className="text-sm text-ink/60">
             Used to fill the header of your official Class Record Excel export.
           </p>

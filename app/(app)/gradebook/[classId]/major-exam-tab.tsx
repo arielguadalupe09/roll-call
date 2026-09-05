@@ -83,7 +83,7 @@ function ExamSection({
   }
 
   return (
-    <div className="rounded-sm border border-rule bg-white p-4">
+    <div className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
       <p className="font-display text-lg font-semibold text-ink">{label}</p>
       <div className="mt-3 flex items-end gap-3">
         <label className="flex w-32 flex-col gap-1">

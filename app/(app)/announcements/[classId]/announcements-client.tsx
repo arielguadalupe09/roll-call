@@ -62,7 +62,7 @@ export default function AnnouncementsClient({
     <div className="mt-6">
       <form
         onSubmit={handlePost}
-        className="flex flex-col gap-3 rounded-sm border border-rule bg-white p-4"
+        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
       >
         <input
           type="text"
@@ -92,7 +92,7 @@ export default function AnnouncementsClient({
 
       <ul className="mt-6 flex flex-col gap-3">
         {announcements.map((a) => (
-          <li key={a.id} className="rounded-sm border border-rule bg-white p-4">
+          <li key={a.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-display text-lg font-semibold text-ink">

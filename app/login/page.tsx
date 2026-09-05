@@ -141,7 +141,7 @@ export default function LoginPage() {
       </div>
 
       <div className="ledger-page flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm rounded-sm border border-rule bg-white p-8 shadow-xl">
+        <div className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-8 shadow-xl">
           <div className="flex flex-col items-center text-center">
             <LogoBadge size="h-12 w-12" />
             <h2 className="mt-4 font-display text-xl font-semibold text-ink">

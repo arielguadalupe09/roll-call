@@ -7,24 +7,28 @@ export default function CollapsibleSection({
   subtitle,
   open: openProp,
   onToggle,
+  defaultOpen = false,
   actions,
+  id,
   children,
 }: {
   title: string;
   subtitle?: string;
   open?: boolean;
   onToggle?: () => void;
+  defaultOpen?: boolean;
   actions?: ReactNode;
+  id?: string;
   children: ReactNode;
 }) {
-  const [internalOpen, setInternalOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : internalOpen;
   const toggle = onToggle ?? (() => setInternalOpen((v) => !v));
 
   return (
-    <div className="rounded-sm border border-rule bg-white p-4">
-      <div className="flex items-center justify-between gap-4">
+    <div id={id} className="scroll-mt-6 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           onClick={toggle}
           aria-expanded={open}

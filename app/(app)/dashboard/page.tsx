@@ -8,6 +8,7 @@ import {
   TREND_DROP_THRESHOLD,
   type ClassStats,
 } from "@/lib/dashboard-insights";
+import CollapsibleSection from "@/app/_components/collapsible-section";
 import CreateClassForm from "./create-class-form";
 import ArchiveButton from "./archive-button";
 import ArchivedClasses from "./archived-classes";
@@ -19,12 +20,26 @@ import {
   StudentsSparkline,
 } from "./dashboard-charts";
 
-function TileIcon({ path }: { path: string }) {
+function TileIcon({ path, tone }: { path: string; tone: "brass" | "teal" | "danger" }) {
+  const toneClass = {
+    brass: "bg-brass/10 text-brass",
+    teal: "bg-teal/10 text-teal",
+    danger: "bg-danger/10 text-danger",
+  }[tone];
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="text-ink/40">
-      <path d={path} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d={path} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
+}
+
+function classInitials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
 }
 
 const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14 5.8v5.7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z";
@@ -119,43 +134,44 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-8 py-10">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="font-display text-3xl font-semibold text-ink">
+      <div className="mx-auto max-w-5xl">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-brass">Dashboard</p>
+        <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
           Your classes
         </h1>
         <p className="mt-1 text-ink/70">
           Create a class, then manage students, QR sheets, and attendance.
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <a
             href="#class-list"
-            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
+            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Classes</p>
-              <TileIcon path={ICON_CLASSES} />
+              <TileIcon path={ICON_CLASSES} tone="brass" />
             </div>
-            <p className="mt-1 font-display text-3xl font-semibold text-ink">{classList.length}</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink">{classList.length}</p>
             <ActiveArchivedBar active={classList.length} archived={archivedClasses.length} />
           </a>
           <Link
             href="/students"
-            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
+            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Students</p>
-              <TileIcon path={ICON_STUDENTS} />
+              <TileIcon path={ICON_STUDENTS} tone="teal" />
             </div>
-            <p className="mt-1 font-display text-3xl font-semibold text-ink">{totalStudents}</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink">{totalStudents}</p>
             <StudentsSparkline classes={studentsPerClass} />
           </Link>
           <Link
             href="/attendance"
-            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
+            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Attendance</p>
-            <div className="mt-1 flex items-center gap-3">
+            <div className="mt-2 flex items-center gap-3">
               <AttendanceRing rate={overallAttendanceRate} />
               <p className="text-xs text-ink/60">
                 Average across {ratesWithData.length > 0 ? classList.length : 0} class
@@ -165,13 +181,13 @@ export default async function DashboardPage() {
           </Link>
           <a
             href="#insights"
-            className="rounded-sm border border-rule bg-white p-4 transition hover:border-brass"
+            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Need attention</p>
-              <TileIcon path={ICON_ALERT} />
+              <TileIcon path={ICON_ALERT} tone="danger" />
             </div>
-            <p className="mt-1 font-display text-3xl font-semibold text-ink">{classesNeedingAttention}</p>
+            <p className="mt-2 font-display text-3xl font-semibold text-ink">{classesNeedingAttention}</p>
             <AttentionBreakdown
               items={[
                 { label: "Low attendance", count: lowAttendanceClassCount },
@@ -186,68 +202,87 @@ export default async function DashboardPage() {
           <AttendanceByClassChart stats={stats} />
         </div>
 
-        <div id="insights" className="mt-6 scroll-mt-6 rounded-sm border border-rule bg-white p-4">
-          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Insights</p>
-          {insights.length === 0 ? (
-            <p className="mt-2 text-sm text-ink/60">No issues detected.</p>
-          ) : (
-            <ul className="mt-2 flex flex-col gap-2">
-              {insights.map((insight, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-ink">
-                  <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                      insight.severity === "warning" ? "bg-danger" : "bg-teal"
-                    }`}
-                  />
-                  {insight.text}
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="mt-6">
+          <CollapsibleSection id="insights" title="Insights" defaultOpen>
+            {insights.length === 0 ? (
+              <p className="text-sm text-ink/60">No issues detected.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {insights.map((insight, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-ink">
+                    <span
+                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                        insight.severity === "warning" ? "bg-danger" : "bg-teal"
+                      }`}
+                    />
+                    {insight.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CollapsibleSection>
         </div>
 
-        <div className="mt-6 rounded-sm border border-rule bg-white p-4">
+        <div className="mt-6 rounded-2xl border border-rule/60 bg-white p-5 shadow-sm">
           <CreateClassForm
             teacherId={user.id}
             defaultUsePrelims={teacherRow?.default_use_prelims ?? false}
           />
         </div>
 
-        <ul id="class-list" className="mt-8 flex scroll-mt-6 flex-col gap-2">
-          {stats.map((s) => (
-            <li
-              key={s.classRow.id}
-              className="flex flex-col gap-2 rounded-sm border border-rule bg-white p-4 transition hover:border-brass sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <span className="font-display text-xl font-semibold text-ink">
-                  {s.classRow.name}
-                </span>
-                <p className="mt-0.5 text-sm text-ink/60">
-                  {s.classRow.subject || "No subject set"}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-mono text-xs text-ink/50">
-                  {s.studentCount} student{s.studentCount === 1 ? "" : "s"}
-                </span>
-                {attendanceBadge(s.attendanceRate)}
-                <Link
-                  href={`/dashboard/classes/${s.classRow.id}`}
-                  className="font-mono text-xs uppercase tracking-wide text-teal"
+        <div className="mt-8">
+          <CollapsibleSection
+            id="class-list"
+            title="Classes"
+            subtitle={`${classList.length} class${classList.length === 1 ? "" : "es"}`}
+            defaultOpen
+          >
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {stats.map((s) => (
+                <li
+                  key={s.classRow.id}
+                  className="group flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
                 >
-                  Open →
-                </Link>
-                <ArchiveButton classId={s.classRow.id} name={s.classRow.name} archived={false} />
-              </div>
-            </li>
-          ))}
-          {classList.length === 0 && (
-            <p className="text-ink/60">
-              No classes yet — add your first one above.
-            </p>
-          )}
-        </ul>
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brass/10 font-display text-sm font-semibold text-brass">
+                      {classInitials(s.classRow.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-display text-lg font-semibold text-ink">
+                        {s.classRow.name}
+                      </p>
+                      <p className="truncate text-sm text-ink/60">
+                        {s.classRow.subject || "No subject set"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs text-ink/50">
+                      {s.studentCount} student{s.studentCount === 1 ? "" : "s"}
+                    </span>
+                    {attendanceBadge(s.attendanceRate)}
+                  </div>
+
+                  <div className="mt-auto flex items-center justify-between border-t border-rule/40 pt-3">
+                    <Link
+                      href={`/dashboard/classes/${s.classRow.id}`}
+                      className="font-mono text-xs uppercase tracking-wide text-teal"
+                    >
+                      Open →
+                    </Link>
+                    <ArchiveButton classId={s.classRow.id} name={s.classRow.name} archived={false} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {classList.length === 0 && (
+              <p className="mt-3 text-ink/60">
+                No classes yet — add your first one above.
+              </p>
+            )}
+          </CollapsibleSection>
+        </div>
 
         <ArchivedClasses classes={archivedClasses} />
       </div>

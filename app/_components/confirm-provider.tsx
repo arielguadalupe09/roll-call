@@ -49,7 +49,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           role="alertdialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-sm rounded-sm border border-rule bg-white p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-5 shadow-xl">
             {state.title && (
               <p className="font-display text-lg font-semibold text-ink">{state.title}</p>
             )}
