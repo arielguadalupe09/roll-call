@@ -16,10 +16,14 @@ const FEATURES = [
 
 function LogoBadge({ size = "h-14 w-14" }: { size?: string }) {
   return (
-    <span
-      className={`relative flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full bg-brass`}
-    >
-      <Image src="/logo-icon.png" alt="GAINS" fill className="object-contain p-1.5" />
+    <span className={`relative flex ${size} shrink-0`}>
+      <Image
+        src="/logo-icon.png"
+        alt="GAINS"
+        width={512}
+        height={512}
+        className="h-full w-full object-contain"
+      />
     </span>
   );
 }

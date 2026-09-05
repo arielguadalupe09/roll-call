@@ -9,6 +9,20 @@ import SignOutButton from "./sign-out-button";
 import SidebarIcon from "./sidebar-icons";
 import { useActiveClasses } from "./active-classes-context";
 
+function LogoBadge({ size = "h-9 w-9" }: { size?: string }) {
+  return (
+    <span className={`relative flex ${size} shrink-0`}>
+      <Image
+        src="/logo-icon.png"
+        alt="GAINS"
+        width={512}
+        height={512}
+        className="h-full w-full object-contain"
+      />
+    </span>
+  );
+}
+
 export default function Sidebar({
   classes,
   email,
@@ -45,7 +59,12 @@ export default function Sidebar({
   return (
     <>
       <div className="flex items-center justify-between border-b border-rule/20 bg-chalk px-4 py-3 md:hidden">
-        <Image src="/logo-full.png" alt="GAINS" width={106} height={64} className="h-8 w-auto" />
+        <div className="flex items-center gap-2.5">
+          <LogoBadge size="h-8 w-8" />
+          <p className="font-display text-lg font-semibold text-paper">
+            GAINS
+          </p>
+        </div>
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
@@ -81,18 +100,17 @@ export default function Sidebar({
           open ? "translate-x-0" : ""
         }`}
       >
-        <div className="flex items-center justify-between border-b border-rule/20 px-5 py-6 md:justify-center">
-          <div className="text-center">
-            <Image
-              src="/logo-full.png"
-              alt="GAINS"
-              width={106}
-              height={64}
-              className="mx-auto h-20 w-auto"
-            />
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
-              Teacher Portal
-            </p>
+        <div className="flex items-center justify-between border-b border-rule/20 px-5 py-5">
+          <div className="flex items-center gap-3">
+            <LogoBadge />
+            <div>
+              <p className="font-display text-xl font-semibold text-paper">
+                GAINS
+              </p>
+              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
+                Teacher Portal
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setOpen(false)}
