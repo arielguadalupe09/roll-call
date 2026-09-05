@@ -146,7 +146,7 @@ export default async function DashboardPage() {
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <a
             href="#class-list"
-            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className="group rounded-2xl border border-rule/40 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Classes</p>
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
           </a>
           <Link
             href="/students"
-            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className="group rounded-2xl border border-rule/40 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Students</p>
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
           </Link>
           <Link
             href="/attendance"
-            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className="group rounded-2xl border border-rule/40 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
           >
             <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Attendance</p>
             <div className="mt-2 flex items-center gap-3">
@@ -181,13 +181,23 @@ export default async function DashboardPage() {
           </Link>
           <a
             href="#insights"
-            className="group rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className={`group rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+              classesNeedingAttention > 0
+                ? "border border-danger/30 bg-danger/[0.04] hover:border-danger/60"
+                : "border border-rule/40 bg-white hover:border-brass/60"
+            }`}
           >
             <div className="flex items-center justify-between">
               <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Need attention</p>
               <TileIcon path={ICON_ALERT} tone="danger" />
             </div>
-            <p className="mt-2 font-display text-3xl font-semibold text-ink">{classesNeedingAttention}</p>
+            <p
+              className={`mt-2 font-display text-3xl font-semibold ${
+                classesNeedingAttention > 0 ? "text-danger" : "text-ink"
+              }`}
+            >
+              {classesNeedingAttention}
+            </p>
             <AttentionBreakdown
               items={[
                 { label: "Low attendance", count: lowAttendanceClassCount },
@@ -223,7 +233,8 @@ export default async function DashboardPage() {
           </CollapsibleSection>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-rule/60 bg-white p-5 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-dashed border-brass/50 bg-brass/[0.04] p-5">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-brass">+ New</p>
           <CreateClassForm
             teacherId={user.id}
             defaultUsePrelims={teacherRow?.default_use_prelims ?? false}

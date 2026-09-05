@@ -2,6 +2,12 @@
 
 import { useState, type ReactNode } from "react";
 
+const SHELL_CLASSES = {
+  default: "border border-rule/60 bg-white p-4 shadow-sm",
+  flat: "p-4",
+  primary: "border border-rule/40 bg-white p-5 shadow-md border-t-2 border-t-brass",
+} as const;
+
 export default function CollapsibleSection({
   title,
   subtitle,
@@ -11,6 +17,7 @@ export default function CollapsibleSection({
   actions,
   id,
   children,
+  variant = "default",
 }: {
   title: string;
   subtitle?: string;
@@ -20,6 +27,7 @@ export default function CollapsibleSection({
   actions?: ReactNode;
   id?: string;
   children: ReactNode;
+  variant?: keyof typeof SHELL_CLASSES;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = openProp !== undefined;
@@ -27,7 +35,7 @@ export default function CollapsibleSection({
   const toggle = onToggle ?? (() => setInternalOpen((v) => !v));
 
   return (
-    <div id={id} className="scroll-mt-6 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+    <div id={id} className={`scroll-mt-6 rounded-2xl ${SHELL_CLASSES[variant]}`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           onClick={toggle}

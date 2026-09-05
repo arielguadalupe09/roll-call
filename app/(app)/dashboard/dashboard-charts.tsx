@@ -149,6 +149,7 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
       title="Attendance by class"
       subtitle="Session attendance rate for each of your active classes."
       defaultOpen
+      variant="primary"
       actions={
         <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide text-ink/60">
           <Legend swatch="bg-chart-good" label="≥ 90%" />
