@@ -164,6 +164,9 @@ export default function LoginPage() {
           <h1 data-animate="left-item" className="mt-4 font-display text-4xl font-semibold text-paper">
             GAINS
           </h1>
+          <p data-animate="left-item" className="mt-1 font-mono text-[11px] uppercase tracking-[0.15em] text-rule/70">
+            Grading &amp; Attendance Intelligent Network System
+          </p>
           <p data-animate="left-item" className="mt-3 max-w-sm font-display text-lg italic text-rule">
             Attendance and grading, simplified.
           </p>
