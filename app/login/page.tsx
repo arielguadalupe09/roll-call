@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
 
@@ -16,9 +17,9 @@ const FEATURES = [
 function LogoBadge({ size = "h-14 w-14" }: { size?: string }) {
   return (
     <span
-      className={`flex ${size} shrink-0 items-center justify-center rounded-full bg-brass text-chalk`}
+      className={`relative flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full bg-brass`}
     >
-      <SidebarIcon name="logo" className="h-7 w-7" />
+      <Image src="/logo-icon.png" alt="GAINS" fill className="object-contain p-1.5" />
     </span>
   );
 }

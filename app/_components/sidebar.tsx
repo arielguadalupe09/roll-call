@@ -2,21 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useParams } from "next/navigation";
 import type { ClassRow } from "@/lib/types";
 import SignOutButton from "./sign-out-button";
 import SidebarIcon from "./sidebar-icons";
 import { useActiveClasses } from "./active-classes-context";
-
-function LogoBadge({ size = "h-9 w-9" }: { size?: string }) {
-  return (
-    <span
-      className={`flex ${size} shrink-0 items-center justify-center rounded-full bg-brass text-chalk`}
-    >
-      <SidebarIcon name="logo" className="h-5 w-5" />
-    </span>
-  );
-}
 
 export default function Sidebar({
   classes,
@@ -54,12 +45,7 @@ export default function Sidebar({
   return (
     <>
       <div className="flex items-center justify-between border-b border-rule/20 bg-chalk px-4 py-3 md:hidden">
-        <div className="flex items-center gap-2.5">
-          <LogoBadge size="h-8 w-8" />
-          <p className="font-display text-lg font-semibold text-paper">
-            GAINS
-          </p>
-        </div>
+        <Image src="/logo-full.png" alt="GAINS" width={106} height={64} className="h-8 w-auto" />
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
@@ -95,17 +81,18 @@ export default function Sidebar({
           open ? "translate-x-0" : ""
         }`}
       >
-        <div className="flex items-center justify-between border-b border-rule/20 px-5 py-5">
-          <div className="flex items-center gap-3">
-            <LogoBadge />
-            <div>
-              <p className="font-display text-xl font-semibold text-paper">
-                GAINS
-              </p>
-              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
-                Teacher Portal
-              </p>
-            </div>
+        <div className="flex items-center justify-between border-b border-rule/20 px-5 py-6 md:justify-center">
+          <div className="text-center">
+            <Image
+              src="/logo-full.png"
+              alt="GAINS"
+              width={106}
+              height={64}
+              className="mx-auto h-20 w-auto"
+            />
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
+              Teacher Portal
+            </p>
           </div>
           <button
             onClick={() => setOpen(false)}
