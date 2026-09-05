@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 // app only affects the student check-in page, not the teacher-facing
 // dashboard that lives under the rest of the site.
 export const metadata: Metadata = {
-  title: "Roll Call Check-in",
+  title: "GAINS Check-in",
   manifest: "/checkin-manifest.webmanifest",
   appleWebApp: {
     capable: true,

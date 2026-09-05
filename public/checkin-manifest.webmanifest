@@ -1,5 +1,5 @@
 {
-  "name": "Roll Call Check-in",
+  "name": "GAINS Check-in",
   "short_name": "Check-in",
   "description": "Scan your QR code to check in for class.",
   "start_url": "/checkin",

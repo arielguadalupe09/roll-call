@@ -23,7 +23,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Roll Call",
+  title: "GAINS",
   description: "QR attendance for the classroom.",
 };
 

@@ -1,6 +1,6 @@
-# Roll Call
+# GAINS
 
-QR-code attendance and grading for a university teacher portal (Pampanga State University branding baked into some record-card/DHVSU-export copy, but not hardcoded to it).
+GAINS (Grading & Attendance Intelligent Network System) — QR-code attendance and grading for a university teacher portal (Pampanga State University branding baked into some record-card/DHVSU-export copy, but not hardcoded to it). Renamed from "Roll Call"; that name may still linger in old commit messages, code comments, and internal identifiers (localStorage keys, migration comments) that were left as-is since changing them has no user-visible effect.
 
 ## Stack
 

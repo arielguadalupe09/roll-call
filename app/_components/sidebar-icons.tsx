@@ -10,13 +10,12 @@ type IconName =
   | "logout";
 
 const ICON_PATHS: Record<IconName, React.ReactNode> = {
+  // GAINS: ascending bars for Grading/analytics, a checkmark for Attendance
+  // verification — the two things the icon needs to signal at a glance.
   logo: (
     <>
-      <path
-        d="M5.5 2.5h5a1 1 0 0 1 1 1V4h.3a1 1 0 0 1 1 1v8.2a1 1 0 0 1-1 1h-7.6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h.3v-.5a1 1 0 0 1 1-1z"
-        strokeLinejoin="round"
-      />
-      <path d="M5.8 8.3l1.7 1.7L10.3 6.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 13.5V10M5.5 13.5V7.5M9 13.5V5" strokeLinecap="round" />
+      <path d="M9.8 4.3l1.3 1.3L14 2.2" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
   dashboard: (

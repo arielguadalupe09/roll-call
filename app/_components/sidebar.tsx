@@ -57,7 +57,7 @@ export default function Sidebar({
         <div className="flex items-center gap-2.5">
           <LogoBadge size="h-8 w-8" />
           <p className="font-display text-lg font-semibold text-paper">
-            Roll Call
+            GAINS
           </p>
         </div>
         <button
@@ -100,7 +100,7 @@ export default function Sidebar({
             <LogoBadge />
             <div>
               <p className="font-display text-xl font-semibold text-paper">
-                Roll Call
+                GAINS
               </p>
               <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-rule">
                 Teacher Portal

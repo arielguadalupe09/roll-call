@@ -182,7 +182,7 @@ export default function PublicCheckinPage() {
   return (
     <main className="flex flex-1 flex-col items-center bg-chalk px-6 py-16 text-paper">
       <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">
-        Roll Call
+        GAINS
       </p>
       <h1 className="mt-2 font-display text-3xl font-semibold">
         Student check-in

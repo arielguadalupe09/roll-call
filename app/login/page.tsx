@@ -115,7 +115,7 @@ export default function LoginPage() {
             Teacher Portal
           </span>
           <h1 className="mt-4 font-display text-4xl font-semibold text-paper">
-            Roll Call
+            GAINS
           </h1>
           <p className="mt-3 max-w-sm font-display text-lg italic text-rule">
             Attendance and grading, simplified.
@@ -140,7 +140,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center text-center">
             <LogoBadge size="h-12 w-12" />
             <h2 className="mt-4 font-display text-xl font-semibold text-ink">
-              Roll Call — Teacher Portal
+              GAINS — Teacher Portal
             </h2>
             <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-teal">
               {mode === "signin" && "Sign in"}
@@ -281,7 +281,7 @@ export default function LoginPage() {
           </button>
 
           <p className="mt-6 text-center text-xs text-ink/40">
-            Roll Call — Teacher Portal. All rights reserved.
+            GAINS — Teacher Portal. All rights reserved.
           </p>
         </div>
       </div>

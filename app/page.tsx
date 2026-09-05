@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center bg-chalk px-6 py-24 text-paper">
       <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">
-        Roll Call
+        GAINS
       </p>
       <h1 className="mt-4 max-w-lg text-center font-display text-5xl font-semibold text-paper">
         Attendance, kept like a ledger.

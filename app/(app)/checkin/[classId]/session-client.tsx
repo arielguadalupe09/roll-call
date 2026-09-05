@@ -184,7 +184,7 @@ export default function SessionClient({
           <p className="mt-4 max-w-sm text-center text-sm text-rule">
             Your students can check themselves in from their own phone at{" "}
             <span className="font-mono text-paper" suppressHydrationWarning>
-              {origin || "your Roll Call link"}/checkin
+              {origin || "your GAINS link"}/checkin
             </span>{" "}
             using their personal QR code — no need to scan anything from
             this screen.
