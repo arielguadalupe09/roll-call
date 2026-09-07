@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import gsap from "gsap";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
@@ -336,6 +337,21 @@ export default function LoginPage() {
             {mode === "forgot" && "Back to sign in"}
             {mode === "signin" && "Need an account? Sign up"}
           </button>
+
+          <div className="mt-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-rule/40" aria-hidden="true" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
+              Or
+            </span>
+            <span className="h-px flex-1 bg-rule/40" aria-hidden="true" />
+          </div>
+
+          <Link
+            href="/student"
+            className="mt-4 block w-full rounded-sm border border-rule px-4 py-2 text-center font-medium text-ink transition hover:border-brass hover:text-brass"
+          >
+            Student? Scan your QR code to sign in
+          </Link>
 
           <p className="mt-6 text-center text-xs text-ink/40">
             GAINS — Teacher Portal. All rights reserved.
