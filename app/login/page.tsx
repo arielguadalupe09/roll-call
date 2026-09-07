@@ -163,7 +163,7 @@ export default function LoginPage() {
             data-animate="left-item"
             className="mt-6 inline-block rounded-full border border-rule/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-rule"
           >
-            Teacher Portal
+            {portal === "teacher" ? "Teacher" : "Student"} Portal
           </span>
           <h1 data-animate="left-item" className="mt-4 font-display text-4xl font-semibold text-paper">
             GAINS
