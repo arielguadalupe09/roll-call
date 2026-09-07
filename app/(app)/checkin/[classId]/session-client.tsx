@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { generateSessionToken } from "@/lib/codes";
 import { todayLocalDate } from "@/lib/date";
@@ -31,6 +31,16 @@ export default function SessionClient({
   useEffect(() => {
     dateRef.current = date;
   }, [date]);
+
+  const refreshAttendance = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("attendance")
+      .select("student_id")
+      .eq("class_id", classId)
+      .eq("date", dateRef.current);
+    setCheckedInIds(new Set((data ?? []).map((a) => a.student_id as string)));
+  }, [classId]);
 
   // Lets the Jarvis voice assistant land here and trigger the action itself
   // (there's no server action to call directly — session-client only talks
@@ -97,23 +107,42 @@ export default function SessionClient({
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          // "*" (not just INSERT) because the teacher-scan flow upserts
+          // attendance rows, which lands as an UPDATE when a row already
+          // exists for that student/date.
+          event: "*",
           schema: "public",
           table: "attendance",
           filter: `class_id=eq.${classId}`,
         },
         (payload) => {
-          if (payload.new.date === dateRef.current) {
-            setCheckedInIds((prev) => new Set(prev).add(payload.new.student_id as string));
+          if (payload.eventType === "DELETE") return;
+          const row = payload.new as { date?: string; student_id?: string };
+          if (row.date === dateRef.current && row.student_id) {
+            setCheckedInIds((prev) => new Set(prev).add(row.student_id!));
           }
         },
       )
       .subscribe();
 
+    // Backstop in case the realtime channel doesn't deliver (e.g. Realtime
+    // replication not enabled for this table, or the socket drops silently):
+    // re-fetch on a timer and whenever the tab regains focus, so the count
+    // never depends solely on the websocket to stay current.
+    const poll = setInterval(refreshAttendance, 10000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshAttendance();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refreshAttendance);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refreshAttendance);
     };
-  }, [classId]);
+  }, [classId, refreshAttendance]);
 
   async function startSession() {
     setLoading(true);
