@@ -10,9 +10,24 @@ export type NavTool = {
   onClick?: () => void;
 };
 
+// A "side drop down" nested one level inside a group's dropdown -- for
+// grouping a handful of related items (e.g. Written/Laboratory Activity
+// under "Activities") without flattening everything into one long list.
+export type NavSubmenu = {
+  kind: "submenu";
+  label: string;
+  tools: NavTool[];
+};
+
+export type NavGroupEntry = NavTool | NavSubmenu;
+
+function isSubmenu(entry: NavGroupEntry): entry is NavSubmenu {
+  return "kind" in entry && entry.kind === "submenu";
+}
+
 export type NavItem =
   | ({ kind: "tool" } & NavTool)
-  | { kind: "group"; label: string; tools: NavTool[] };
+  | { kind: "group"; label: string; tools: NavGroupEntry[] };
 
 const FLAT_CLASS =
   "rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition";
@@ -44,6 +59,50 @@ function ToolControl({ tool, variant }: { tool: NavTool; variant: "flat" | "drop
   );
 }
 
+function SubmenuControl({ submenu }: { submenu: NavSubmenu }) {
+  const [open, setOpen] = useState(false);
+  const active = submenu.tools.some((t) => t.active);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={(e) => {
+          // Stop this from bubbling to the parent dropdown panel's
+          // click-to-close handler -- toggling the submenu shouldn't
+          // close the dropdown it lives in.
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+        }}
+        className={`flex w-full items-center justify-between gap-2 ${DROPDOWN_ITEM_CLASS} ${
+          active ? "bg-brass/15 font-semibold text-brass" : "text-ink/70 hover:bg-ink/5"
+        }`}
+      >
+        {submenu.label}
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+          <path
+            d="M6 4l4 4-4 4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-full top-0 z-30 ml-1 min-w-[11rem] overflow-hidden rounded-xl border border-rule/60 bg-white py-1 shadow-lg"
+        >
+          {submenu.tools.map((tool) => (
+            <ToolControl key={tool.label} tool={tool} variant="dropdown" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GroupedNav({ items }: { items: NavItem[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -68,7 +127,9 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
           return <ToolControl key={item.label} tool={item} variant="flat" />;
         }
 
-        const groupActive = item.tools.some((t) => t.active);
+        const groupActive = item.tools.some((entry) =>
+          isSubmenu(entry) ? entry.tools.some((t) => t.active) : entry.active,
+        );
         const isOpen = openGroup === item.label;
 
         return (
@@ -103,11 +164,19 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
             {isOpen && (
               <div
                 onClick={() => setOpenGroup(null)}
-                className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] overflow-hidden rounded-xl border border-rule/60 bg-white py-1 shadow-lg"
+                // No overflow-hidden here (unlike the flat-item dropdowns) --
+                // it would clip a submenu's flyout, which is deliberately
+                // positioned outside this box via left-full. Rounded corners
+                // come from rounding the first/last child directly instead.
+                className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] rounded-xl border border-rule/60 bg-white py-1 shadow-lg [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl [&>*>*:first-child]:rounded-t-xl [&>*>*:last-child]:rounded-b-xl"
               >
-                {item.tools.map((tool) => (
-                  <ToolControl key={tool.label} tool={tool} variant="dropdown" />
-                ))}
+                {item.tools.map((entry) =>
+                  isSubmenu(entry) ? (
+                    <SubmenuControl key={entry.label} submenu={entry} />
+                  ) : (
+                    <ToolControl key={entry.label} tool={entry} variant="dropdown" />
+                  ),
+                )}
               </div>
             )}
           </div>

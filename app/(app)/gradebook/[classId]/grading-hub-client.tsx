@@ -31,6 +31,17 @@ type Tab =
   | "major-exam"
   | "recitation";
 
+const TABS: Tab[] = [
+  "overview",
+  "setup",
+  "assignments",
+  "quiz",
+  "written",
+  "laboratory",
+  "major-exam",
+  "recitation",
+];
+
 export default function GradingHubClient({
   classId,
   teacherId,
@@ -45,6 +56,7 @@ export default function GradingHubClient({
   majorExams,
   majorExamScores,
   recitationLogs,
+  initialTab,
 }: {
   classId: string;
   teacherId: string;
@@ -59,8 +71,28 @@ export default function GradingHubClient({
   majorExams: MajorExam[];
   majorExamScores: MajorExamScore[];
   recitationLogs: ParticipationLog[];
+  // Lets the top nav's Gradebook dropdown deep-link straight to a tab (e.g.
+  // Quiz/Written Activity/Laboratory Activity), which otherwise are only
+  // reachable by first landing on Overview and clicking through. Computed
+  // server-side from the URL's ?tab= and passed down as a normal prop (with
+  // the page keying this component by it) instead of read client-side, so
+  // the very first render already shows the right tab -- no flash, no
+  // hydration mismatch.
+  initialTab?: string;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(
+    (TABS as string[]).includes(initialTab ?? "") ? (initialTab as Tab) : "overview",
+  );
+
+  const submissionCounts: Record<string, { submitted: number; total: number }> = {};
+  const classStudentIds = new Set(students.map((s) => s.id));
+  for (const s of submissions) {
+    if (!classStudentIds.has(s.student_id)) continue;
+    const counts = submissionCounts[s.assignment_id] ?? { submitted: 0, total: 0 };
+    counts.total += 1;
+    if (s.status !== "missing") counts.submitted += 1;
+    submissionCounts[s.assignment_id] = counts;
+  }
 
   const quizAssessments = assessments.filter((a) => a.category === "quiz");
   const writtenAssessments = assessments.filter((a) => a.category === "written");
@@ -128,6 +160,7 @@ export default function GradingHubClient({
           initialAssignments={assignments}
           usePrelims={config.use_prelims}
           showHeading={false}
+          submissionCounts={submissionCounts}
         />
       )}
 

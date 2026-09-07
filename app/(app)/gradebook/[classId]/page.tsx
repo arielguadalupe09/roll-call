@@ -16,10 +16,13 @@ import GradingHubClient from "./grading-hub-client";
 
 export default async function GradebookPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ classId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { classId } = await params;
+  const { tab: requestedTab } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -110,6 +113,8 @@ export default async function GradebookPage({
 
         <div className="mt-6">
           <GradingHubClient
+            key={requestedTab}
+            initialTab={requestedTab}
             classId={classId}
             teacherId={user.id}
             teacherClasses={(teacherClasses as ClassRow[] | null) ?? []}

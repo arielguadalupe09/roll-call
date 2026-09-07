@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useSearchParams } from "next/navigation";
 import GroupedNav, { type NavItem } from "./grouped-nav";
 
 const LAST_CLASS_KEY = "rollcall:last-class-id";
@@ -21,6 +21,8 @@ function getServerLastClassId() {
 
 export default function ClassSubNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const params = useParams<{ classId?: string }>();
   const routeClassId = params?.classId;
 
@@ -101,7 +103,32 @@ export default function ClassSubNav() {
         {
           label: "Grading",
           href: `/gradebook/${classId}`,
-          active: pathname === `/gradebook/${classId}`,
+          active:
+            pathname === `/gradebook/${classId}` &&
+            tabParam !== "quiz" &&
+            tabParam !== "written" &&
+            tabParam !== "laboratory",
+        },
+        {
+          label: "Quiz",
+          href: `/gradebook/${classId}?tab=quiz`,
+          active: pathname === `/gradebook/${classId}` && tabParam === "quiz",
+        },
+        {
+          kind: "submenu",
+          label: "Activities",
+          tools: [
+            {
+              label: "Written Activity",
+              href: `/gradebook/${classId}?tab=written`,
+              active: pathname === `/gradebook/${classId}` && tabParam === "written",
+            },
+            {
+              label: "Laboratory Activity",
+              href: `/gradebook/${classId}?tab=laboratory`,
+              active: pathname === `/gradebook/${classId}` && tabParam === "laboratory",
+            },
+          ],
         },
         {
           label: "Record Cards",
