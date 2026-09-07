@@ -1,58 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDeviceId } from "@/lib/device-id";
 import CollapsibleSection from "@/app/_components/collapsible-section";
-import type { AttendanceStatus, Period, SubmissionStatus } from "@/lib/types";
-
-const CODE_READER_ID = "student-profile-code-reader";
-const STUDENT_CODE_KEY = "gains_student_code";
+import StudentCodeEntry from "@/app/_components/student-code-entry";
+import {
+  STUDENT_CODE_KEY,
+  type AssessmentEntry,
+  type StudentProfile as Profile,
+} from "@/lib/student-profile";
+import type { AttendanceStatus, SubmissionStatus } from "@/lib/types";
 
 type Step = "code" | "profile";
-type CodeMode = "type" | "scan";
-
-type AttendanceEntry = { date: string; period: Period; status: AttendanceStatus };
-type FinalGrade = { prelim: number | null; midterm: number | null; finals: number | null; final: number | null };
-type VideoLecture = {
-  id: string;
-  title: string;
-  description: string | null;
-  videoUrl: string | null;
-  signedUrl: string | null;
-};
-type AssignmentEntry = {
-  assignmentId: string;
-  title: string;
-  description: string | null;
-  dueDate: string | null;
-  maxScore: number;
-  period: Period;
-  status: SubmissionStatus;
-  score: number | null;
-  feedback: string | null;
-  fileName: string | null;
-  fileSignedUrl: string | null;
-};
-type AssessmentEntry = {
-  title: string;
-  date: string | null;
-  period: Period;
-  score: number | null;
-  maxScore: number;
-};
-type Profile = {
-  studentName: string;
-  className: string;
-  usePrelims: boolean;
-  attendancePercent: number | null;
-  attendanceEntries: AttendanceEntry[];
-  finalGrade: FinalGrade;
-  videoLectures: VideoLecture[];
-  assignments: AssignmentEntry[];
-  quizzes: AssessmentEntry[];
-  written: AssessmentEntry[];
-  laboratory: AssessmentEntry[];
-};
 
 function formatPercent(value: number | null): string {
   return value == null ? "Not yet graded" : `${value.toFixed(1)}%`;
@@ -99,45 +58,23 @@ function AssessmentSection({ title, entries }: { title: string; entries: Assessm
 
 export default function StudentProfilePage() {
   const [step, setStep] = useState<Step>("code");
-  const [codeMode, setCodeMode] = useState<CodeMode>("scan");
-  const [code, setCode] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
   const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
   const [resubmitting, setResubmitting] = useState<Record<string, boolean>>({});
 
-  const codeScannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
-  const codeHandledRef = useRef(false);
   const activeCodeRef = useRef("");
 
-  const loadProfile = useCallback(async (rawCode: string) => {
-    if (!rawCode.trim()) return;
-    setLoading(true);
-    setError(null);
-
+  async function refreshProfile(rawCode: string) {
     const res = await fetch("/api/student/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: rawCode.trim(), deviceId: getDeviceId() }),
+      body: JSON.stringify({ code: rawCode, deviceId: getDeviceId() }),
     });
     const data = await res.json();
-    setLoading(false);
-
-    if (!res.ok) {
-      setError(data.error ?? "Could not load your profile.");
-      codeHandledRef.current = false;
-      return;
-    }
-
-    const normalizedCode = rawCode.trim().toUpperCase();
-    window.localStorage.setItem(STUDENT_CODE_KEY, normalizedCode);
-    activeCodeRef.current = normalizedCode;
-    setProfile(data as Profile);
-    setStep("profile");
-  }, []);
+    if (res.ok) setProfile(data as Profile);
+  }
 
   useEffect(() => {
     const remembered = window.localStorage.getItem(STUDENT_CODE_KEY);
@@ -193,77 +130,16 @@ export default function StudentProfilePage() {
       return;
     }
 
-    await loadProfile(activeCodeRef.current);
+    await refreshProfile(activeCodeRef.current);
     setUploading((prev) => ({ ...prev, [assignmentId]: false }));
     setPendingFiles((prev) => ({ ...prev, [assignmentId]: null }));
     setResubmitting((prev) => ({ ...prev, [assignmentId]: false }));
-  }
-
-  const handleCodeDecoded = useCallback(
-    (decodedText: string) => {
-      if (codeHandledRef.current) return;
-      codeHandledRef.current = true;
-      const decoded = decodedText.trim().toUpperCase();
-      setCode(decoded);
-      loadProfile(decoded);
-    },
-    [loadProfile],
-  );
-
-  // Scan the student's own personal QR card.
-  useEffect(() => {
-    if (step !== "code" || codeMode !== "scan") return;
-    codeHandledRef.current = false;
-
-    let cancelled = false;
-    let startPromise: Promise<unknown> | null = null;
-
-    (async () => {
-      const { Html5Qrcode } = await import("html5-qrcode");
-      if (cancelled) return;
-      const scanner = new Html5Qrcode(CODE_READER_ID);
-      codeScannerRef.current = scanner;
-
-      startPromise = scanner
-        .start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: 220 },
-          (decodedText) => handleCodeDecoded(decodedText),
-          () => {},
-        )
-        .catch(() => {
-          if (!cancelled) setError("Could not start the camera.");
-        });
-
-      await startPromise;
-    })();
-
-    return () => {
-      cancelled = true;
-      (async () => {
-        try {
-          await startPromise;
-          await codeScannerRef.current?.stop();
-          await codeScannerRef.current?.clear();
-        } catch {
-          // Already stopped/never started -- safe to ignore.
-        }
-      })();
-    };
-  }, [step, codeMode, handleCodeDecoded]);
-
-  function submitCode(e: React.FormEvent) {
-    e.preventDefault();
-    loadProfile(code);
   }
 
   function switchCode() {
     window.localStorage.removeItem(STUDENT_CODE_KEY);
     setProfile(null);
     setStep("code");
-    setCode("");
-    setError(null);
-    setCodeMode("scan");
   }
 
   return (
@@ -277,54 +153,16 @@ export default function StudentProfilePage() {
 
       {step === "code" && (
         <div className="mt-8 w-full max-w-xs">
-          <div className="ledger-page rounded-sm border border-rule p-6 text-ink">
-            <p className="text-sm text-ink/70">
-              Scan the QR code on your personal card, or type your code
-              below, to view your attendance and grades.
-            </p>
-
-            {codeMode === "scan" ? (
-              <div className="mt-4 flex flex-col items-center gap-3">
-                <div className="loupe h-56 w-56">
-                  <div id={CODE_READER_ID} className="h-56 w-56" />
-                </div>
-                <p className="text-center text-sm text-ink/70">
-                  Scan your personal QR card.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={submitCode} className="mt-4 flex flex-col gap-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">
-                    Your personal code
-                  </span>
-                  <input
-                    autoFocus
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. 7F3KQ9M"
-                    className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono uppercase tracking-widest text-ink outline-none focus:border-brass"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                >
-                  {loading ? "Loading..." : "View my profile"}
-                </button>
-              </form>
-            )}
-
-            <button
-              onClick={() => setCodeMode(codeMode === "scan" ? "type" : "scan")}
-              className="mt-4 text-sm text-teal underline underline-offset-2"
-            >
-              {codeMode === "scan"
-                ? "Type your code instead"
-                : "Scan your card instead"}
-            </button>
-          </div>
+          <StudentCodeEntry
+            prompt="Scan the QR code on your personal card, or type your code below, to view your attendance and grades."
+            submitLabel="View my profile"
+            onSuccess={(resolvedProfile, resolvedCode) => {
+              window.localStorage.setItem(STUDENT_CODE_KEY, resolvedCode);
+              activeCodeRef.current = resolvedCode;
+              setProfile(resolvedProfile);
+              setStep("profile");
+            }}
+          />
         </div>
       )}
 
@@ -539,14 +377,6 @@ export default function StudentProfilePage() {
           >
             Not you? Switch code
           </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-6 flex flex-col items-center gap-3">
-          <p className="rounded-sm bg-danger/20 px-3 py-2 text-sm text-danger">
-            {error}
-          </p>
         </div>
       )}
     </main>

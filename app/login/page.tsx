@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import gsap from "gsap";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
+import StudentCodeEntry from "@/app/_components/student-code-entry";
+import { STUDENT_CODE_KEY } from "@/lib/student-profile";
 
 const FEATURES = [
   "Track attendance via QR scan or self check-in",
@@ -31,10 +32,12 @@ function LogoBadge({ size = "h-14 w-14" }: { size?: string }) {
 }
 
 type Mode = "signin" | "signup" | "forgot";
+type Portal = "teacher" | "student";
 
 export default function LoginPage() {
   const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
+  const [portal, setPortal] = useState<Portal>("teacher");
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -198,9 +201,46 @@ export default function LoginPage() {
           <div className="flex flex-col items-center text-center">
             <LogoBadge size="h-12 w-12" />
             <h2 className="mt-4 font-display text-xl font-semibold text-ink">
-              GAINS — Teacher Portal
+              GAINS — {portal === "teacher" ? "Teacher" : "Student"} Portal
             </h2>
-            <p className="mt-1 font-mono text-xs uppercase tracking-[0.2em] text-teal">
+          </div>
+
+          <div className="mt-6 flex rounded-sm bg-ink/5 p-1">
+            <button
+              type="button"
+              onClick={() => setPortal("teacher")}
+              className={`flex-1 rounded-sm px-4 py-2 text-sm font-medium transition ${
+                portal === "teacher" ? "bg-white text-brass shadow-sm" : "text-ink/60 hover:text-ink"
+              }`}
+            >
+              Teacher
+            </button>
+            <button
+              type="button"
+              onClick={() => setPortal("student")}
+              className={`flex-1 rounded-sm px-4 py-2 text-sm font-medium transition ${
+                portal === "student" ? "bg-white text-brass shadow-sm" : "text-ink/60 hover:text-ink"
+              }`}
+            >
+              Student
+            </button>
+          </div>
+
+          {portal === "student" ? (
+            <div className="mt-6">
+              <StudentCodeEntry
+                prompt="Scan the QR code on your personal card, or type your code below, to sign in."
+                submitLabel="Sign in"
+                onSuccess={(_profile, code) => {
+                  window.localStorage.setItem(STUDENT_CODE_KEY, code);
+                  router.push("/student");
+                }}
+              />
+            </div>
+          ) : (
+            <>
+          <div className="mt-6 flex flex-col items-center text-center">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-teal">
               {mode === "signin" && "Sign in"}
               {mode === "signup" && "Create account"}
               {mode === "forgot" && "Reset password"}
@@ -337,24 +377,11 @@ export default function LoginPage() {
             {mode === "forgot" && "Back to sign in"}
             {mode === "signin" && "Need an account? Sign up"}
           </button>
-
-          <div className="mt-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-rule/40" aria-hidden="true" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
-              Or
-            </span>
-            <span className="h-px flex-1 bg-rule/40" aria-hidden="true" />
-          </div>
-
-          <Link
-            href="/student"
-            className="mt-4 block w-full rounded-sm border border-rule px-4 py-2 text-center font-medium text-ink transition hover:border-brass hover:text-brass"
-          >
-            Student? Scan your QR code to sign in
-          </Link>
+            </>
+          )}
 
           <p className="mt-6 text-center text-xs text-ink/40">
-            GAINS — Teacher Portal. All rights reserved.
+            GAINS — {portal === "teacher" ? "Teacher" : "Student"} Portal. All rights reserved.
           </p>
         </div>
       </div>
