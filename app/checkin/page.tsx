@@ -1,24 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import { getDeviceId } from "@/lib/device-id";
 
 const CODE_READER_ID = "student-code-reader";
-const DEVICE_ID_KEY = "rollcall_device_id";
 
 type Step = "code" | "done";
 type CodeMode = "type" | "scan";
 type AnnouncementInfo = { id: string; title: string; body: string; created_at: string };
-
-// Only ever called from a browser event handler (form submit, QR decode
-// callback) — never during this page's static prerender — so touching
-// localStorage here needs no SSR guard.
-function getDeviceId(): string {
-  const existing = window.localStorage.getItem(DEVICE_ID_KEY);
-  if (existing) return existing;
-  const id = crypto.randomUUID();
-  window.localStorage.setItem(DEVICE_ID_KEY, id);
-  return id;
-}
 
 // display-mode doesn't change mid-session, so this never needs to notify
 // subscribers — useSyncExternalStore still gives the correct hydration-safe
@@ -266,6 +256,12 @@ export default function PublicCheckinPage() {
             Welcome, {studentName}
           </p>
           <p className="mt-4 text-rule">You&apos;re marked present.</p>
+          <Link
+            href="/student"
+            className="mt-4 text-sm text-teal underline underline-offset-2"
+          >
+            View your attendance &amp; grades
+          </Link>
 
           {announcements.length > 0 && (
             <div className="mt-8 w-full">
