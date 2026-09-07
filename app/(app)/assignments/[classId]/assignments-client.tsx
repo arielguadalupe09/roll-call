@@ -9,6 +9,18 @@ import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import { useActiveClasses } from "@/app/_components/active-classes-context";
 
+function submissionBadge(counts: { submitted: number; total: number } | undefined) {
+  if (!counts || counts.total === 0) return null;
+  const { submitted, total } = counts;
+  const color =
+    submitted === total ? "bg-teal/20 text-teal" : submitted === 0 ? "bg-ink/10 text-ink/60" : "bg-brass/20 text-brass";
+  return (
+    <span className={`rounded-sm px-2 py-0.5 font-mono text-xs font-semibold ${color}`}>
+      {submitted}/{total} submitted
+    </span>
+  );
+}
+
 export default function AssignmentsClient({
   classId,
   teacherId,
@@ -17,6 +29,7 @@ export default function AssignmentsClient({
   initialAssignments,
   usePrelims = false,
   showHeading = true,
+  submissionCounts = {},
 }: {
   classId: string;
   teacherId: string;
@@ -29,6 +42,7 @@ export default function AssignmentsClient({
   // stacking two headings — only the standalone /assignments/[classId]
   // page (which has no heading of its own) needs it.
   showHeading?: boolean;
+  submissionCounts?: Record<string, { submitted: number; total: number }>;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -322,12 +336,15 @@ export default function AssignmentsClient({
             <li key={a.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:border-brass/60 hover:shadow-md">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Link
-                    href={`/assignments/${classId}/${a.id}`}
-                    className="font-display text-lg font-semibold text-ink hover:text-teal"
-                  >
-                    {a.title}
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/assignments/${classId}/${a.id}`}
+                      className="font-display text-lg font-semibold text-ink underline decoration-ink/20 underline-offset-2 hover:text-teal hover:decoration-teal"
+                    >
+                      {a.title}
+                    </Link>
+                    {submissionBadge(submissionCounts[a.id])}
+                  </div>
                   {a.description && (
                     <p className="mt-1 text-ink/80">{a.description}</p>
                   )}
@@ -335,6 +352,12 @@ export default function AssignmentsClient({
                     {a.due_date ? `Due ${a.due_date}` : "No due date"} · Max
                     score {a.max_score}
                   </p>
+                  <Link
+                    href={`/assignments/${classId}/${a.id}`}
+                    className="mt-2 inline-block font-mono text-xs uppercase tracking-wide text-teal"
+                  >
+                    View submissions →
+                  </Link>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <select

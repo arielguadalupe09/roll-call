@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Assignment, Student, Submission } from "@/lib/types";
 import SubmissionRoster from "./submission-roster";
@@ -62,7 +63,13 @@ export default async function AssignmentRosterPage({
   return (
     <div className="px-8 py-10">
       <div className="mx-auto max-w-4xl">
-        <h1 className="font-display text-3xl font-semibold text-ink">
+        <Link
+          href={`/assignments/${classId}`}
+          className="text-sm text-teal underline underline-offset-2"
+        >
+          ← Back to assignments
+        </Link>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
           {classRow.name} — {(assignment as Assignment).title}
         </h1>
         {assignment.description && (

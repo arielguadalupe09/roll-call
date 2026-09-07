@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Assignment, Student, Submission, SubmissionStatus } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
+import { nextStatusAfterUpload } from "@/lib/submission-status";
 
 const READER_ID = "roster-scan-reader";
 
@@ -135,19 +136,24 @@ export default function SubmissionRoster({
     const row = rows[studentId];
     const supabase = createClient();
 
-    const { error } = await supabase.from("submissions").upsert(
-      {
-        assignment_id: assignment.id,
-        student_id: studentId,
+    const rawScore = row.score.trim() === "" ? null : Number(row.score);
+    const score = rawScore == null ? null : Math.min(Math.max(rawScore, 0), assignment.max_score);
+    if (score !== rawScore) updateRow(studentId, { score: score == null ? "" : String(score) });
+
+    // Deliberately doesn't touch file_path/file_name -- this form only
+    // edits status/score/feedback, and local state here can be stale (e.g.
+    // a student submitted their own file after this page loaded), so
+    // sending file columns unconditionally could clobber a newer file.
+    const { error } = await supabase
+      .from("submissions")
+      .update({
         status: row.status,
-        score: row.score.trim() === "" ? null : Number(row.score),
+        score,
         feedback: row.feedback.trim() || null,
-        file_path: row.file_path,
-        file_name: row.file_name,
         updated_at: new Date().toISOString(),
-      },
-      { onConflict: "assignment_id,student_id" },
-    );
+      })
+      .eq("assignment_id", assignment.id)
+      .eq("student_id", studentId);
 
     updateRow(studentId, { saving: false });
     if (error) showToast(error.message);
@@ -170,8 +176,7 @@ export default function SubmissionRoster({
       return;
     }
 
-    const nextStatus: SubmissionStatus =
-      rows[studentId].status === "missing" ? "submitted" : rows[studentId].status;
+    const nextStatus = nextStatusAfterUpload(rows[studentId].status);
 
     const { error: upsertError } = await supabase.from("submissions").upsert(
       {
@@ -305,7 +310,7 @@ export default function SubmissionRoster({
                         onChange={(e) =>
                           handleFileChange(s.id, e.target.files?.[0] ?? null)
                         }
-                        disabled={row.uploading}
+                        disabled={row.uploading || row.saving}
                         className="text-xs text-ink/70"
                       />
                     </div>
@@ -313,7 +318,7 @@ export default function SubmissionRoster({
                   <td className="py-2 px-3">
                     <button
                       onClick={() => handleSave(s.id)}
-                      disabled={row.saving}
+                      disabled={row.saving || row.uploading}
                       className="rounded-sm bg-brass px-3 py-1 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
                     >
                       {row.saving ? "Saving..." : "Save"}

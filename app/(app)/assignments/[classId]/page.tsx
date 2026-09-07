@@ -51,6 +51,28 @@ export default async function AssignmentsPage({
         .order("name", { ascending: true })
     : { data: [] as Student[] };
 
+  const studentsInThisClass = new Set(
+    ((allStudents as Student[] | null) ?? [])
+      .filter((s) => s.class_id === classId)
+      .map((s) => s.id),
+  );
+
+  const { data: submissions } = linkedIds.length
+    ? await supabase
+        .from("submissions")
+        .select("assignment_id, student_id, status")
+        .in("assignment_id", linkedIds)
+    : { data: [] as { assignment_id: string; student_id: string; status: string }[] };
+
+  const submissionCounts: Record<string, { submitted: number; total: number }> = {};
+  for (const row of submissions ?? []) {
+    if (!studentsInThisClass.has(row.student_id)) continue;
+    const counts = submissionCounts[row.assignment_id] ?? { submitted: 0, total: 0 };
+    counts.total += 1;
+    if (row.status !== "missing") counts.submitted += 1;
+    submissionCounts[row.assignment_id] = counts;
+  }
+
   return (
     <div className="px-8 py-10">
       <div className="mx-auto max-w-3xl">
@@ -61,6 +83,7 @@ export default async function AssignmentsPage({
           allStudents={(allStudents as Student[] | null) ?? []}
           initialAssignments={(assignments as Assignment[] | null) ?? []}
           usePrelims={(config as GradingConfig | null)?.use_prelims ?? false}
+          submissionCounts={submissionCounts}
         />
       </div>
     </div>
