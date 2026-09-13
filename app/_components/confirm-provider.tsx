@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import Button from "./button";
 
 type ConfirmOptions = {
   title?: string;
@@ -57,21 +58,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               {state.message}
             </p>
             <div className="mt-5 flex justify-end gap-3">
-              <button
-                onClick={() => handle(false)}
-                className="rounded-sm border border-rule px-4 py-2 text-sm font-medium text-ink transition hover:bg-ink/5"
-              >
+              <Button variant="neutral" onClick={() => handle(false)}>
                 {state.cancelLabel ?? "Cancel"}
-              </button>
-              <button
-                onClick={() => handle(true)}
-                autoFocus
-                className={`rounded-sm px-4 py-2 text-sm font-medium transition hover:brightness-110 ${
-                  state.danger ? "bg-danger text-paper" : "bg-brass text-chalk"
-                }`}
-              >
+              </Button>
+              <Button variant={state.danger ? "danger" : "primary"} onClick={() => handle(true)} autoFocus>
                 {state.confirmLabel ?? "Confirm"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

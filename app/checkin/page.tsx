@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { getDeviceId } from "@/lib/device-id";
+import Button from "@/app/_components/button";
 
 const CODE_READER_ID = "student-code-reader";
 
@@ -181,12 +181,9 @@ export default function PublicCheckinPage() {
       {!installed && (
         <div className="mt-4 flex max-w-xs flex-col items-center gap-2 text-center">
           {installPrompt ? (
-            <button
-              onClick={handleInstallClick}
-              className="rounded-sm border border-brass px-4 py-2 text-sm font-medium text-brass transition hover:bg-brass/10"
-            >
+            <Button size="sm" onClick={handleInstallClick}>
               Install app
-            </button>
+            </Button>
           ) : (
             <p className="text-xs text-rule">
               On iPhone: tap Share, then &quot;Add to Home Screen&quot; for
@@ -228,24 +225,22 @@ export default function PublicCheckinPage() {
                     className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono uppercase tracking-widest text-ink outline-none focus:border-brass"
                   />
                 </label>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                >
+                <Button type="submit" disabled={loading}>
                   {loading ? "Checking in..." : "Check in"}
-                </button>
+                </Button>
               </form>
             )}
 
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-4"
               onClick={() => setCodeMode(codeMode === "scan" ? "type" : "scan")}
-              className="mt-4 text-sm text-teal underline underline-offset-2"
             >
               {codeMode === "scan"
                 ? "Type your code instead"
                 : "Scan your card instead"}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -256,12 +251,9 @@ export default function PublicCheckinPage() {
             Welcome, {studentName}
           </p>
           <p className="mt-4 text-rule">You&apos;re marked present.</p>
-          <Link
-            href="/student"
-            className="mt-4 text-sm text-teal underline underline-offset-2"
-          >
+          <Button href="/student" variant="secondary" size="sm" className="mt-4">
             View your attendance &amp; grades
-          </Link>
+          </Button>
 
           {announcements.length > 0 && (
             <div className="mt-8 w-full">
@@ -292,12 +284,9 @@ export default function PublicCheckinPage() {
           <p className="rounded-sm bg-danger/20 px-3 py-2 text-sm text-danger">
             {error}
           </p>
-          <button
-            onClick={startOver}
-            className="text-sm text-teal underline underline-offset-2"
-          >
+          <Button variant="secondary" size="sm" onClick={startOver}>
             Try again
-          </button>
+          </Button>
         </div>
       )}
     </main>

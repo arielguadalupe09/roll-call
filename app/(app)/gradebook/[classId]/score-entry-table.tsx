@@ -1,4 +1,5 @@
 import type { Student } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 export type ScoreRow = { score: string; saving: boolean };
 
@@ -42,13 +43,9 @@ export default function ScoreEntryTable({
                   />
                 </td>
                 <td className="py-2 px-3">
-                  <button
-                    onClick={() => onSave(s.id)}
-                    disabled={row.saving}
-                    className="rounded-sm bg-brass px-3 py-1 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                  >
+                  <Button size="sm" onClick={() => onSave(s.id)} disabled={row.saving}>
                     {row.saving ? "Saving..." : "Save"}
-                  </button>
+                  </Button>
                 </td>
               </tr>
             );

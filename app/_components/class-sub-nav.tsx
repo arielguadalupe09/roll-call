@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
 import GroupedNav, { type NavItem } from "./grouped-nav";
+import { useGradebookTab } from "./gradebook-tab-context";
 
 const LAST_CLASS_KEY = "rollcall:last-class-id";
 
@@ -25,6 +26,7 @@ export default function ClassSubNav() {
   const tabParam = searchParams.get("tab");
   const params = useParams<{ classId?: string }>();
   const routeClassId = params?.classId;
+  const { tab: sharedTab, setTab: setSharedTab } = useGradebookTab();
 
   // Persist the class whenever we're on one of its pages, so it can still
   // be shown as a fallback from global Sidebar pages (Dashboard, Schedule,
@@ -39,6 +41,29 @@ export default function ClassSubNav() {
   if (!classId) return null;
 
   const studentsHref = `/dashboard/classes/${classId}`;
+  const gradebookHref = `/gradebook/${classId}`;
+  const onGradebookPage = pathname === gradebookHref;
+  // While already on this class's gradebook page, GradingHubClient already
+  // holds every tab's data -- switching tabs just needs to flip its local
+  // state via the shared context and patch the URL for bookmarking, instead
+  // of a real navigation that would re-run the page's ~12 data queries for
+  // no new data. Only fall back to a real Link when arriving from elsewhere.
+  const effectiveTab = onGradebookPage ? (sharedTab ?? tabParam) : tabParam;
+
+  function gradebookTabTool(label: string, tabValue: "quiz" | "written" | "laboratory" | null, active: boolean) {
+    const href = tabValue ? `${gradebookHref}?tab=${tabValue}` : gradebookHref;
+    if (onGradebookPage) {
+      return {
+        label,
+        active,
+        onClick: () => {
+          setSharedTab(tabValue ?? "overview");
+          window.history.replaceState(null, "", href);
+        },
+      };
+    }
+    return { label, href, active };
+  }
 
   const items: NavItem[] = [
     { kind: "tool", label: "Students", href: studentsHref, active: pathname === studentsHref },
@@ -100,34 +125,18 @@ export default function ClassSubNav() {
           href: `/assignments/${classId}`,
           active: pathname === `/assignments/${classId}`,
         },
-        {
-          label: "Grading",
-          href: `/gradebook/${classId}`,
-          active:
-            pathname === `/gradebook/${classId}` &&
-            tabParam !== "quiz" &&
-            tabParam !== "written" &&
-            tabParam !== "laboratory",
-        },
-        {
-          label: "Quiz",
-          href: `/gradebook/${classId}?tab=quiz`,
-          active: pathname === `/gradebook/${classId}` && tabParam === "quiz",
-        },
+        gradebookTabTool(
+          "Grading",
+          null,
+          onGradebookPage && effectiveTab !== "quiz" && effectiveTab !== "written" && effectiveTab !== "laboratory",
+        ),
+        gradebookTabTool("Quiz", "quiz", onGradebookPage && effectiveTab === "quiz"),
         {
           kind: "submenu",
           label: "Activities",
           tools: [
-            {
-              label: "Written Activity",
-              href: `/gradebook/${classId}?tab=written`,
-              active: pathname === `/gradebook/${classId}` && tabParam === "written",
-            },
-            {
-              label: "Laboratory Activity",
-              href: `/gradebook/${classId}?tab=laboratory`,
-              active: pathname === `/gradebook/${classId}` && tabParam === "laboratory",
-            },
+            gradebookTabTool("Written Activity", "written", onGradebookPage && effectiveTab === "written"),
+            gradebookTabTool("Laboratory Activity", "laboratory", onGradebookPage && effectiveTab === "laboratory"),
           ],
         },
         {

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toLastNameFirst } from "@/lib/name-format";
 import type { Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 type Row = { student: Student; classId: string; className: string };
 type NameFix = { id: string; className: string; from: string; to: string };
@@ -129,13 +130,14 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
             </option>
           ))}
         </select>
-        <button
+        <Button
+          variant="secondary"
+          className="whitespace-nowrap"
           onClick={checkNameFormatting}
           disabled={checking || rows.length === 0}
-          className="whitespace-nowrap rounded-sm border border-teal px-4 py-2 font-medium text-teal transition hover:bg-teal/10 disabled:opacity-60"
         >
           Check name formatting
-        </button>
+        </Button>
       </div>
 
       {pendingFixes && pendingFixes.length > 0 && (
@@ -162,21 +164,14 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
             ))}
           </ul>
           <div className="mt-3 flex items-center gap-3">
-            <button
-              onClick={applyFixes}
-              disabled={applying}
-              className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-            >
+            <Button onClick={applyFixes} disabled={applying}>
               {applying
                 ? "Updating..."
                 : `Apply ${pendingFixes.length} fix${pendingFixes.length === 1 ? "" : "es"}`}
-            </button>
-            <button
-              onClick={() => setPendingFixes(null)}
-              className="text-sm text-ink/60 underline underline-offset-2"
-            >
+            </Button>
+            <Button variant="neutral" onClick={() => setPendingFixes(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -207,12 +202,9 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
                 </td>
                 <td className="py-2 px-3 font-mono text-teal">{r.student.code}</td>
                 <td className="py-2 px-3 text-right">
-                  <Link
-                    href={`/record-card/${r.classId}/${r.student.id}`}
-                    className="text-sm text-teal underline underline-offset-2"
-                  >
+                  <Button href={`/record-card/${r.classId}/${r.student.id}`} variant="secondary" size="sm">
                     Record Card
-                  </Link>
+                  </Button>
                 </td>
               </tr>
             ))}

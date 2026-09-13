@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { todayLocalDate } from "@/lib/date";
 import { playBeep } from "@/lib/beep";
 import type { AttendanceStatus, ParticipationType } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 const READER_ID = "scan-reader";
 
@@ -418,13 +419,13 @@ export default function ScanClient({
           </p>
         )}
 
-        <button
+        <Button
           onClick={running ? stopScanning : startScanning}
           disabled={!running && !canStart}
-          className="mt-8 rounded-sm bg-brass px-6 py-3 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
+          className="mt-8 px-6 py-3"
         >
           {running ? "Stop camera" : "Start camera"}
-        </button>
+        </Button>
       </div>
     </div>
   );

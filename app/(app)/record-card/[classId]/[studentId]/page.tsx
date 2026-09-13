@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
+import { createClient, getTeacherRow } from "@/lib/supabase/server";
+import type { ClassRow, GradingConfig, Student } from "@/lib/types";
 import { buildRecordCardData, fetchClassGradingData } from "@/lib/record-card-data";
 import RecordCardClient from "./record-card-client";
 
@@ -12,26 +12,14 @@ export default async function RecordCardPage({
   const { classId, studentId } = await params;
   const supabase = await createClient();
 
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("id", classId)
-    .single();
-
-  const { data: student } = await supabase
-    .from("students")
-    .select("*")
-    .eq("id", studentId)
-    .eq("class_id", classId)
-    .single();
+  const [{ data: classRow }, { data: student }, { data: classmates }, classData] = await Promise.all([
+    supabase.from("classes").select("*").eq("id", classId).single(),
+    supabase.from("students").select("*").eq("id", studentId).eq("class_id", classId).single(),
+    supabase.from("students").select("id, name").eq("class_id", classId).order("name", { ascending: true }),
+    fetchClassGradingData(supabase, classId),
+  ]);
 
   if (!classRow || !student) notFound();
-
-  const { data: classmates } = await supabase
-    .from("students")
-    .select("id, name")
-    .eq("class_id", classId)
-    .order("name", { ascending: true });
 
   const roster = (classmates as { id: string; name: string }[] | null) ?? [];
   const currentIndex = roster.findIndex((s) => s.id === studentId);
@@ -39,23 +27,13 @@ export default async function RecordCardPage({
   const nextStudent =
     currentIndex >= 0 && currentIndex < roster.length - 1 ? roster[currentIndex + 1] : null;
 
-  const { data: teacherRow } = await supabase
-    .from("teachers")
-    .select("*")
-    .eq("id", (classRow as ClassRow).teacher_id)
-    .single();
+  const teacher = await getTeacherRow((classRow as ClassRow).teacher_id);
 
-  const teacher = teacherRow as Teacher | null;
+  const logoUrl = teacher?.card_logo_path
+    ? ((await supabase.storage.from("card-logos").createSignedUrl(teacher.card_logo_path, 3600)).data
+        ?.signedUrl ?? null)
+    : null;
 
-  let logoUrl: string | null = null;
-  if (teacher?.card_logo_path) {
-    const { data: signed } = await supabase.storage
-      .from("card-logos")
-      .createSignedUrl(teacher.card_logo_path, 3600);
-    logoUrl = signed?.signedUrl ?? null;
-  }
-
-  const classData = await fetchClassGradingData(supabase, classId);
   const data = buildRecordCardData(student as Student, classData);
 
   return (

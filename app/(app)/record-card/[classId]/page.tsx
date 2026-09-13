@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
+import { createClient, getTeacherRow } from "@/lib/supabase/server";
+import type { ClassRow, GradingConfig, Student } from "@/lib/types";
 import { buildRecordCardData, fetchClassGradingData } from "@/lib/record-card-data";
 import RecordCardAllClient from "./record-card-all-client";
 
@@ -20,29 +20,17 @@ export default async function RecordCardAllPage({
 
   if (!classRow) notFound();
 
-  const { data: teacherRow } = await supabase
-    .from("teachers")
-    .select("*")
-    .eq("id", (classRow as ClassRow).teacher_id)
-    .single();
+  const [teacher, { data: students }, classData] = await Promise.all([
+    getTeacherRow((classRow as ClassRow).teacher_id),
+    supabase.from("students").select("*").eq("class_id", classId).order("name", { ascending: true }),
+    fetchClassGradingData(supabase, classId),
+  ]);
 
-  const teacher = teacherRow as Teacher | null;
+  const logoUrl = teacher?.card_logo_path
+    ? ((await supabase.storage.from("card-logos").createSignedUrl(teacher.card_logo_path, 3600)).data
+        ?.signedUrl ?? null)
+    : null;
 
-  let logoUrl: string | null = null;
-  if (teacher?.card_logo_path) {
-    const { data: signed } = await supabase.storage
-      .from("card-logos")
-      .createSignedUrl(teacher.card_logo_path, 3600);
-    logoUrl = signed?.signedUrl ?? null;
-  }
-
-  const { data: students } = await supabase
-    .from("students")
-    .select("*")
-    .eq("class_id", classId)
-    .order("name", { ascending: true });
-
-  const classData = await fetchClassGradingData(supabase, classId);
   const allData = ((students as Student[] | null) ?? []).map((student) =>
     buildRecordCardData(student, classData),
   );

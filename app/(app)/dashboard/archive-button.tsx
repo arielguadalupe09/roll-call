@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import Button from "@/app/_components/button";
 
 export default function ArchiveButton({
   classId,
@@ -55,14 +56,14 @@ export default function ArchiveButton({
   }
 
   return (
-    <button
+    <Button
+      variant={archived ? "secondary" : "neutral"}
+      size="sm"
       onClick={handleClick}
       disabled={loading}
-      className={`shrink-0 whitespace-nowrap text-sm underline underline-offset-2 disabled:opacity-60 ${
-        archived ? "text-teal" : "text-ink/60 hover:text-ink"
-      }`}
+      className="shrink-0 whitespace-nowrap"
     >
       {loading ? "..." : archived ? "Unarchive" : "Archive"}
-    </button>
+    </Button>
   );
 }

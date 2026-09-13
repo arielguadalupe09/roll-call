@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import type { Assignment, ClassRow, GradingConfig, Student } from "@/lib/types";
 import AssignmentsClient from "./assignments-client";
 
@@ -11,22 +11,22 @@ export default async function AssignmentsPage({
   const { classId } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("id", classId)
-    .single();
+  // None of these three depend on each other -- only on classId, which is
+  // already known from params -- so they don't need to be sequential.
+  const [
+    {
+      data: { user },
+    },
+    { data: classRow },
+    { data: links },
+  ] = await Promise.all([
+    getUser(),
+    supabase.from("classes").select("*").eq("id", classId).single(),
+    supabase.from("assignment_classes").select("assignment_id").eq("class_id", classId),
+  ]);
 
   if (!classRow || !user) notFound();
 
-  const { data: links } = await supabase
-    .from("assignment_classes")
-    .select("assignment_id")
-    .eq("class_id", classId);
   const linkedIds = (links as { assignment_id: string }[] | null)?.map((l) => l.assignment_id) ?? [];
 
   const [{ data: assignments }, { data: config }, { data: teacherClasses }] = await Promise.all([
@@ -43,26 +43,31 @@ export default async function AssignmentsPage({
   ]);
 
   const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
-  const { data: allStudents } = teacherClassIds.length
-    ? await supabase
-        .from("students")
-        .select("*")
-        .in("class_id", teacherClassIds)
-        .order("name", { ascending: true })
-    : { data: [] as Student[] };
+
+  // submissions only needs linkedIds (already resolved above), not
+  // allStudents -- run them together instead of serializing one after
+  // the other.
+  const [{ data: allStudents }, { data: submissions }] = await Promise.all([
+    teacherClassIds.length
+      ? supabase
+          .from("students")
+          .select("*")
+          .in("class_id", teacherClassIds)
+          .order("name", { ascending: true })
+      : Promise.resolve({ data: [] as Student[] }),
+    linkedIds.length
+      ? supabase
+          .from("submissions")
+          .select("assignment_id, student_id, status")
+          .in("assignment_id", linkedIds)
+      : Promise.resolve({ data: [] as { assignment_id: string; student_id: string; status: string }[] }),
+  ]);
 
   const studentsInThisClass = new Set(
     ((allStudents as Student[] | null) ?? [])
       .filter((s) => s.class_id === classId)
       .map((s) => s.id),
   );
-
-  const { data: submissions } = linkedIds.length
-    ? await supabase
-        .from("submissions")
-        .select("assignment_id, student_id, status")
-        .in("assignment_id", linkedIds)
-    : { data: [] as { assignment_id: string; student_id: string; status: string }[] };
 
   const submissionCounts: Record<string, { submitted: number; total: number }> = {};
   for (const row of submissions ?? []) {

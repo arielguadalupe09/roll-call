@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 export default function CreateClassForm({
   teacherId,
@@ -62,13 +63,9 @@ export default function CreateClassForm({
         onChange={(e) => setName(e.target.value)}
         className="min-w-0 flex-1 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
       />
-      <button
-        type="submit"
-        disabled={loading}
-        className="whitespace-nowrap rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={loading} className="whitespace-nowrap">
         {loading ? "Adding..." : "Add class"}
-      </button>
+      </Button>
       {error && <p className="self-center text-sm text-danger">{error}</p>}
     </form>
   );

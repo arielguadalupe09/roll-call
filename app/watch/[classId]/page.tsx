@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { VideoLecture } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 export default async function WatchPage({
   params,
@@ -57,14 +58,16 @@ export default async function WatchPage({
               {lecture.signedUrl ? (
                 <video controls className="mt-3 w-full rounded-sm" src={lecture.signedUrl} />
               ) : lecture.video_url ? (
-                <a
+                <Button
                   href={lecture.video_url}
+                  external
                   target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block text-teal underline underline-offset-2"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3"
                 >
                   Watch on external site →
-                </a>
+                </Button>
               ) : null}
             </li>
           ))}

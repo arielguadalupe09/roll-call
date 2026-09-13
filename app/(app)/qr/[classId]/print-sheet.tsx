@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { Student } from "@/lib/types";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
+import Button from "@/app/_components/button";
 
 export default function PrintSheet({
   className,
@@ -44,12 +45,7 @@ export default function PrintSheet({
               ))}
             </select>
           </label>
-          <button
-            onClick={() => window.print()}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110"
-          >
-            Print This Sheet
-          </button>
+          <Button onClick={() => window.print()}>Print This Sheet</Button>
         </div>
       </div>
 

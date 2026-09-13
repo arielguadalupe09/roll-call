@@ -13,6 +13,7 @@ import type {
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 export default function AssessmentRoster({
   classId,
@@ -197,13 +198,9 @@ export default function AssessmentRoster({
           </label>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={loading}>
             {loading ? "Adding..." : `Add ${categoryLabel.toLowerCase()}`}
-          </button>
+          </Button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -220,15 +217,16 @@ export default function AssessmentRoster({
                 open={isOpen}
                 onToggle={() => setExpandedId(isOpen ? null : a.id)}
                 actions={
-                  <button
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(a.id);
                     }}
-                    className="shrink-0 text-sm text-danger underline underline-offset-2"
                   >
                     Delete
-                  </button>
+                  </Button>
                 }
               >
                 <ScoreEntryTable

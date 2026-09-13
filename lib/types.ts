@@ -8,6 +8,7 @@ export type Teacher = {
   card_school_name: string | null;
   card_campus_line: string | null;
   card_logo_path: string | null;
+  card_logo_path_secondary: string | null;
   faculty_rank: string | null;
   default_use_prelims: boolean;
   created_at: string;
@@ -231,4 +232,82 @@ export type TeacherOption = {
   id: string;
   full_name: string | null;
   email: string;
+};
+
+export type ExamKind = "quiz" | "major_exam" | "written" | "laboratory";
+
+export const EXAM_KIND_LABEL: Record<ExamKind, string> = {
+  quiz: "Quiz",
+  major_exam: "Major Exam",
+  written: "Written Activity",
+  laboratory: "Laboratory Activity",
+};
+
+export type Exam = {
+  id: string;
+  class_id: string;
+  title: string;
+  description: string | null;
+  kind: ExamKind;
+  period: Period;
+  duration_minutes: number | null;
+  published: boolean;
+  available_from: string | null;
+  available_until: string | null;
+  created_at: string;
+};
+
+export type QuestionType = "multiple_choice" | "true_false" | "identification" | "essay" | "file_upload";
+
+export type ExamQuestion = {
+  id: string;
+  exam_id: string;
+  prompt: string;
+  type: QuestionType;
+  points: number;
+  order_index: number;
+  correct_answer: string | null;
+  created_at: string;
+};
+
+export type ExamOption = {
+  id: string;
+  question_id: string;
+  label: string;
+  is_correct: boolean;
+  order_index: number;
+};
+
+export type ExamAttempt = {
+  id: string;
+  exam_id: string;
+  student_id: string;
+  started_at: string;
+  submitted_at: string | null;
+  score: number | null;
+  total_points: number | null;
+  violation_count: number;
+  needs_grading: boolean;
+  score_seen_at: string | null;
+};
+
+export type ExamAnswer = {
+  id: string;
+  attempt_id: string;
+  question_id: string;
+  selected_option_id: string | null;
+  answer_text: string | null;
+  file_path: string | null;
+  is_correct: boolean | null;
+  points_awarded: number | null;
+};
+
+export type ViolationType = "tab_switch" | "window_blur" | "fullscreen_exit" | "copy_paste" | "periodic";
+
+export type ExamViolation = {
+  id: string;
+  attempt_id: string;
+  type: ViolationType;
+  occurred_at: string;
+  snapshot_path: string | null;
 };

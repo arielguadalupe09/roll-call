@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import type { ClassRow, GradingConfig, Teacher } from "@/lib/types";
 import type { RecordCardStudentData } from "@/lib/record-card-data";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import RecordCardSheet from "../../record-card-sheet";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import Button from "@/app/_components/button";
 
 type RosterEntry = { id: string; name: string };
 
@@ -106,46 +106,28 @@ export default function RecordCardClient({
               ))}
             </select>
           </label>
-          <button
-            onClick={handleSavePdf}
-            disabled={exportingPdf}
-            className="rounded-sm border border-teal px-4 py-2 font-medium text-teal transition hover:bg-teal/10 disabled:opacity-60"
-          >
+          <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf}>
             {exportingPdf ? "Saving PDF..." : "Save PDF"}
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110"
-          >
-            Print
-          </button>
+          </Button>
+          <Button onClick={() => window.print()}>Print</Button>
         </div>
       </div>
 
-      <div className="no-print mx-auto flex max-w-4xl items-center justify-between pb-4 text-sm">
+      <div className="no-print mx-auto flex max-w-4xl items-center justify-between pb-4">
         {previousStudent ? (
-          <Link
-            href={`/record-card/${classId}/${previousStudent.id}`}
-            className="text-teal underline underline-offset-2"
-          >
+          <Button href={`/record-card/${classId}/${previousStudent.id}`} variant="secondary" size="sm">
             ← {previousStudent.name}
-          </Link>
+          </Button>
         ) : (
           <span />
         )}
-        <Link
-          href={`/record-card/${classId}`}
-          className="text-ink/60 underline underline-offset-2"
-        >
+        <Button href={`/record-card/${classId}`} variant="neutral" size="sm">
           All students
-        </Link>
+        </Button>
         {nextStudent ? (
-          <Link
-            href={`/record-card/${classId}/${nextStudent.id}`}
-            className="text-teal underline underline-offset-2"
-          >
+          <Button href={`/record-card/${classId}/${nextStudent.id}`} variant="secondary" size="sm">
             {nextStudent.name} →
-          </Link>
+          </Button>
         ) : (
           <span />
         )}

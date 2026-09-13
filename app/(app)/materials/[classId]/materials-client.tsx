@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Material } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 export default function MaterialsClient({
   classId,
@@ -93,13 +94,9 @@ export default function MaterialsClient({
           className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-sm text-ink outline-none focus:border-brass"
         />
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={loading}>
             {loading ? "Adding..." : "Add material"}
-          </button>
+          </Button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -124,12 +121,9 @@ export default function MaterialsClient({
                   {m.url}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(m.id)}
-                className="shrink-0 text-sm text-danger underline underline-offset-2"
-              >
+              <Button variant="danger" size="sm" onClick={() => handleDelete(m.id)}>
                 Delete
-              </button>
+              </Button>
             </div>
           </li>
         ))}

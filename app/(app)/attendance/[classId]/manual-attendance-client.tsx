@@ -6,6 +6,7 @@ import { todayLocalDate } from "@/lib/date";
 import type { Attendance, AttendanceStatus, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import Button from "@/app/_components/button";
 
 const STATUS_ORDER: AttendanceStatus[] = ["present", "absent", "excused", "late"];
 
@@ -183,22 +184,24 @@ export default function ManualAttendanceClient({
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={markRemainingPresent}
             disabled={markingAll || unmarkedStudents.length === 0}
-            className="rounded-sm border border-teal/40 px-3 py-1.5 text-xs font-medium text-teal transition hover:bg-teal/10 disabled:opacity-40"
           >
             {markingAll
               ? "Marking…"
               : `Mark ${unmarkedStudents.length} remaining as Present`}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
             onClick={clearDay}
             disabled={clearing || recordsForDate.length === 0}
-            className="rounded-sm border border-danger/40 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/10 disabled:opacity-40"
           >
             {clearing ? "Clearing…" : `Clear attendance for ${date}`}
-          </button>
+          </Button>
         </div>
       </div>
 

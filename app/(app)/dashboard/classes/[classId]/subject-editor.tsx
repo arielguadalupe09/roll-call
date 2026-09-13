@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 export default function SubjectEditor({
   classId,
@@ -57,19 +58,12 @@ export default function SubjectEditor({
           placeholder="e.g. Introduction to Programming"
           className="rounded-sm border border-rule bg-white/60 px-2 py-1 text-sm text-ink outline-none focus:border-brass"
         />
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="text-sm text-teal underline underline-offset-2 disabled:opacity-60"
-        >
+        <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}
-        </button>
-        <button
-          onClick={cancelEdit}
-          className="text-sm text-ink/60 underline underline-offset-2"
-        >
+        </Button>
+        <Button variant="neutral" size="sm" onClick={cancelEdit}>
           Cancel
-        </button>
+        </Button>
       </div>
     );
   }
@@ -87,12 +81,9 @@ export default function SubjectEditor({
           </button>
         </p>
       ) : (
-        <button
-          onClick={() => setEditing(true)}
-          className="rounded-sm border border-rule px-3 py-1.5 text-sm text-ink transition hover:bg-ink/5"
-        >
+        <Button variant="neutral" size="sm" onClick={() => setEditing(true)}>
           Add subject
-        </button>
+        </Button>
       )}
     </div>
   );

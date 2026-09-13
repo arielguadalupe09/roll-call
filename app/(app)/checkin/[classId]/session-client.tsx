@@ -6,6 +6,7 @@ import { generateSessionToken } from "@/lib/codes";
 import { todayLocalDate } from "@/lib/date";
 import type { Session, Student } from "@/lib/types";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import Button from "@/app/_components/button";
 
 export default function SessionClient({
   classId,
@@ -266,13 +267,9 @@ export default function SessionClient({
           )}
 
           <div className="mt-8 flex gap-3">
-            <button
-              onClick={endSession}
-              disabled={loading}
-              className="rounded-sm bg-danger px-4 py-2 font-medium text-paper transition hover:brightness-110 disabled:opacity-60"
-            >
+            <Button variant="danger" onClick={endSession} disabled={loading}>
               End session
-            </button>
+            </Button>
           </div>
           <p className="mt-3 max-w-sm text-center text-xs text-rule/70">
             &quot;End session&quot; closes it so no more students can check
@@ -285,13 +282,9 @@ export default function SessionClient({
             Starting a session lets your students check themselves in using
             their own personal QR code for today.
           </p>
-          <button
-            onClick={startSession}
-            disabled={loading}
-            className="mt-6 rounded-sm bg-brass px-6 py-3 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button onClick={startSession} disabled={loading} className="mt-6 px-6 py-3">
             {loading ? "Starting..." : "Start session"}
-          </button>
+          </Button>
         </>
       )}
       </div>

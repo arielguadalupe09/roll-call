@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { ClassRow } from "@/lib/types";
 import ArchiveButton from "./archive-button";
+import Button from "@/app/_components/button";
 
 export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
   const [open, setOpen] = useState(false);
@@ -35,12 +35,9 @@ export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Link
-                  href={`/dashboard/classes/${c.id}`}
-                  className="font-mono text-xs uppercase tracking-wide text-teal"
-                >
+                <Button href={`/dashboard/classes/${c.id}`} variant="secondary" size="sm">
                   Open →
-                </Link>
+                </Button>
                 <ArchiveButton classId={c.id} name={c.name} archived />
               </div>
             </li>

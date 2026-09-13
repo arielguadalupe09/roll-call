@@ -6,6 +6,7 @@ import { colorForSubject } from "@/lib/schedule-colors";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import type { DayOfWeek, ScheduleEntry, TeacherOption } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 const DAYS: DayOfWeek[] = [
   "Monday",
@@ -488,14 +489,9 @@ export default function ScheduleClient({
                   ))}
                 </select>
               </label>
-              <button
-                type="button"
-                onClick={handleAddShare}
-                disabled={!addTeacherId || savingShare}
-                className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-              >
+              <Button type="button" onClick={handleAddShare} disabled={!addTeacherId || savingShare}>
                 Share
-              </button>
+              </Button>
             </div>
             {sharedWithTeachers.length > 0 && (
               <ul className="mt-3 flex flex-wrap gap-2">
@@ -505,14 +501,14 @@ export default function ScheduleClient({
                     className="flex items-center gap-2 rounded-sm border border-rule bg-paper px-3 py-1.5 text-sm text-ink"
                   >
                     {t.full_name || t.email}
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => handleRemoveShare(t.id)}
                       disabled={savingShare}
-                      className="text-xs text-danger underline underline-offset-2 disabled:opacity-60"
                     >
                       Remove
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -619,11 +615,7 @@ export default function ScheduleClient({
                 className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink"
               />
             </label>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-            >
+            <Button type="submit" disabled={loading}>
               {loading
                 ? editingId
                   ? "Saving..."
@@ -631,15 +623,11 @@ export default function ScheduleClient({
                 : editingId
                   ? "Save changes"
                   : "Add class"}
-            </button>
+            </Button>
             {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-sm border border-rule px-4 py-2 font-medium text-ink transition hover:bg-ink/5"
-              >
+              <Button type="button" variant="neutral" onClick={resetForm}>
                 Cancel
-              </button>
+              </Button>
             )}
             {error && <p className="text-sm text-danger">{error}</p>}
           </form>
@@ -698,19 +686,10 @@ export default function ScheduleClient({
       )}
 
       <div className="no-print mt-4 flex justify-end gap-3">
-        <button
-          onClick={handleSavePdf}
-          disabled={exportingPdf}
-          className="rounded-sm border border-teal px-4 py-2 font-medium text-teal transition hover:bg-teal/10 disabled:opacity-60"
-        >
+        <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf}>
           {exportingPdf ? "Saving PDF..." : "Save PDF"}
-        </button>
-        <button
-          onClick={() => window.print()}
-          className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110"
-        >
-          Print
-        </button>
+        </Button>
+        <Button onClick={() => window.print()}>Print</Button>
       </div>
 
       <div id="schedule-print" ref={printRef} className="mt-6 bg-white p-4">

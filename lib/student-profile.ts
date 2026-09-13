@@ -1,4 +1,4 @@
-import type { AttendanceStatus, Period, SubmissionStatus } from "./types";
+import type { AttendanceStatus, ExamKind, Period, SubmissionStatus } from "./types";
 
 // Shared with the login page's Student tab, so both places that resolve a
 // student by code agree on the response shape and where it's remembered.
@@ -38,6 +38,20 @@ export type AssessmentEntry = {
   score: number | null;
   maxScore: number;
 };
+export type ExamStatus = "not_started" | "in_progress" | "submitted";
+export type ExamSummary = {
+  id: string;
+  title: string;
+  kind: ExamKind;
+  period: Period;
+  durationMinutes: number | null;
+  availableFrom: string | null;
+  availableUntil: string | null;
+  status: ExamStatus;
+  score: number | null;
+  totalPoints: number | null;
+  isNew: boolean;
+};
 export type StudentProfile = {
   studentName: string;
   className: string;
@@ -50,4 +64,5 @@ export type StudentProfile = {
   quizzes: AssessmentEntry[];
   written: AssessmentEntry[];
   laboratory: AssessmentEntry[];
+  exams: ExamSummary[];
 };

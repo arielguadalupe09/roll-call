@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser, getTeacherRow } from "@/lib/supabase/server";
 import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
 import {
   computeClassStats,
@@ -9,6 +9,7 @@ import {
   type ClassStats,
 } from "@/lib/dashboard-insights";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import Button from "@/app/_components/button";
 import CreateClassForm from "./create-class-form";
 import ArchiveButton from "./archive-button";
 import ArchivedClasses from "./archived-classes";
@@ -64,13 +65,13 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) redirect("/login");
 
-  const [{ data: classes }, { data: teacherRow }] = await Promise.all([
+  const [{ data: classes }, teacherRow] = await Promise.all([
     supabase.from("classes").select("*").order("created_at", { ascending: false }),
-    supabase.from("teachers").select("default_use_prelims").eq("id", user.id).single(),
+    getTeacherRow(user.id),
   ]);
 
   const allClasses = (classes as ClassRow[] | null) ?? [];
@@ -276,12 +277,9 @@ export default async function DashboardPage() {
                   </div>
 
                   <div className="mt-auto flex items-center justify-between border-t border-rule/40 pt-3">
-                    <Link
-                      href={`/dashboard/classes/${s.classRow.id}`}
-                      className="font-mono text-xs uppercase tracking-wide text-teal"
-                    >
+                    <Button href={`/dashboard/classes/${s.classRow.id}`} variant="secondary" size="sm">
                       Open →
-                    </Link>
+                    </Button>
                     <ArchiveButton classId={s.classRow.id} name={s.classRow.name} archived={false} />
                   </div>
                 </li>

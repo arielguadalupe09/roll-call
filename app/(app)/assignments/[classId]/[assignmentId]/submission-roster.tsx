@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Assignment, Student, Submission, SubmissionStatus } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { nextStatusAfterUpload } from "@/lib/submission-status";
+import Button from "@/app/_components/button";
 
 const READER_ID = "roster-scan-reader";
 
@@ -218,12 +219,9 @@ export default function SubmissionRoster({
   return (
     <div className="mt-6">
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => setScanning((prev) => !prev)}
-          className="rounded-sm border border-rule px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-ink/5"
-        >
+        <Button variant={scanning ? "danger" : "secondary"} size="sm" onClick={() => setScanning((prev) => !prev)}>
           {scanning ? "Stop scanning" : "Scan to find student"}
-        </button>
+        </Button>
         {scanError && <p className="text-sm text-danger">{scanError}</p>}
       </div>
 
@@ -316,13 +314,9 @@ export default function SubmissionRoster({
                     </div>
                   </td>
                   <td className="py-2 px-3">
-                    <button
-                      onClick={() => handleSave(s.id)}
-                      disabled={row.saving || row.uploading}
-                      className="rounded-sm bg-brass px-3 py-1 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                    >
+                    <Button size="sm" onClick={() => handleSave(s.id)} disabled={row.saving || row.uploading}>
                       {row.saving ? "Saving..." : "Save"}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               );

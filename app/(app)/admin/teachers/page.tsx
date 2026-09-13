@@ -1,22 +1,17 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUser, getTeacherRow } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Teacher } from "@/lib/types";
 import AdminTeachersClient from "./admin-teachers-client";
 
 export default async function AdminTeachersPage() {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) redirect("/dashboard");
 
-  const { data: caller } = await supabase
-    .from("teachers")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
+  const caller = await getTeacherRow(user.id);
 
   if (!caller?.is_admin) redirect("/dashboard");
 

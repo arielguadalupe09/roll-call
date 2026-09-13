@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import type { ClassRow } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 const PROGRAM_TYPES = ["Non-board program", "Board program", "Board program (Medicine)"];
 
@@ -129,13 +130,9 @@ export default function ClassRecordInfoForm({
               />
             </label>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="mt-4 rounded-sm bg-brass px-4 py-2 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button onClick={handleSave} disabled={saving} className="mt-4">
             {saving ? "Saving..." : "Save class record info"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

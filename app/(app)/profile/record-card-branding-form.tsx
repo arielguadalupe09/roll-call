@@ -4,27 +4,34 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
+
+type LogoSlot = "primary" | "secondary";
 
 export default function RecordCardBrandingForm({
   teacherId,
   initialSchoolName,
   initialCampusLine,
   initialLogoUrl,
+  initialLogoUrlSecondary,
 }: {
   teacherId: string;
   initialSchoolName: string | null;
   initialCampusLine: string | null;
   initialLogoUrl: string | null;
+  initialLogoUrlSecondary: string | null;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [schoolName, setSchoolName] = useState(initialSchoolName ?? "");
   const [campusLine, setCampusLine] = useState(initialCampusLine ?? "");
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
+  const [logoUrlSecondary, setLogoUrlSecondary] = useState(initialLogoUrlSecondary);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<LogoSlot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputSecondaryRef = useRef<HTMLInputElement>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -50,32 +57,33 @@ export default function RecordCardBrandingForm({
     router.refresh();
   }
 
-  async function handleLogoChange(file: File | null) {
+  async function handleLogoChange(slot: LogoSlot, file: File | null) {
     if (!file) return;
-    setUploading(true);
+    setUploading(slot);
     setError(null);
 
     const supabase = createClient();
     const ext = file.name.split(".").pop() || "png";
-    const path = `${teacherId}/logo.${ext}`;
+    const path = `${teacherId}/${slot === "primary" ? "logo" : "logo2"}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("card-logos")
       .upload(path, file, { upsert: true });
 
     if (uploadError) {
-      setUploading(false);
+      setUploading(null);
       setError(uploadError.message);
       return;
     }
 
+    const column = slot === "primary" ? "card_logo_path" : "card_logo_path_secondary";
     const { error: updateError } = await supabase
       .from("teachers")
-      .update({ card_logo_path: path })
+      .update({ [column]: path })
       .eq("id", teacherId);
 
     if (updateError) {
-      setUploading(false);
+      setUploading(null);
       setError(updateError.message);
       return;
     }
@@ -84,9 +92,14 @@ export default function RecordCardBrandingForm({
       .from("card-logos")
       .createSignedUrl(path, 3600);
 
-    setLogoUrl(signed?.signedUrl ?? null);
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (slot === "primary") {
+      setLogoUrl(signed?.signedUrl ?? null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else {
+      setLogoUrlSecondary(signed?.signedUrl ?? null);
+      if (fileInputSecondaryRef.current) fileInputSecondaryRef.current.value = "";
+    }
+    setUploading(null);
     router.refresh();
   }
 
@@ -96,7 +109,7 @@ export default function RecordCardBrandingForm({
         Record Card branding
       </h2>
       <p className="mt-1 text-sm text-ink/60">
-        Shown on the letterhead of every printed Student Individual Record Card.
+        Shown on the letterhead of every printed Student Individual Record Card and exam paper.
       </p>
 
       <div className="mt-4 flex items-center gap-4">
@@ -117,11 +130,38 @@ export default function RecordCardBrandingForm({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={(e) => handleLogoChange(e.target.files?.[0] ?? null)}
-            disabled={uploading}
+            onChange={(e) => handleLogoChange("primary", e.target.files?.[0] ?? null)}
+            disabled={uploading === "primary"}
             className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-rule file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
           />
-          {uploading && <span className="text-xs text-ink/60">Uploading...</span>}
+          {uploading === "primary" && <span className="text-xs text-ink/60">Uploading...</span>}
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-4">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-rule bg-white/60">
+          {logoUrlSecondary ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrlSecondary}
+              alt="Secondary logo"
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <span className="text-center text-xs text-ink/40">No logo</span>
+          )}
+        </div>
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="text-sm font-medium text-ink">Secondary logo (optional)</span>
+          <input
+            ref={fileInputSecondaryRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleLogoChange("secondary", e.target.files?.[0] ?? null)}
+            disabled={uploading === "secondary"}
+            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-rule file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+          />
+          {uploading === "secondary" && <span className="text-xs text-ink/60">Uploading...</span>}
         </label>
       </div>
 
@@ -147,13 +187,9 @@ export default function RecordCardBrandingForm({
       </label>
 
       <div className="mt-4 flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={saving}>
           {saving ? "Saving..." : "Save"}
-        </button>
+        </Button>
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
     </form>

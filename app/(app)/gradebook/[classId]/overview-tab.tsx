@@ -15,6 +15,7 @@ import { summarizeParticipation } from "@/lib/participation";
 import { buildRecordCardData, type ClassGradingData } from "@/lib/record-card-data";
 import { computeFinalGrade } from "@/lib/final-grade";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import Button from "@/app/_components/button";
 
 const PERIOD_LABEL: Record<Period, string> = {
   prelim: "Prelim",
@@ -125,17 +126,14 @@ export default function OverviewTab({
         {config.use_prelims ? (
           <span
             title="DHVSU export only supports Midterm/Finals classes. Turn off Prelims in Setup to export."
-            className="cursor-not-allowed rounded-sm border border-rule px-3 py-1.5 text-sm font-medium text-ink/40"
+            className="cursor-not-allowed rounded-sm bg-rule/20 px-3 py-1.5 text-sm font-medium text-ink/40"
           >
             Export Class Record (.xlsx)
           </span>
         ) : (
-          <a
-            href={`/api/export/dhvsu-class-record/${classId}`}
-            className="rounded-sm border border-teal px-3 py-1.5 text-sm font-medium text-teal transition hover:bg-teal/10"
-          >
+          <Button href={`/api/export/dhvsu-class-record/${classId}`} external variant="secondary" size="sm">
             Export Class Record (.xlsx)
-          </a>
+          </Button>
         )}
       </div>
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>

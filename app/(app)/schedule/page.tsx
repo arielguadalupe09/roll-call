@@ -1,23 +1,18 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser, getTeacherRow } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ScheduleEntry, Teacher, TeacherOption } from "@/lib/types";
+import type { ScheduleEntry, TeacherOption } from "@/lib/types";
 import ScheduleClient from "./schedule-client";
 
 export default async function SchedulePage() {
   const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) redirect("/login");
 
-  const { data: teacherRow } = await supabase
-    .from("teachers")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-  const teacher = teacherRow as Teacher | null;
+  const teacher = await getTeacherRow(user.id);
 
   let logoUrl: string | null = null;
   if (teacher?.card_logo_path) {

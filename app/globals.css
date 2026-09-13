@@ -141,6 +141,19 @@
     background: white !important;
   }
 
+  /* The authenticated app shell (app/(app)/layout.tsx) constrains its
+     content to exactly the viewport height via a flex column with
+     overflow-hidden, and scrolls the actual page content inside a
+     separate overflow-y-auto <main> -- necessary on screen so the sidebar
+     stays put, but under print/PDF generation it silently clips anything
+     printable to a single viewport's worth of height instead of letting
+     it flow across as many physical pages as it needs. Reset both. */
+  #app-shell,
+  #app-main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -194,6 +207,16 @@
   #schedule-print th,
   #schedule-print td {
     padding: 2px 4px !important;
+  }
+
+  #exam-preview-print {
+    position: absolute;
+    inset: 0;
+    background: white;
+  }
+  #exam-preview-print,
+  #exam-preview-print * {
+    visibility: visible;
   }
 }
 

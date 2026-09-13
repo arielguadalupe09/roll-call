@@ -11,19 +11,16 @@ export default async function MaterialsPage({
   const { classId } = await params;
   const supabase = await createClient();
 
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("id", classId)
-    .single();
+  const [{ data: classRow }, { data: materials }] = await Promise.all([
+    supabase.from("classes").select("*").eq("id", classId).single(),
+    supabase
+      .from("materials")
+      .select("*")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (!classRow) notFound();
-
-  const { data: materials } = await supabase
-    .from("materials")
-    .select("*")
-    .eq("class_id", classId)
-    .order("created_at", { ascending: false });
 
   return (
     <div className="px-8 py-10">

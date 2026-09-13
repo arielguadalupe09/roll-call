@@ -7,6 +7,7 @@ import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import { buildLectureStoragePath, formatFileSize, formatRecordingSeconds } from "@/lib/video-lecture-path";
 import type { VideoLecture } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 const RECORDING_CAP_SECONDS = 600;
 const BUCKET = "lecture-videos";
@@ -256,12 +257,9 @@ export default function LecturesClient({
 
   return (
     <div className="mt-6">
-      <button
-        onClick={handleCopyLink}
-        className="mb-4 rounded-sm border border-rule px-3 py-1.5 text-sm text-teal underline underline-offset-2 hover:border-teal"
-      >
+      <Button variant="secondary" size="sm" className="mb-4" onClick={handleCopyLink}>
         Copy shareable student link
-      </button>
+      </Button>
 
       <form
         onSubmit={handleSave}
@@ -332,17 +330,18 @@ export default function LecturesClient({
               <div>
                 <p className="text-sm font-medium text-ink">{file.name}</p>
                 <p className="text-xs text-ink/50">{formatFileSize(file.size)}</p>
-                <button
-                  type="button"
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="mt-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     setFile(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
-                  className="mt-1 text-xs text-danger underline underline-offset-2"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             ) : (
               <p className="text-sm text-ink/60">
@@ -379,20 +378,12 @@ export default function LecturesClient({
             )}
             {!recording && !recordedBlob && (
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleStartRecording("webcam")}
-                  className="rounded-sm border border-rule px-3 py-1.5 text-sm text-ink/70 hover:border-brass"
-                >
+                <Button variant="neutral" size="sm" onClick={() => handleStartRecording("webcam")}>
                   Record webcam
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStartRecording("screen")}
-                  className="rounded-sm border border-rule px-3 py-1.5 text-sm text-ink/70 hover:border-brass"
-                >
+                </Button>
+                <Button variant="neutral" size="sm" onClick={() => handleStartRecording("screen")}>
                   Record screen
-                </button>
+                </Button>
               </div>
             )}
             {recording && (
@@ -401,23 +392,15 @@ export default function LecturesClient({
                   <span className="h-2 w-2 animate-pulse rounded-full bg-danger" />
                   {formatRecordingSeconds(recordingSeconds)} / {formatRecordingSeconds(RECORDING_CAP_SECONDS)}
                 </span>
-                <button
-                  type="button"
-                  onClick={handleStopRecording}
-                  className="rounded-sm bg-danger px-3 py-1.5 text-sm font-medium text-paper"
-                >
+                <Button variant="danger" size="sm" onClick={handleStopRecording}>
                   Stop recording
-                </button>
+                </Button>
               </div>
             )}
             {!recording && recordedBlob && (
-              <button
-                type="button"
-                onClick={handleDiscardRecording}
-                className="self-start text-sm text-danger underline underline-offset-2"
-              >
+              <Button variant="danger" size="sm" className="self-start" onClick={handleDiscardRecording}>
                 Discard and re-record
-              </button>
+              </Button>
             )}
             <p className="text-xs text-ink/50">
               Requires a modern browser (HTTPS or localhost). Recording auto-stops at{" "}
@@ -432,13 +415,9 @@ export default function LecturesClient({
         </p>
 
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={saving || recording}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={saving || recording}>
             {saving ? "Posting..." : "Post lecture"}
-          </button>
+          </Button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -455,39 +434,29 @@ export default function LecturesClient({
                 <p className="mt-2 font-mono text-xs text-ink/50">
                   {new Date(lecture.created_at).toLocaleString()}
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   {lecture.storage_path && (
-                    <button
-                      onClick={() => handlePreview(lecture.storage_path!)}
-                      className="text-teal underline underline-offset-2"
-                    >
+                    <Button variant="secondary" size="sm" onClick={() => handlePreview(lecture.storage_path!)}>
                       Preview
-                    </button>
+                    </Button>
                   )}
                   {lecture.video_url && (
-                    <a
-                      href={lecture.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-teal underline underline-offset-2"
-                    >
+                    <Button href={lecture.video_url} external target="_blank" variant="secondary" size="sm">
                       Open link
-                    </a>
+                    </Button>
                   )}
-                  <button
+                  <Button
+                    variant={lecture.published ? "neutral" : "primary"}
+                    size="sm"
                     onClick={() => setPublished(lecture.id, !lecture.published)}
-                    className={lecture.published ? "text-ink/60 hover:text-ink" : "text-brass"}
                   >
                     {lecture.published ? "Published" : "Draft"}
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <button
-                onClick={() => handleDelete(lecture)}
-                className="shrink-0 text-sm text-danger underline underline-offset-2"
-              >
+              <Button variant="danger" size="sm" onClick={() => handleDelete(lecture)}>
                 Delete
-              </button>
+              </Button>
             </div>
           </li>
         ))}

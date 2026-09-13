@@ -1,0 +1,21 @@
+-- Lets a fully-graded online exam attempt (exam_attempts) write through into
+-- the same tables the teacher's manual Gradebook score-entry UI uses --
+-- assessments/assessment_scores for quiz-kind exams, major_exams/
+-- major_exam_scores for major_exam-kind exams -- so the Record Card and
+-- DHVSU export (which only ever read from those tables) pick up online-exam
+-- scores automatically with no changes on their end.
+--
+-- source_exam_id marks a row as owned by an online exam so repeated syncs
+-- (one per student submission) upsert onto the same assessments row instead
+-- of creating a duplicate one. A plain unique constraint (not a partial
+-- index) is enough: multiple NULLs are exempt from a UNIQUE check by
+-- standard SQL semantics, so manually-created assessments (source_exam_id
+-- left null) are unaffected.
+--
+-- major_exams has no source_exam_id uniqueness -- its existing (class_id,
+-- period) unique constraint is the upsert target, so publishing an online
+-- major exam for a period intentionally takes over that period's record
+-- (title/max score) for the whole class, same as a teacher re-keying a
+-- paper exam's max score today.
+alter table assessments add column if not exists source_exam_id uuid unique references exams(id) on delete cascade;
+alter table major_exams add column if not exists source_exam_id uuid references exams(id) on delete cascade;

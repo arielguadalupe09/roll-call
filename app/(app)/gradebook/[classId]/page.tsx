@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import type {
   Assessment,
   AssessmentScore,
   Assignment,
   ClassRow,
+  Exam,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -25,22 +26,22 @@ export default async function GradebookPage({
   const { tab: requestedTab } = await searchParams;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("id", classId)
-    .single();
+  // None of these three depend on each other -- only on classId, which is
+  // already known from params -- so they don't need to be sequential.
+  const [
+    {
+      data: { user },
+    },
+    { data: classRow },
+    { data: links },
+  ] = await Promise.all([
+    getUser(),
+    supabase.from("classes").select("*").eq("id", classId).single(),
+    supabase.from("assignment_classes").select("assignment_id").eq("class_id", classId),
+  ]);
 
   if (!classRow || !user) notFound();
 
-  const { data: links } = await supabase
-    .from("assignment_classes")
-    .select("assignment_id")
-    .eq("class_id", classId);
   const linkedIds = (links as { assignment_id: string }[] | null)?.map((l) => l.assignment_id) ?? [];
 
   const [
@@ -51,6 +52,7 @@ export default async function GradebookPage({
     { data: majorExams },
     { data: recitationLogs },
     { data: teacherClasses },
+    { data: exams },
   ] = await Promise.all([
     supabase
       .from("students")
@@ -78,31 +80,44 @@ export default async function GradebookPage({
       .eq("teacher_id", user.id)
       .eq("archived", false)
       .order("name", { ascending: true }),
+    supabase
+      .from("exams")
+      .select("*")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false }),
   ]);
 
   const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
-  const { data: allStudents } = teacherClassIds.length
-    ? await supabase
-        .from("students")
-        .select("*")
-        .in("class_id", teacherClassIds)
-        .order("name", { ascending: true })
-    : { data: [] as Student[] };
-
   const assignmentIds = (assignments as Assignment[] | null)?.map((a) => a.id) ?? [];
-  const { data: submissions } = assignmentIds.length
-    ? await supabase.from("submissions").select("*").in("assignment_id", assignmentIds)
-    : { data: [] as Submission[] };
-
   const assessmentIds = (assessments as Assessment[] | null)?.map((a) => a.id) ?? [];
-  const { data: assessmentScores } = assessmentIds.length
-    ? await supabase.from("assessment_scores").select("*").in("assessment_id", assessmentIds)
-    : { data: [] as AssessmentScore[] };
-
   const majorExamIds = (majorExams as MajorExam[] | null)?.map((e) => e.id) ?? [];
-  const { data: majorExamScores } = majorExamIds.length
-    ? await supabase.from("major_exam_scores").select("*").in("major_exam_id", majorExamIds)
-    : { data: [] as MajorExamScore[] };
+
+  // None of these four depend on each other's results, just on IDs already
+  // resolved above -- run them together instead of paying for four
+  // sequential round trips.
+  const [
+    { data: allStudents },
+    { data: submissions },
+    { data: assessmentScores },
+    { data: majorExamScores },
+  ] = await Promise.all([
+    teacherClassIds.length
+      ? supabase
+          .from("students")
+          .select("*")
+          .in("class_id", teacherClassIds)
+          .order("name", { ascending: true })
+      : Promise.resolve({ data: [] as Student[] }),
+    assignmentIds.length
+      ? supabase.from("submissions").select("*").in("assignment_id", assignmentIds)
+      : Promise.resolve({ data: [] as Submission[] }),
+    assessmentIds.length
+      ? supabase.from("assessment_scores").select("*").in("assessment_id", assessmentIds)
+      : Promise.resolve({ data: [] as AssessmentScore[] }),
+    majorExamIds.length
+      ? supabase.from("major_exam_scores").select("*").in("major_exam_id", majorExamIds)
+      : Promise.resolve({ data: [] as MajorExamScore[] }),
+  ]);
 
   return (
     <div className="px-8 py-10">
@@ -113,7 +128,6 @@ export default async function GradebookPage({
 
         <div className="mt-6">
           <GradingHubClient
-            key={requestedTab}
             initialTab={requestedTab}
             classId={classId}
             teacherId={user.id}
@@ -128,6 +142,7 @@ export default async function GradebookPage({
             majorExams={(majorExams as MajorExam[] | null) ?? []}
             majorExamScores={(majorExamScores as MajorExamScore[] | null) ?? []}
             recitationLogs={(recitationLogs as ParticipationLog[] | null) ?? []}
+            exams={(exams as Exam[] | null) ?? []}
           />
         </div>
       </div>

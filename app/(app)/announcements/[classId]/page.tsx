@@ -11,19 +11,16 @@ export default async function AnnouncementsPage({
   const { classId } = await params;
   const supabase = await createClient();
 
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("id", classId)
-    .single();
+  const [{ data: classRow }, { data: announcements }] = await Promise.all([
+    supabase.from("classes").select("*").eq("id", classId).single(),
+    supabase
+      .from("announcements")
+      .select("*")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (!classRow) notFound();
-
-  const { data: announcements } = await supabase
-    .from("announcements")
-    .select("*")
-    .eq("class_id", classId)
-    .order("created_at", { ascending: false });
 
   return (
     <div className="px-8 py-10">

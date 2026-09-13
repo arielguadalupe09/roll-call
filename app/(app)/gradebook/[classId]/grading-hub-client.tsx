@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useGradebookTab } from "@/app/_components/gradebook-tab-context";
 import type {
   Assessment,
   AssessmentScore,
   Assignment,
   ClassRow,
+  Exam,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -19,6 +21,7 @@ import SetupTab from "./setup-tab";
 import MajorExamTab from "./major-exam-tab";
 import RecitationTab from "./recitation-tab";
 import OverviewTab from "./overview-tab";
+import OnlineExamPanel from "./online-exam-panel";
 import GroupedNav, { type NavItem } from "@/app/_components/grouped-nav";
 
 type Tab =
@@ -56,6 +59,7 @@ export default function GradingHubClient({
   majorExams,
   majorExamScores,
   recitationLogs,
+  exams,
   initialTab,
 }: {
   classId: string;
@@ -71,18 +75,38 @@ export default function GradingHubClient({
   majorExams: MajorExam[];
   majorExamScores: MajorExamScore[];
   recitationLogs: ParticipationLog[];
+  exams: Exam[];
   // Lets the top nav's Gradebook dropdown deep-link straight to a tab (e.g.
   // Quiz/Written Activity/Laboratory Activity), which otherwise are only
   // reachable by first landing on Overview and clicking through. Computed
-  // server-side from the URL's ?tab= and passed down as a normal prop (with
-  // the page keying this component by it) instead of read client-side, so
+  // server-side from the URL's ?tab= and passed down as a normal prop, so
   // the very first render already shows the right tab -- no flash, no
   // hydration mismatch.
   initialTab?: string;
 }) {
-  const [tab, setTab] = useState<Tab>(
+  const [tab, setTabState] = useState<Tab>(
     (TABS as string[]).includes(initialTab ?? "") ? (initialTab as Tab) : "overview",
   );
+  const { tab: sharedTab, setTab: setSharedTab } = useGradebookTab();
+
+  function setTab(next: Tab) {
+    setTabState(next);
+    setSharedTab(next);
+  }
+
+  // Seed the shared context on a real page load (mount only) so ClassSubNav
+  // highlights the right tab immediately, without waiting for a click.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setSharedTab(tab), []);
+
+  // ClassSubNav flips this shared value directly instead of navigating when
+  // the user is already on this page -- pick that up without a remount.
+  useEffect(() => {
+    if (sharedTab && sharedTab !== tab && (TABS as string[]).includes(sharedTab)) {
+      setTabState(sharedTab as Tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedTab]);
 
   const submissionCounts: Record<string, { submitted: number; total: number }> = {};
   const classStudentIds = new Set(students.map((s) => s.id));
@@ -97,6 +121,11 @@ export default function GradingHubClient({
   const quizAssessments = assessments.filter((a) => a.category === "quiz");
   const writtenAssessments = assessments.filter((a) => a.category === "written");
   const labAssessments = assessments.filter((a) => a.category === "laboratory");
+
+  const quizExams = exams.filter((e) => e.kind === "quiz");
+  const writtenExams = exams.filter((e) => e.kind === "written");
+  const labExams = exams.filter((e) => e.kind === "laboratory");
+  const majorOnlineExams = exams.filter((e) => e.kind === "major_exam");
 
   const scoresFor = (items: Assessment[]) => {
     const ids = new Set(items.map((a) => a.id));
@@ -165,49 +194,89 @@ export default function GradingHubClient({
       )}
 
       {tab === "quiz" && (
-        <AssessmentRoster
-          classId={classId}
-          category="quiz"
-          categoryLabel="Quiz"
-          students={students}
-          initialAssessments={quizAssessments}
-          initialScores={scoresFor(quizAssessments)}
-          usePrelims={config.use_prelims}
-        />
+        <>
+          <AssessmentRoster
+            classId={classId}
+            category="quiz"
+            categoryLabel="Quiz"
+            students={students}
+            initialAssessments={quizAssessments}
+            initialScores={scoresFor(quizAssessments)}
+            usePrelims={config.use_prelims}
+          />
+          <div className="mt-6">
+            <OnlineExamPanel
+              classId={classId}
+              kind="quiz"
+              initialExams={quizExams}
+              usePrelims={config.use_prelims}
+            />
+          </div>
+        </>
       )}
 
       {tab === "written" && (
-        <AssessmentRoster
-          classId={classId}
-          category="written"
-          categoryLabel="Written Activity"
-          students={students}
-          initialAssessments={writtenAssessments}
-          initialScores={scoresFor(writtenAssessments)}
-          usePrelims={config.use_prelims}
-        />
+        <>
+          <AssessmentRoster
+            classId={classId}
+            category="written"
+            categoryLabel="Written Activity"
+            students={students}
+            initialAssessments={writtenAssessments}
+            initialScores={scoresFor(writtenAssessments)}
+            usePrelims={config.use_prelims}
+          />
+          <div className="mt-6">
+            <OnlineExamPanel
+              classId={classId}
+              kind="written"
+              initialExams={writtenExams}
+              usePrelims={config.use_prelims}
+            />
+          </div>
+        </>
       )}
 
       {tab === "laboratory" && (
-        <AssessmentRoster
-          classId={classId}
-          category="laboratory"
-          categoryLabel="Laboratory Activity"
-          students={students}
-          initialAssessments={labAssessments}
-          initialScores={scoresFor(labAssessments)}
-          usePrelims={config.use_prelims}
-        />
+        <>
+          <AssessmentRoster
+            classId={classId}
+            category="laboratory"
+            categoryLabel="Laboratory Activity"
+            students={students}
+            initialAssessments={labAssessments}
+            initialScores={scoresFor(labAssessments)}
+            usePrelims={config.use_prelims}
+          />
+          <div className="mt-6">
+            <OnlineExamPanel
+              classId={classId}
+              kind="laboratory"
+              initialExams={labExams}
+              usePrelims={config.use_prelims}
+            />
+          </div>
+        </>
       )}
 
       {tab === "major-exam" && (
-        <MajorExamTab
-          classId={classId}
-          students={students}
-          initialExams={majorExams}
-          initialScores={majorExamScores}
-          usePrelims={config.use_prelims}
-        />
+        <>
+          <MajorExamTab
+            classId={classId}
+            students={students}
+            initialExams={majorExams}
+            initialScores={majorExamScores}
+            usePrelims={config.use_prelims}
+          />
+          <div className="mt-6">
+            <OnlineExamPanel
+              classId={classId}
+              kind="major_exam"
+              initialExams={majorOnlineExams}
+              usePrelims={config.use_prelims}
+            />
+          </div>
+        </>
       )}
 
       {tab === "recitation" && (

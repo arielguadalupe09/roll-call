@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { Attendance, ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
+import { createClient, getTeacherRow } from "@/lib/supabase/server";
+import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
 import {
   computeClassStats,
   computeInsights,
@@ -29,18 +29,14 @@ export default async function ClassDetailPage({
 
   if (!classRow) notFound();
 
-  const [{ data: students }, { data: teacher }, { data: attendance }, { data: gradingConfig }] =
+  const [{ data: students }, teacher, { data: attendance }, { data: gradingConfig }] =
     await Promise.all([
       supabase
         .from("students")
         .select("*")
         .eq("class_id", classId)
         .order("name", { ascending: true }),
-      supabase
-        .from("teachers")
-        .select("*")
-        .eq("id", (classRow as ClassRow).teacher_id)
-        .single(),
+      getTeacherRow((classRow as ClassRow).teacher_id),
       supabase.from("attendance").select("*").eq("class_id", classId),
       supabase.from("grading_configs").select("*").eq("class_id", classId).maybeSingle(),
     ]);
@@ -84,7 +80,7 @@ export default async function ClassDetailPage({
         <ClassRecordInfoForm
           classId={classId}
           initialClass={classRow as ClassRow}
-          initialFacultyRank={(teacher as Teacher | null)?.faculty_rank ?? null}
+          initialFacultyRank={teacher?.faculty_rank ?? null}
         />
 
         <StudentsManager

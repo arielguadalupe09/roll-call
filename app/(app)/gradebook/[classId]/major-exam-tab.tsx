@@ -6,6 +6,7 @@ import type { MajorExam, MajorExamScore, Period, Student } from "@/lib/types";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 function ExamSection({
   classId,
@@ -96,13 +97,9 @@ function ExamSection({
             className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
           />
         </label>
-        <button
-          onClick={handleSaveMaxScore}
-          disabled={savingMax}
-          className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button onClick={handleSaveMaxScore} disabled={savingMax}>
           {savingMax ? "Saving..." : "Save max score"}
-        </button>
+        </Button>
       </div>
 
       {exam ? (

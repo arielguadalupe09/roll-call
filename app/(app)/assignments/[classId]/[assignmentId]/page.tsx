@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import type { Assignment, Student, Submission } from "@/lib/types";
 import SubmissionRoster from "./submission-roster";
+import Button from "@/app/_components/button";
 
 export default async function AssignmentRosterPage({
   params,
@@ -14,7 +14,7 @@ export default async function AssignmentRosterPage({
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   const { data: classRow } = await supabase
     .from("classes")
@@ -63,12 +63,9 @@ export default async function AssignmentRosterPage({
   return (
     <div className="px-8 py-10">
       <div className="mx-auto max-w-4xl">
-        <Link
-          href={`/assignments/${classId}`}
-          className="text-sm text-teal underline underline-offset-2"
-        >
+        <Button href={`/assignments/${classId}`} variant="secondary" size="sm">
           ← Back to assignments
-        </Link>
+        </Button>
         <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
           {classRow.name} — {(assignment as Assignment).title}
         </h1>

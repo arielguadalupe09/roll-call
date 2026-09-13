@@ -14,6 +14,7 @@ import {
   type VoiceCommand,
 } from "@/lib/voice-commands";
 import { describeClassAliases, forgetClassAliases, getClassAliases, rememberClassAlias } from "@/lib/voice-memory";
+import Button from "./button";
 
 type AmbiguousCommand = Extract<VoiceCommand, { type: "class-ambiguous" }>;
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
@@ -280,26 +281,24 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
                   ? ["How's this class doing?", "Who's below attendance?", "Any warnings?"]
                   : ["Show analytics overview", "Who's below attendance?", "Any warnings?"]
                 ).map((question) => (
-                  <button
+                  <Button
                     key={question}
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-full"
                     onClick={() => runTypedCommand(question)}
-                    className="rounded-full border border-teal/50 px-2.5 py-1 text-xs text-teal transition hover:bg-teal hover:text-paper"
                   >
                     {question}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
             {pendingAmbiguous && (
               <div className="flex flex-wrap gap-1.5">
                 {pendingAmbiguous.matches.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => resolveAmbiguous(m.id)}
-                    className="rounded-sm border border-brass/60 px-2 py-1 text-xs text-brass transition hover:bg-brass hover:text-chalk"
-                  >
+                  <Button key={m.id} size="sm" onClick={() => resolveAmbiguous(m.id)}>
                     {m.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -313,12 +312,9 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
               placeholder="Type a command..."
               className="min-w-0 flex-1 rounded-sm border border-rule/50 bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brass"
             />
-            <button
-              type="submit"
-              className="shrink-0 rounded-sm bg-teal px-3 py-1.5 text-sm font-medium text-paper transition hover:brightness-110"
-            >
+            <Button type="submit" variant="secondary" size="sm" className="shrink-0">
               Send
-            </button>
+            </Button>
           </form>
         </div>
       )}

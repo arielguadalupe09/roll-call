@@ -7,6 +7,7 @@ import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import RecordCardSheet from "../record-card-sheet";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import Button from "@/app/_components/button";
 
 export default function RecordCardAllClient({
   classRow,
@@ -155,23 +156,16 @@ export default function RecordCardAllClient({
               ))}
             </select>
           </label>
-          <button
-            onClick={handleSavePdf}
-            disabled={exportingPdf || allData.length === 0}
-            className="rounded-sm border border-teal px-4 py-2 font-medium text-teal transition hover:bg-teal/10 disabled:opacity-60"
-          >
+          <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf || allData.length === 0}>
             {exportingPdf
               ? "Saving PDF..."
               : selected.size > 0
                 ? `Save PDF (${selected.size} selected)`
                 : "Save PDF (all students)"}
-          </button>
-          <button
-            onClick={handlePrint}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110"
-          >
+          </Button>
+          <Button onClick={handlePrint}>
             {selected.size > 0 ? `Print (${selected.size} selected)` : "Print all"}
-          </button>
+          </Button>
         </div>
       </div>
 

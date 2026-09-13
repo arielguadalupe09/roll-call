@@ -5,6 +5,7 @@ import type { Teacher } from "@/lib/types";
 import IconButton from "@/app/_components/icon-button";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import Button from "@/app/_components/button";
 
 export default function AdminTeachersClient({
   initialTeachers,
@@ -224,17 +225,13 @@ export default function AdminTeachersClient({
           )}
         </label>
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={loading}>
             {loading
               ? "Creating..."
               : role === "admin"
                 ? "Create admin account"
                 : "Create teacher account"}
-          </button>
+          </Button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -290,20 +287,13 @@ export default function AdminTeachersClient({
                 </td>
                 <td className="py-2 px-3 text-right">
                   {editingId === t.id ? (
-                    <div className="flex justify-end gap-3">
-                      <button
-                        onClick={() => handleSaveEdit(t.id)}
-                        disabled={savingEdit}
-                        className="text-sm text-teal underline underline-offset-2 disabled:opacity-60"
-                      >
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" onClick={() => handleSaveEdit(t.id)} disabled={savingEdit}>
                         {savingEdit ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="text-sm text-ink/60 underline underline-offset-2"
-                      >
+                      </Button>
+                      <Button variant="neutral" size="sm" onClick={cancelEdit}>
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex justify-end gap-2">

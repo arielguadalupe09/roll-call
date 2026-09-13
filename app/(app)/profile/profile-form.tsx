@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 export default function ProfileForm({
   teacherId,
@@ -76,13 +77,9 @@ export default function ProfileForm({
         </p>
 
         <div className="mt-4 flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={saving}>
             {saving ? "Saving..." : "Save"}
-          </button>
+          </Button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -158,13 +155,9 @@ function ChangePasswordForm() {
         </label>
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={changingPassword}
-          className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={changingPassword}>
           {changingPassword ? "Updating..." : "Update password"}
-        </button>
+        </Button>
         {passwordError && <p className="text-sm text-danger">{passwordError}</p>}
       </div>
     </form>

@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
 import { namesFromImportMatrix, toLastNameFirst } from "@/lib/name-format";
@@ -11,6 +10,7 @@ import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import IconButton from "@/app/_components/icon-button";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import Button from "@/app/_components/button";
 
 const MAX_ATTEMPTS = 5;
 
@@ -376,13 +376,9 @@ export default function StudentsManager({
           onChange={(e) => setName(e.target.value)}
           className="min-w-0 flex-1 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
-        <button
-          type="submit"
-          disabled={loading}
-          className="whitespace-nowrap rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={loading} className="whitespace-nowrap">
           {loading ? "Adding..." : "Add student"}
-        </button>
+        </Button>
       </form>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -400,18 +396,12 @@ export default function StudentsManager({
         {importing && (
           <span className="text-sm text-ink/60">Importing...</span>
         )}
-        <Link
-          href={`/record-card/${classId}`}
-          className="ml-auto rounded-sm border border-teal px-4 py-2 font-medium text-teal transition hover:bg-teal/10"
-        >
+        <Button href={`/record-card/${classId}`} variant="secondary" className="ml-auto">
           Record Cards (all students)
-        </Link>
-        <Link
-          href={`/qr/${classId}`}
-          className="rounded-sm bg-teal px-4 py-2 font-medium text-paper transition hover:brightness-110"
-        >
+        </Button>
+        <Button href={`/qr/${classId}`} variant="secondary">
           Print QR codes
-        </Link>
+        </Button>
       </div>
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
@@ -431,24 +421,15 @@ export default function StudentsManager({
                 <span className="text-sm font-medium text-ink">
                   {selected.size} selected
                 </span>
-                <Link
-                  href={`/qr/${classId}?ids=${Array.from(selected).join(",")}`}
-                  className="text-sm text-teal underline underline-offset-2"
-                >
+                <Button href={`/qr/${classId}?ids=${Array.from(selected).join(",")}`} variant="secondary" size="sm">
                   Print QR for selected
-                </Link>
-                <button
-                  onClick={() => openTransfer(Array.from(selected))}
-                  className="text-sm text-ink underline underline-offset-2"
-                >
+                </Button>
+                <Button variant="neutral" size="sm" onClick={() => openTransfer(Array.from(selected))}>
                   Transfer selected
-                </button>
-                <button
-                  onClick={handleRemoveSelected}
-                  className="text-sm text-danger underline underline-offset-2"
-                >
+                </Button>
+                <Button variant="danger" size="sm" onClick={handleRemoveSelected}>
                   Remove selected
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -521,20 +502,13 @@ export default function StudentsManager({
                     <td className="py-2 font-mono text-teal">{s.code}</td>
                     <td className="py-2 text-right">
                       {isEditing ? (
-                        <div className="flex justify-end gap-3">
-                          <button
-                            onClick={saveEdit}
-                            disabled={editSaving}
-                            className="text-sm text-teal underline underline-offset-2 disabled:opacity-60"
-                          >
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" onClick={saveEdit} disabled={editSaving}>
                             {editSaving ? "Saving..." : "Save"}
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="text-sm text-ink/60 underline underline-offset-2"
-                          >
+                          </Button>
+                          <Button variant="neutral" size="sm" onClick={cancelEdit}>
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex justify-end gap-2">
@@ -631,19 +605,12 @@ export default function StudentsManager({
             )}
 
             <div className="mt-5 flex justify-end gap-3">
-              <button
-                onClick={closeTransfer}
-                className="rounded-sm border border-rule px-4 py-2 text-sm font-medium text-ink transition hover:bg-ink/5"
-              >
+              <Button variant="neutral" onClick={closeTransfer}>
                 Cancel
-              </button>
-              <button
-                onClick={confirmTransfer}
-                disabled={!transferTarget || transferSaving}
-                className="rounded-sm bg-brass px-4 py-2 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-              >
+              </Button>
+              <Button onClick={confirmTransfer} disabled={!transferTarget || transferSaving}>
                 {transferSaving ? "Transferring..." : "Transfer"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

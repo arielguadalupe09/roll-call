@@ -10,6 +10,7 @@ import {
   type RecordCardSectionKey,
 } from "@/lib/record-card-layout";
 import { useToast } from "@/app/_components/toast";
+import Button from "@/app/_components/button";
 
 const CATEGORY_FIELDS = [
   { key: "weight_assignment", label: "Assignment" },
@@ -338,13 +339,9 @@ export default function SetupTab({
       </div>
 
       <div className="mt-4 flex items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-        >
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save configuration"}
-        </button>
+        </Button>
       </div>
     </div>
   );

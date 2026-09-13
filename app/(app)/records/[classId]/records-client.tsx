@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Attendance, AttendanceStatus, ParticipationLog, Student } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 const STATUS_LABEL: Record<AttendanceStatus, string> = {
   present: "P",
@@ -258,12 +259,7 @@ export default function RecordsClient({
               ))}
             </p>
           </div>
-          <button
-            onClick={downloadCsv}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110"
-          >
-            Export CSV
-          </button>
+          <Button onClick={downloadCsv}>Export CSV</Button>
         </div>
 
         <div className="mt-6 flex items-center gap-3">

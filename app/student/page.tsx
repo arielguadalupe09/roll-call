@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { getDeviceId } from "@/lib/device-id";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
+import Button from "@/app/_components/button";
 import {
   STUDENT_CODE_KEY,
   type AssessmentEntry,
   type StudentProfile as Profile,
 } from "@/lib/student-profile";
-import type { AttendanceStatus, SubmissionStatus } from "@/lib/types";
+import { EXAM_KIND_LABEL, type AttendanceStatus, type SubmissionStatus } from "@/lib/types";
 
 type Step = "code" | "profile";
 
@@ -28,6 +29,12 @@ const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
   missing: "Not submitted",
   submitted: "Submitted",
   graded: "Graded",
+};
+
+const EXAM_STATUS_LABEL: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  submitted: "Submitted",
 };
 
 function AssessmentSection({ title, entries }: { title: string; entries: AssessmentEntry[] }) {
@@ -63,8 +70,17 @@ export default function StudentProfilePage() {
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
   const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
   const [resubmitting, setResubmitting] = useState<Record<string, boolean>>({});
+  // Read once after mount (not inline during render, which the linter
+  // flags as an impure render read) -- exam availability windows don't
+  // need second-by-second freshness, just roughly "now" for the session.
+  const [nowMs, setNowMs] = useState(0);
 
   const activeCodeRef = useRef("");
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setNowMs(Date.now()));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   async function refreshProfile(rawCode: string) {
     const res = await fetch("/api/student/profile", {
@@ -249,14 +265,16 @@ export default function StudentProfilePage() {
                       {lecture.signedUrl ? (
                         <video controls className="mt-2 w-full rounded-sm" src={lecture.signedUrl} />
                       ) : lecture.videoUrl ? (
-                        <a
+                        <Button
                           href={lecture.videoUrl}
+                          external
                           target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-block text-sm text-teal underline underline-offset-2"
+                          variant="secondary"
+                          size="sm"
+                          className="mt-2"
                         >
                           Watch on external site →
-                        </a>
+                        </Button>
                       ) : null}
                     </li>
                   ))}
@@ -338,26 +356,92 @@ export default function StudentProfilePage() {
                                 Ready to turn in: {pendingFile.name}
                               </p>
                             )}
-                            <button
+                            <Button
+                              size="sm"
+                              className="mt-2 block"
                               onClick={() => turnInAssignment(a.assignmentId)}
                               disabled={!pendingFile || !!uploading[a.assignmentId]}
-                              className="mt-2 block rounded-sm bg-brass px-3 py-1.5 text-sm font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
                             >
                               {uploading[a.assignmentId] ? "Turning in..." : "Turn in assignment"}
-                            </button>
+                            </Button>
                             {submitErrors[a.assignmentId] && (
                               <p className="mt-1 text-xs text-danger">{submitErrors[a.assignmentId]}</p>
                             )}
                           </div>
                         ) : (
-                          <button
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="mt-2"
                             onClick={() =>
                               setResubmitting((prev) => ({ ...prev, [a.assignmentId]: true }))
                             }
-                            className="mt-2 text-sm text-teal underline underline-offset-2"
                           >
                             Resubmit assignment
-                          </button>
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CollapsibleSection>
+          </div>
+
+          <div className="mt-3 w-full text-left">
+            <CollapsibleSection
+              title="Exams"
+              subtitle={`${profile.exams.filter((exam) => {
+                const notYetOpen = exam.availableFrom && nowMs < new Date(exam.availableFrom).getTime();
+                const closed = exam.availableUntil && nowMs > new Date(exam.availableUntil).getTime();
+                return exam.status !== "submitted" && !notYetOpen && !closed;
+              }).length} available`}
+            >
+              {profile.exams.length === 0 ? (
+                <p className="text-sm text-ink/60">No exams posted yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {profile.exams.map((exam) => {
+                    const now = nowMs;
+                    const notYetOpen = exam.availableFrom && now < new Date(exam.availableFrom).getTime();
+                    const closed = exam.availableUntil && now > new Date(exam.availableUntil).getTime();
+                    const canTake = exam.status !== "submitted" && !notYetOpen && !closed;
+
+                    return (
+                      <li key={exam.id} className="text-ink">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="font-medium">
+                            {exam.title}
+                            {exam.isNew && (
+                              <span className="ml-2 rounded-sm bg-danger/15 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold uppercase tracking-wide text-danger">
+                                New
+                              </span>
+                            )}
+                          </p>
+                          <span className="whitespace-nowrap text-xs text-ink/60">
+                            {EXAM_STATUS_LABEL[exam.status]}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-ink/60">
+                          {EXAM_KIND_LABEL[exam.kind]}
+                          {exam.durationMinutes != null ? ` · ${exam.durationMinutes} min` : ""} · {exam.period}
+                        </p>
+                        {exam.status === "submitted" ? (
+                          <p className="mt-1 text-sm text-teal">
+                            Score: {exam.score} / {exam.totalPoints}
+                          </p>
+                        ) : notYetOpen ? (
+                          <p className="mt-1 text-sm text-ink/60">
+                            Opens {new Date(exam.availableFrom!).toLocaleString()}
+                          </p>
+                        ) : closed ? (
+                          <p className="mt-1 text-sm text-ink/60">This exam is no longer available.</p>
+                        ) : (
+                          canTake && (
+                            <Button href={`/student/exam/${exam.id}`} size="sm" className="mt-2">
+                              {exam.status === "in_progress" ? "Continue exam" : "Start exam"}
+                            </Button>
+                          )
                         )}
                       </li>
                     );
@@ -371,12 +455,9 @@ export default function StudentProfilePage() {
           <AssessmentSection title="Written Activity" entries={profile.written} />
           <AssessmentSection title="Laboratory Activity" entries={profile.laboratory} />
 
-          <button
-            onClick={switchCode}
-            className="mt-6 text-sm text-teal underline underline-offset-2"
-          >
+          <Button variant="secondary" size="sm" className="mt-6" onClick={switchCode}>
             Not you? Switch code
-          </button>
+          </Button>
         </div>
       )}
     </main>

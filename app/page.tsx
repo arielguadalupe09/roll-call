@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Button from "@/app/_components/button";
 
 export default function Home() {
   return (
@@ -13,18 +13,12 @@ export default function Home() {
         Scan a roster, or hand students a code to check themselves in.
       </p>
       <div className="mt-10 flex gap-4">
-        <Link
-          href="/login"
-          className="rounded-sm bg-brass px-6 py-3 font-medium text-chalk transition hover:brightness-110"
-        >
+        <Button href="/login" className="px-6 py-3">
           Teacher sign in
-        </Link>
-        <Link
-          href="/checkin"
-          className="rounded-sm border border-rule px-6 py-3 font-medium text-paper transition hover:bg-white/5"
-        >
+        </Button>
+        <Button href="/checkin" variant="neutral" className="px-6 py-3">
           Student check-in
-        </Link>
+        </Button>
       </div>
     </main>
   );

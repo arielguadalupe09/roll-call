@@ -8,6 +8,7 @@ import type { Assignment, ClassRow, Period, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import { useActiveClasses } from "@/app/_components/active-classes-context";
+import Button from "@/app/_components/button";
 
 function submissionBadge(counts: { submitted: number; total: number } | undefined) {
   if (!counts || counts.total === 0) return null;
@@ -320,13 +321,9 @@ export default function AssignmentsClient({
           )}
 
           <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-            >
+            <Button type="submit" disabled={loading}>
               {loading ? "Adding..." : "Add assignment"}
-            </button>
+            </Button>
             {error && <p className="text-sm text-danger">{error}</p>}
           </div>
         </form>
@@ -352,12 +349,14 @@ export default function AssignmentsClient({
                     {a.due_date ? `Due ${a.due_date}` : "No due date"} · Max
                     score {a.max_score}
                   </p>
-                  <Link
+                  <Button
                     href={`/assignments/${classId}/${a.id}`}
-                    className="mt-2 inline-block font-mono text-xs uppercase tracking-wide text-teal"
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2"
                   >
                     View submissions →
-                  </Link>
+                  </Button>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <select
@@ -371,12 +370,9 @@ export default function AssignmentsClient({
                     <option value="midterm">Midterm</option>
                     <option value="finals">Finals</option>
                   </select>
-                  <button
-                    onClick={() => handleDelete(a.id)}
-                    className="text-sm text-danger underline underline-offset-2"
-                  >
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(a.id)}>
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             </li>

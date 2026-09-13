@@ -11,19 +11,16 @@ export default async function LecturesPage({
   const { classId } = await params;
   const supabase = await createClient();
 
-  const { data: classRow } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("id", classId)
-    .single();
+  const [{ data: classRow }, { data: lectures }] = await Promise.all([
+    supabase.from("classes").select("*").eq("id", classId).single(),
+    supabase
+      .from("video_lectures")
+      .select("*")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (!classRow) notFound();
-
-  const { data: lectures } = await supabase
-    .from("video_lectures")
-    .select("*")
-    .eq("class_id", classId)
-    .order("created_at", { ascending: false });
 
   return (
     <div className="px-8 py-10">

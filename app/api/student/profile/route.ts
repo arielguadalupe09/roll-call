@@ -8,6 +8,8 @@ import type {
   AssessmentCategory,
   Assignment,
   ClassRow,
+  Exam,
+  ExamAttempt,
   GradingConfig,
   Student,
   Submission,
@@ -163,6 +165,57 @@ export async function POST(request: NextRequest) {
     .filter((a): a is NonNullable<typeof a> => a !== null)
     .sort((a, b) => (a.dueDate ?? "9999-99-99").localeCompare(b.dueDate ?? "9999-99-99"));
 
+  const { data: examRows } = await supabase
+    .from("exams")
+    .select("*")
+    .eq("class_id", student.class_id)
+    .eq("published", true)
+    .order("created_at", { ascending: false });
+
+  const examList = (examRows as Exam[] | null) ?? [];
+  const examIds = examList.map((e) => e.id);
+  const { data: examAttemptRows } = examIds.length
+    ? await supabase
+        .from("exam_attempts")
+        .select("*")
+        .eq("student_id", student.id)
+        .in("exam_id", examIds)
+    : { data: [] as ExamAttempt[] };
+
+  const attemptByExam = new Map(
+    ((examAttemptRows as ExamAttempt[] | null) ?? []).map((a) => [a.exam_id, a]),
+  );
+
+  const exams = examList.map((exam) => {
+    const attempt = attemptByExam.get(exam.id);
+    const status = !attempt ? "not_started" : attempt.submitted_at ? "submitted" : "in_progress";
+    const isNew = !!attempt && !attempt.needs_grading && attempt.score !== null && !attempt.score_seen_at;
+    return {
+      id: exam.id,
+      title: exam.title,
+      kind: exam.kind,
+      period: exam.period,
+      durationMinutes: exam.duration_minutes,
+      availableFrom: exam.available_from,
+      availableUntil: exam.available_until,
+      status,
+      score: attempt?.score ?? null,
+      totalPoints: attempt?.total_points ?? null,
+      isNew,
+    };
+  });
+
+  const newlySeenAttemptIds = exams
+    .filter((e) => e.isNew)
+    .map((e) => attemptByExam.get(e.id)?.id)
+    .filter((id): id is string => !!id);
+  if (newlySeenAttemptIds.length) {
+    await supabase
+      .from("exam_attempts")
+      .update({ score_seen_at: new Date().toISOString() })
+      .in("id", newlySeenAttemptIds);
+  }
+
   return NextResponse.json({
     studentName: student.name,
     className: (classRow as ClassRow).name,
@@ -175,5 +228,6 @@ export async function POST(request: NextRequest) {
     quizzes,
     written,
     laboratory,
+    exams,
   });
 }

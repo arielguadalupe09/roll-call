@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
 import { STUDENT_CODE_KEY } from "@/lib/student-profile";
+import Button from "@/app/_components/button";
 
 const FEATURES = [
   "Track attendance via QR scan or self check-in",
@@ -277,13 +278,9 @@ export default function LoginPage() {
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="mt-2 rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-                >
+                <Button type="submit" disabled={loading} className="mt-2">
                   {loading ? "Sending..." : "Send reset link"}
-                </button>
+                </Button>
               </form>
             )
           ) : (
@@ -338,13 +335,15 @@ export default function LoginPage() {
               </label>
 
               {mode === "signin" && (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="self-end"
                   onClick={() => switchMode("forgot")}
-                  className="self-end text-sm text-teal underline underline-offset-2"
                 >
                   Forgot password?
-                </button>
+                </Button>
               )}
 
               {error && (
@@ -353,30 +352,27 @@ export default function LoginPage() {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-              >
+              <Button type="submit" disabled={loading} className="mt-2">
                 {loading
                   ? "Please wait..."
                   : mode === "signin"
                     ? "Sign in"
                     : "Sign up"}
-              </button>
+              </Button>
             </form>
           )}
 
-          <button
+          <Button
+            variant="neutral"
+            className="mt-4 block w-full text-center"
             onClick={() =>
               switchMode(mode === "signup" ? "signin" : mode === "forgot" ? "signin" : "signup")
             }
-            className="mt-4 block w-full text-center text-sm text-teal underline underline-offset-2"
           >
             {mode === "signup" && "Already have an account? Sign in"}
             {mode === "forgot" && "Back to sign in"}
             {mode === "signin" && "Need an account? Sign up"}
-          </button>
+          </Button>
             </>
           )}
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Announcement } from "@/lib/types";
+import Button from "@/app/_components/button";
 
 export default function AnnouncementsClient({
   classId,
@@ -79,13 +80,9 @@ export default function AnnouncementsClient({
           className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={loading}>
             {loading ? "Posting..." : "Post announcement"}
-          </button>
+          </Button>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </form>
@@ -103,12 +100,9 @@ export default function AnnouncementsClient({
                   {new Date(a.created_at).toLocaleString()}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(a.id)}
-                className="shrink-0 text-sm text-danger underline underline-offset-2"
-              >
+              <Button variant="danger" size="sm" onClick={() => handleDelete(a.id)}>
                 Delete
-              </button>
+              </Button>
             </div>
           </li>
         ))}

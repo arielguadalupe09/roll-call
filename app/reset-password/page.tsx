@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
+import Button from "@/app/_components/button";
 
 function LogoBadge() {
   return (
@@ -151,13 +152,9 @@ export default function ResetPasswordPage() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="mt-2 rounded-sm bg-brass px-4 py-2 font-medium text-chalk transition hover:brightness-110 disabled:opacity-60"
-            >
+            <Button type="submit" disabled={saving} className="mt-2">
               {saving ? "Updating..." : "Update password"}
-            </button>
+            </Button>
           </form>
         )}
       </div>
