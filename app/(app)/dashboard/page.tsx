@@ -209,6 +209,14 @@ export default async function DashboardPage() {
           </a>
         </div>
 
+        <div className="mt-6 rounded-2xl border border-dashed border-brass/50 bg-brass/[0.04] p-5">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-brass">+ New</p>
+          <CreateClassForm
+            teacherId={user.id}
+            defaultUsePrelims={teacherRow?.default_use_prelims ?? false}
+          />
+        </div>
+
         <div className="mt-6">
           <AttendanceByClassChart stats={stats} />
         </div>
@@ -232,14 +240,6 @@ export default async function DashboardPage() {
               </ul>
             )}
           </CollapsibleSection>
-        </div>
-
-        <div className="mt-6 rounded-2xl border border-dashed border-brass/50 bg-brass/[0.04] p-5">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-brass">+ New</p>
-          <CreateClassForm
-            teacherId={user.id}
-            defaultUsePrelims={teacherRow?.default_use_prelims ?? false}
-          />
         </div>
 
         <div className="mt-8">
