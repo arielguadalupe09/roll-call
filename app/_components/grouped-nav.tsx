@@ -139,7 +139,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
               onClick={() => setOpenGroup(isOpen ? null : item.label)}
               aria-expanded={isOpen}
               className={`flex items-center gap-2 ${FLAT_CLASS} ${
-                groupActive ? "bg-chalk text-paper font-semibold" : "text-ink/70 hover:bg-ink/5"
+                groupActive ? "bg-brass text-chalk font-semibold" : "text-ink/70 hover:bg-ink/5"
               }`}
             >
               {item.label}
