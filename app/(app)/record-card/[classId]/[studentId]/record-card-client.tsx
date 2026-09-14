@@ -8,6 +8,7 @@ import RecordCardSheet from "../../record-card-sheet";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import Button from "@/app/_components/button";
+import { Select } from "@/app/_components/input";
 
 type RosterEntry = { id: string; name: string };
 
@@ -87,29 +88,29 @@ export default function RecordCardClient({
       <div className="no-print mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 pb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">
-            {data.student.name} — Record Card
+            {data.student.name} — Record card
           </h1>
           <p className="text-ink/60">Grades and attendance, one page.</p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-ink/70">
+          <label className="flex items-center gap-2 text-sm text-muted">
             Paper size
-            <select
+            <Select
               value={paperSize}
               onChange={(e) => setPaperSize(e.target.value as PaperSize)}
-              className="rounded-sm border border-rule bg-white px-2 py-1.5 text-ink outline-none focus:border-brass"
+              className="w-auto py-1.5"
             >
               {Object.entries(PAPER_SIZES).map(([key, { label }]) => (
                 <option key={key} value={key}>
                   {label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf}>
             {exportingPdf ? "Saving PDF..." : "Save PDF"}
           </Button>
-          <Button onClick={() => window.print()}>Print</Button>
+          <Button variant="highlight" onClick={() => window.print()}>Print</Button>
         </div>
       </div>
 
@@ -121,7 +122,7 @@ export default function RecordCardClient({
         ) : (
           <span />
         )}
-        <Button href={`/record-card/${classId}`} variant="neutral" size="sm">
+        <Button href={`/record-card/${classId}`} variant="secondary" size="sm">
           All students
         </Button>
         {nextStudent ? (

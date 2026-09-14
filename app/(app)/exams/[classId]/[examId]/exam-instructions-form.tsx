@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Textarea } from "@/app/_components/input";
 
 // Instructions specific to this exam (e.g. "Non-programmable calculators
 // allowed", "Show your solution for items 5-10") -- shown to students in
@@ -40,19 +41,19 @@ export default function ExamInstructionsForm({
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+    <div className="mt-6 flex flex-col gap-2 rounded-[10px] border border-line bg-card p-4">
       <label className="flex flex-col gap-1">
-        <span className="font-medium text-ink">Instructions for this exam (optional)</span>
-        <span className="text-sm text-ink/60">
+        <span className="text-xs font-semibold text-ink">Instructions for this exam (optional)</span>
+        <span className="text-sm text-muted">
           Shown to students on the exam and printed on the quiz paper -- e.g. materials allowed,
           scoring notes, or anything specific to this exam.
         </span>
-        <textarea
+        <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           placeholder="e.g. Non-programmable calculators allowed. Show your solution for items 5-10."
-          className="mt-1 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+          className="mt-1"
         />
       </label>
       <Button size="sm" className="self-start" onClick={handleSave} disabled={saving}>

@@ -5,6 +5,8 @@ import type { GradingConfig, ParticipationLog, Student } from "@/lib/types";
 import { summarizeParticipation } from "@/lib/participation";
 import { periodForDate } from "@/lib/record-card-data";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import { Select } from "@/app/_components/input";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
 function SummaryTable({
   title,
@@ -56,85 +58,81 @@ function SummaryTable({
             e.stopPropagation();
             setShowLog((v) => !v);
           }}
-          className="shrink-0 text-sm text-teal underline underline-offset-2"
+          className="shrink-0 text-sm text-slate underline underline-offset-2"
         >
           {showLog ? "Hide detailed log" : "Show detailed log"}
         </button>
       }
     >
-      <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
-              {showLog && (
-                <th className="py-2 px-3">
-                  <div className="flex items-center gap-2">
-                    <span>Log</span>
-                    <select
-                      value={logDate}
-                      onChange={(e) => setLogDate(e.target.value)}
-                      disabled={logDates.length === 0}
-                      className="rounded-sm border border-rule bg-white px-2 py-1 font-mono text-[10px] normal-case tracking-normal text-ink outline-none focus:border-brass disabled:opacity-60"
-                    >
-                      <option value="all">All recitations</option>
-                      {logDates.map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </th>
-              )}
-              <th className="py-2 px-3">Student</th>
-              <th className="py-2 px-3">Taps</th>
-              <th className="py-2 px-3">Average (/5)</th>
-              <th className="py-2 px-3">Normalized (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((s) => {
-              const entry = summary.get(s.id) ?? { count: 0, sum: 0, avg: null };
-              const studentLogs = logsByStudent.get(s.id) ?? [];
-              return (
-                <tr key={s.id} className="border-b border-rule/50 bg-white align-top">
-                  {showLog && (
-                    <td className="py-2 px-3 font-mono text-xs text-ink/60">
-                      {studentLogs.length > 0 ? (
-                        <div className="flex flex-col gap-0.5">
-                          {studentLogs.map((log) => (
-                            <span key={log.id}>
-                              {log.date} · {new Date(log.recorded_at).toLocaleTimeString()} —{" "}
-                              {log.score != null ? `${log.score}/5` : "—"}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  )}
-                  <td className="py-2 px-3 text-ink">{s.name}</td>
-                  <td className="py-2 px-3 font-mono text-ink">{entry.count}</td>
-                  <td className="py-2 px-3 font-mono text-ink">
-                    {entry.avg != null ? entry.avg.toFixed(1) : "—"}
-                  </td>
-                  <td className="py-2 px-3 font-mono text-ink">
-                    {entry.avg != null ? `${((entry.avg / 5) * 100).toFixed(1)}%` : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-            {students.length === 0 && (
-              <tr>
-                <td colSpan={showLog ? 5 : 4} className="py-4 px-3 text-ink/60">
-                  No students in this class yet.
-                </td>
-              </tr>
+      <Table>
+        <TableHead>
+          <TableRow>
+            {showLog && (
+              <TableHeaderCell>
+                <div className="flex items-center gap-2">
+                  <span>Log</span>
+                  <Select
+                    value={logDate}
+                    onChange={(e) => setLogDate(e.target.value)}
+                    disabled={logDates.length === 0}
+                    className="w-auto py-1 text-xs"
+                  >
+                    <option value="all">All recitations</option>
+                    {logDates.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </TableHeaderCell>
             )}
-          </tbody>
-        </table>
-      </div>
+            <TableHeaderCell>Student</TableHeaderCell>
+            <TableHeaderCell>Taps</TableHeaderCell>
+            <TableHeaderCell>Average (/5)</TableHeaderCell>
+            <TableHeaderCell>Normalized (%)</TableHeaderCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {students.map((s) => {
+            const entry = summary.get(s.id) ?? { count: 0, sum: 0, avg: null };
+            const studentLogs = logsByStudent.get(s.id) ?? [];
+            return (
+              <TableRow key={s.id} striped className="align-top">
+                {showLog && (
+                  <TableCell tabular className="text-xs text-muted">
+                    {studentLogs.length > 0 ? (
+                      <div className="flex flex-col gap-0.5">
+                        {studentLogs.map((log) => (
+                          <span key={log.id}>
+                            {log.date} · {new Date(log.recorded_at).toLocaleTimeString()} —{" "}
+                            {log.score != null ? `${log.score}/5` : "—"}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                )}
+                <TableCell>{s.name}</TableCell>
+                <TableCell tabular>{entry.count}</TableCell>
+                <TableCell tabular>{entry.avg != null ? entry.avg.toFixed(1) : "—"}</TableCell>
+                <TableCell tabular>
+                  {entry.avg != null ? `${((entry.avg / 5) * 100).toFixed(1)}%` : "—"}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+          {students.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={showLog ? 5 : 4} className="py-4 text-muted">
+                No students in this class yet.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </CollapsibleSection>
   );
 }
@@ -158,7 +156,7 @@ export default function RecitationTab({
   if (!config.use_prelims && !cutoff) {
     return (
       <div className="mt-6">
-        <p className="mb-4 rounded-sm border border-brass bg-brass/10 px-3 py-2 text-sm text-ink">
+        <p className="mb-4 rounded-sm border border-gold/40 bg-gold-soft px-3 py-2 text-sm text-ink">
           Set a midterm end date in Setup to split recitation scores into
           Midterm and Finals. Showing combined totals for now.
         </p>

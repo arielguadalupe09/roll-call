@@ -11,14 +11,16 @@ import {
 } from "@/lib/record-card-layout";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 const CATEGORY_FIELDS = [
   { key: "weight_assignment", label: "Assignment" },
   { key: "weight_recitation", label: "Recitation" },
   { key: "weight_quiz", label: "Quiz" },
-  { key: "weight_written", label: "Written Activity" },
-  { key: "weight_laboratory", label: "Laboratory Activity" },
-  { key: "weight_major_exam", label: "Major Examination" },
+  { key: "weight_written", label: "Written activity" },
+  { key: "weight_laboratory", label: "Laboratory activity" },
+  { key: "weight_major_exam", label: "Major examination" },
 ] as const;
 
 type FieldKey = (typeof CATEGORY_FIELDS)[number]["key"];
@@ -27,9 +29,9 @@ const SECTION_FIELDS = [
   { key: "show_assignment", label: "Assignment" },
   { key: "show_recitation", label: "Recitation" },
   { key: "show_quiz", label: "Quiz" },
-  { key: "show_written", label: "Written Activity" },
-  { key: "show_laboratory", label: "Laboratory Activity" },
-  { key: "show_major_exam", label: "Major Exam" },
+  { key: "show_written", label: "Written activity" },
+  { key: "show_laboratory", label: "Laboratory activity" },
+  { key: "show_major_exam", label: "Major exam" },
   { key: "show_attendance", label: "Attendance" },
 ] as const;
 
@@ -131,15 +133,14 @@ export default function SetupTab({
         splits recitation taps into Midterm vs. Finals.
       </p>
 
-      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
-        <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+      <div className="mt-4 rounded-[10px] border border-line bg-card p-4">
+        <p className="text-xs text-muted">
           Category weights (%)
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {CATEGORY_FIELDS.map((f) => (
-            <label key={f.key} className="flex flex-col gap-1">
-              <span className="text-sm text-ink">{f.label}</span>
-              <input
+            <FormField key={f.key} label={f.label}>
+              <Input
                 type="number"
                 min={0}
                 max={100}
@@ -147,21 +148,21 @@ export default function SetupTab({
                 onChange={(e) =>
                   setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
                 }
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+                className="font-mono"
               />
-            </label>
+            </FormField>
           ))}
         </div>
         <p
           className={`mt-3 text-sm ${
-            weightSum === 100 ? "text-teal" : "text-danger"
+            weightSum === 100 ? "text-success-text" : "text-danger"
           }`}
         >
           Total: {weightSum}% {weightSum !== 100 && "(should add up to 100%)"}
         </p>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+      <div className="mt-4 rounded-[10px] border border-line bg-card p-4">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -178,81 +179,76 @@ export default function SetupTab({
         </p>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
-        <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
-          Combining {usePrelims ? "Prelim + Midterm + Finals" : "Midterm + Finals"} into the Final Grade
+      <div className="mt-4 rounded-[10px] border border-line bg-card p-4">
+        <p className="text-xs text-muted">
+          Combining {usePrelims ? "Prelim + Midterm + Finals" : "Midterm + Finals"} into the final grade
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           {usePrelims && (
-            <label className="flex w-36 flex-col gap-1">
-              <span className="text-sm text-ink">Prelims weight (%)</span>
-              <input
+            <FormField label="Prelims weight (%)" className="w-36">
+              <Input
                 type="number"
                 min={0}
                 max={100}
                 value={prelimWeight}
                 onChange={(e) => setPrelimWeight(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+                className="font-mono"
               />
-            </label>
+            </FormField>
           )}
-          <label className="flex w-36 flex-col gap-1">
-            <span className="text-sm text-ink">Midterm weight (%)</span>
-            <input
+          <FormField label="Midterm weight (%)" className="w-36">
+            <Input
               type="number"
               min={0}
               max={100}
               value={midtermWeight}
               onChange={(e) => setMidtermWeight(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              className="font-mono"
             />
-          </label>
-          <label className="flex w-36 flex-col gap-1">
-            <span className="text-sm text-ink">Finals weight (%)</span>
-            <input
+          </FormField>
+          <FormField label="Finals weight (%)" className="w-36">
+            <Input
               type="number"
               min={0}
               max={100}
               value={finalsWeight}
               onChange={(e) => setFinalsWeight(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              className="font-mono"
             />
-          </label>
+          </FormField>
         </div>
         <p
           className={`mt-3 text-sm ${
-            periodSum === 100 ? "text-teal" : "text-danger"
+            periodSum === 100 ? "text-success-text" : "text-danger"
           }`}
         >
           Total: {periodSum}% {periodSum !== 100 && "(should add up to 100%)"}
         </p>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
-        <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+      <div className="mt-4 rounded-[10px] border border-line bg-card p-4">
+        <p className="text-xs text-muted">
           Recitation period cutoff{usePrelims ? "s" : ""}
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           {usePrelims && (
-            <label className="flex w-56 flex-col gap-1">
-              <span className="text-sm text-ink">Prelims ends on</span>
-              <input
+            <FormField label="Prelims ends on" className="w-56">
+              <Input
                 type="date"
                 value={prelimEndDate}
                 onChange={(e) => setPrelimEndDate(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+                className="font-mono"
               />
-            </label>
+            </FormField>
           )}
-          <label className="flex w-56 flex-col gap-1">
-            <span className="text-sm text-ink">Midterm ends on</span>
-            <input
+          <FormField label="Midterm ends on" className="w-56">
+            <Input
               type="date"
               value={midtermEndDate}
               onChange={(e) => setMidtermEndDate(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              className="font-mono"
             />
-          </label>
+          </FormField>
         </div>
         <p className="mt-2 text-sm text-ink/60">
           {usePrelims
@@ -261,9 +257,9 @@ export default function SetupTab({
         </p>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
-        <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
-          Record Card layout
+      <div className="mt-4 rounded-[10px] border border-line bg-card p-4">
+        <p className="text-xs text-muted">
+          Record card layout
         </p>
         <p className="mt-1 text-sm text-ink/60">
           Choose which sections print, their order, and a custom title for
@@ -273,7 +269,7 @@ export default function SetupTab({
           {order.map((key, index) => (
             <div
               key={key}
-              className="flex items-center gap-3 rounded-sm border border-rule/60 p-2"
+              className="flex items-center gap-3 rounded-sm border border-line/60 p-2"
             >
               <div className="flex shrink-0 flex-col">
                 <button
@@ -324,14 +320,14 @@ export default function SetupTab({
                 aria-label={`Show ${DEFAULT_SECTION_TITLES[key]}`}
               />
 
-              <input
+              <Input
                 type="text"
                 value={titles[key]}
                 onChange={(e) =>
                   setTitles((prev) => ({ ...prev, [key]: e.target.value }))
                 }
                 placeholder={DEFAULT_SECTION_TITLES[key]}
-                className="flex-1 rounded-sm border border-rule bg-white/60 px-2 py-1 text-sm text-ink outline-none focus:border-brass"
+                className="flex-1 py-1 text-sm"
               />
             </div>
           ))}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getDeviceId } from "@/lib/device-id";
 import type { StudentProfile } from "@/lib/student-profile";
 import Button from "./button";
+import { Input } from "./input";
 
 const CODE_READER_ID = "student-code-entry-reader";
 
@@ -119,7 +120,7 @@ export default function StudentCodeEntry({
 
   return (
     <div className="w-full">
-      <div className="ledger-page rounded-sm border border-rule p-6 text-ink">
+      <div className="ledger-page rounded-sm border border-line p-6 text-ink">
         <p className="text-sm text-ink/70">{prompt}</p>
 
         {codeMode === "scan" ? (
@@ -135,12 +136,12 @@ export default function StudentCodeEntry({
           <form onSubmit={submitCode} className="mt-4 flex flex-col gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium">Your personal code</span>
-              <input
+              <Input
                 autoFocus
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="e.g. 7F3KQ9M"
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono uppercase tracking-widest text-ink outline-none focus:border-brass"
+                className="font-mono uppercase tracking-widest"
               />
             </label>
             <Button type="submit" disabled={loading}>

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 export default function ProfileForm({
   teacherId,
@@ -46,20 +48,17 @@ export default function ProfileForm({
   return (
     <>
       <form onSubmit={handleSave} className="mt-6 max-w-md">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">Display name</span>
-          <input
+        <FormField
+          label="Display name"
+          hint="Shown as the Instructor name on printable documents like the Student Individual Record Card."
+        >
+          <Input
             type="text"
             placeholder="e.g. Ariel Guadalupe"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-        </label>
-        <p className="mt-1 text-sm text-ink/60">
-          Shown as the Instructor name on printable documents like the Student
-          Individual Record Card.
-        </p>
+        </FormField>
 
         <label className="mt-4 flex items-center gap-2">
           <input
@@ -131,28 +130,22 @@ function ChangePasswordForm() {
         Change password
       </h2>
       <div className="mt-3 flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">New password</span>
-          <input
+        <FormField label="New password">
+          <Input
             type="password"
             placeholder="Min 6 characters"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">
-            Confirm new password
-          </span>
-          <input
+        </FormField>
+        <FormField label="Confirm new password">
+          <Input
             type="password"
             placeholder="Re-enter password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-        </label>
+        </FormField>
       </div>
       <div className="mt-4 flex items-center gap-3">
         <Button type="submit" disabled={changingPassword}>

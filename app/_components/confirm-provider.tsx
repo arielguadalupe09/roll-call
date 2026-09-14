@@ -50,7 +50,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           role="alertdialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-[10px] border border-line bg-card p-5 shadow-lg">
             {state.title && (
               <p className="font-display text-lg font-semibold text-ink">{state.title}</p>
             )}
@@ -58,7 +58,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               {state.message}
             </p>
             <div className="mt-5 flex justify-end gap-3">
-              <Button variant="neutral" onClick={() => handle(false)}>
+              <Button variant="secondary" onClick={() => handle(false)}>
                 {state.cancelLabel ?? "Cancel"}
               </Button>
               <Button variant={state.danger ? "danger" : "primary"} onClick={() => handle(true)} autoFocus>

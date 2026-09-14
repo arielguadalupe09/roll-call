@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 export default function SubjectEditor({
   classId,
@@ -50,18 +51,18 @@ export default function SubjectEditor({
   if (editing) {
     return (
       <div className="mt-2 flex items-center gap-2">
-        <input
+        <Input
           type="text"
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="e.g. Introduction to Programming"
-          className="rounded-sm border border-rule bg-white/60 px-2 py-1 text-sm text-ink outline-none focus:border-brass"
+          className="py-1 text-sm"
         />
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}
         </Button>
-        <Button variant="neutral" size="sm" onClick={cancelEdit}>
+        <Button variant="secondary" size="sm" onClick={cancelEdit}>
           Cancel
         </Button>
       </div>
@@ -75,13 +76,13 @@ export default function SubjectEditor({
           Subject: <span className="font-medium text-ink">{subject}</span>{" "}
           <button
             onClick={() => setEditing(true)}
-            className="ml-1 text-teal underline underline-offset-2"
+            className="ml-1 text-slate underline underline-offset-2"
           >
             Edit
           </button>
         </p>
       ) : (
-        <Button variant="neutral" size="sm" onClick={() => setEditing(true)}>
+        <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
           Add subject
         </Button>
       )}

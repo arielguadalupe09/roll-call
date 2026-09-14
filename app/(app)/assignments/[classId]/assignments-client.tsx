@@ -9,12 +9,14 @@ import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import { useActiveClasses } from "@/app/_components/active-classes-context";
 import Button from "@/app/_components/button";
+import { Input, Select, Textarea } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 function submissionBadge(counts: { submitted: number; total: number } | undefined) {
   if (!counts || counts.total === 0) return null;
   const { submitted, total } = counts;
   const color =
-    submitted === total ? "bg-teal/20 text-teal" : submitted === 0 ? "bg-ink/10 text-ink/60" : "bg-brass/20 text-brass";
+    submitted === total ? "bg-success/20 text-success-text" : submitted === 0 ? "bg-ink/10 text-ink/60" : "bg-gold/20 text-gold";
   return (
     <span className={`rounded-sm px-2 py-0.5 font-mono text-xs font-semibold ${color}`}>
       {submitted}/{total} submitted
@@ -207,54 +209,45 @@ export default function AssignmentsClient({
       <div className="mt-6">
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
+          className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
         >
-          <input
+          <Input
             type="text"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-          <textarea
+          <Textarea
             placeholder="Description (optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
           <div className="flex gap-3">
-            <label className="flex flex-1 flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Due date</span>
-              <input
+            <FormField label="Due date" className="flex-1">
+              <Input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+                className="font-mono"
               />
-            </label>
-            <label className="flex w-32 flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Max score</span>
-              <input
+            </FormField>
+            <FormField label="Max score" className="w-32">
+              <Input
                 type="number"
                 min={1}
                 value={maxScore}
                 onChange={(e) => setMaxScore(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+                className="font-mono"
               />
-            </label>
-            <label className="flex w-36 flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Period</span>
-              <select
-                value={period}
-                onChange={(e) => setPeriod(e.target.value as Period)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
-              >
+            </FormField>
+            <FormField label="Period" className="w-36">
+              <Select value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
                 {usePrelims && <option value="prelim">Prelim</option>}
                 <option value="midterm">Midterm</option>
                 <option value="finals">Finals</option>
-              </select>
-            </label>
+              </Select>
+            </FormField>
           </div>
 
           <div>
@@ -265,15 +258,15 @@ export default function AssignmentsClient({
                   key={c.id}
                   className={`flex cursor-pointer items-center gap-1.5 rounded-sm border px-2.5 py-1 text-sm transition ${
                     selectedClassIds.has(c.id)
-                      ? "border-brass bg-brass/10 text-ink"
-                      : "border-rule text-ink/70 hover:border-brass"
+                      ? "border-gold bg-gold/10 text-ink"
+                      : "border-line text-ink/70 hover:border-gold"
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={selectedClassIds.has(c.id)}
                     onChange={() => toggleClass(c.id)}
-                    className="accent-brass"
+                    className="accent-gold"
                   />
                   {c.name}
                 </label>
@@ -285,22 +278,22 @@ export default function AssignmentsClient({
             <div>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-ink">Assign to students</p>
-                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-teal">
+                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate">
                   <input
                     type="checkbox"
                     checked={selectedStudentIds.size === visibleStudents.length}
                     onChange={toggleSelectAllVisible}
-                    className="accent-brass"
+                    className="accent-gold"
                   />
                   Select all
                 </label>
               </div>
-              <div className="mt-1 max-h-64 overflow-y-auto rounded-sm border border-rule p-3">
+              <div className="mt-1 max-h-64 overflow-y-auto rounded-sm border border-line p-3">
                 {teacherClasses
                   .filter((c) => studentsByClass.has(c.id))
                   .map((c) => (
                     <div key={c.id} className="mb-3 last:mb-0">
-                      <p className="font-mono text-xs uppercase tracking-wide text-ink/50">{c.name}</p>
+                      <p className="text-xs text-muted">{c.name}</p>
                       <div className="mt-1 flex flex-col gap-1">
                         {studentsByClass.get(c.id)!.map((s) => (
                           <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
@@ -308,7 +301,7 @@ export default function AssignmentsClient({
                               type="checkbox"
                               checked={selectedStudentIds.has(s.id)}
                               onChange={() => toggleStudent(s.id)}
-                              className="accent-brass"
+                              className="accent-gold"
                             />
                             {s.name}
                           </label>
@@ -330,13 +323,13 @@ export default function AssignmentsClient({
 
         <ul className="mt-6 flex flex-col gap-3">
           {assignments.map((a) => (
-            <li key={a.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:border-brass/60 hover:shadow-md">
+            <li key={a.id} className="rounded-[10px] border border-line bg-card p-4 transition hover:border-gold/60">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/assignments/${classId}/${a.id}`}
-                      className="font-display text-lg font-semibold text-ink underline decoration-ink/20 underline-offset-2 hover:text-teal hover:decoration-teal"
+                      className="font-display text-lg font-semibold text-ink underline decoration-ink/20 underline-offset-2 hover:text-slate hover:decoration-slate"
                     >
                       {a.title}
                     </Link>
@@ -359,17 +352,17 @@ export default function AssignmentsClient({
                   </Button>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <select
+                  <Select
                     value={a.period}
                     onChange={(e) =>
                       handlePeriodChange(a.id, e.target.value as Period)
                     }
-                    className="rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-xs uppercase text-ink outline-none focus:border-brass"
+                    className="w-auto py-1 text-xs"
                   >
                     {usePrelims && <option value="prelim">Prelim</option>}
                     <option value="midterm">Midterm</option>
                     <option value="finals">Finals</option>
-                  </select>
+                  </Select>
                   <Button variant="danger" size="sm" onClick={() => handleDelete(a.id)}>
                     Delete
                   </Button>

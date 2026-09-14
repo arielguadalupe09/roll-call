@@ -29,11 +29,11 @@ export function AttendanceRing({ rate }: { rate: number | null }) {
   const circumference = 2 * Math.PI * r;
   const pct = rate == null ? 0 : Math.max(0, Math.min(1, rate));
   const tier = rate == null ? null : tierFor(pct);
-  const colorClass = tier ? TIER_TEXT[tier] : "text-rule";
+  const colorClass = tier ? TIER_TEXT[tier] : "text-card/70";
 
   return (
     <svg width="52" height="52" viewBox="0 0 36 36" className="shrink-0" role="img" aria-label={rate == null ? "No attendance data yet" : `${Math.round(pct * 100)}% average attendance`}>
-      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--rule)" strokeOpacity="0.3" strokeWidth="3" />
+      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--line)" strokeOpacity="0.3" strokeWidth="3" />
       {rate != null && (
         <circle
           cx="18"
@@ -72,7 +72,7 @@ export function ActiveArchivedBar({ active, archived }: { active: number; archiv
         />
         {archived > 0 && (
           <div
-            className="h-full bg-rule"
+            className="h-full bg-line"
             style={{ width: `${100 - activePct}%` }}
             title={`${archived} archived`}
           />
@@ -151,7 +151,7 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
       defaultOpen
       variant="primary"
       actions={
-        <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide text-ink/60">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
           <Legend swatch="bg-chart-good" label="≥ 90%" />
           <Legend swatch="bg-chart-warning" label="75–89%" />
           <Legend swatch="bg-chart-critical" label="< 75%" />
@@ -173,11 +173,11 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)_auto]"
                 title={`${s.classRow.name}: ${rate == null ? "no sessions recorded yet" : `${pct}% attendance`}, ${s.studentCount} student${s.studentCount === 1 ? "" : "s"}`}
               >
-                <span className="hidden truncate font-semibold uppercase tracking-wide text-ink sm:block">
+                <span className="hidden truncate font-semibold text-ink sm:block">
                   {s.classRow.name}
                 </span>
                 <div className="col-span-2 flex flex-col gap-0.5 sm:col-span-1">
-                  <span className="truncate text-xs font-semibold uppercase tracking-wide text-ink sm:hidden">
+                  <span className="truncate text-xs font-semibold text-ink sm:hidden">
                     {s.classRow.name}
                   </span>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-ink/10">

@@ -30,18 +30,20 @@ export type NavItem =
   | { kind: "group"; label: string; tools: NavGroupEntry[] };
 
 const FLAT_CLASS =
-  "rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition";
+  "border-b-2 px-3 py-1.5 text-sm transition";
 const DROPDOWN_ITEM_CLASS =
-  "block w-full px-4 py-2 text-left font-mono text-xs uppercase tracking-wide transition";
+  "block w-full px-4 py-2 text-left text-sm transition";
 
 function ToolControl({ tool, variant }: { tool: NavTool; variant: "flat" | "dropdown" }) {
   const className =
     variant === "flat"
       ? `${FLAT_CLASS} ${
-          tool.active ? "bg-brass text-chalk font-semibold" : "text-ink/70 hover:bg-ink/5"
+          tool.active
+            ? "border-gold font-semibold text-ink"
+            : "border-transparent text-muted hover:bg-slate-light hover:text-ink"
         }`
       : `${DROPDOWN_ITEM_CLASS} ${
-          tool.active ? "bg-brass/15 font-semibold text-brass" : "text-ink/70 hover:bg-ink/5"
+          tool.active ? "bg-gold-soft font-semibold text-ink" : "text-muted hover:bg-slate-light hover:text-ink"
         }`;
 
   if (tool.href) {
@@ -75,7 +77,7 @@ function SubmenuControl({ submenu }: { submenu: NavSubmenu }) {
           setOpen((prev) => !prev);
         }}
         className={`flex w-full items-center justify-between gap-2 ${DROPDOWN_ITEM_CLASS} ${
-          active ? "bg-brass/15 font-semibold text-brass" : "text-ink/70 hover:bg-ink/5"
+          active ? "bg-gold-soft font-semibold text-ink" : "text-muted hover:bg-slate-light hover:text-ink"
         }`}
       >
         {submenu.label}
@@ -92,7 +94,7 @@ function SubmenuControl({ submenu }: { submenu: NavSubmenu }) {
 
       {open && (
         <div
-          className="absolute left-full top-0 z-30 ml-1 min-w-[11rem] overflow-hidden rounded-xl border border-rule/60 bg-white py-1 shadow-lg"
+          className="absolute left-full top-0 z-30 ml-1 min-w-[11rem] overflow-hidden rounded-xl border border-line/60 bg-white py-1 shadow-lg"
         >
           {submenu.tools.map((tool) => (
             <ToolControl key={tool.label} tool={tool} variant="dropdown" />
@@ -120,7 +122,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-wrap items-start gap-2 border-b border-rule/60 pb-3"
+      className="relative flex flex-wrap items-start gap-2 border-b border-line/60 pb-3"
     >
       {items.map((item) => {
         if (item.kind === "tool") {
@@ -139,7 +141,9 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
               onClick={() => setOpenGroup(isOpen ? null : item.label)}
               aria-expanded={isOpen}
               className={`flex items-center gap-2 ${FLAT_CLASS} ${
-                groupActive ? "bg-brass text-chalk font-semibold" : "text-ink/70 hover:bg-ink/5"
+                groupActive
+                  ? "border-gold font-semibold text-ink"
+                  : "border-transparent text-muted hover:bg-slate-light hover:text-ink"
               }`}
             >
               {item.label}
@@ -168,7 +172,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
                 // it would clip a submenu's flyout, which is deliberately
                 // positioned outside this box via left-full. Rounded corners
                 // come from rounding the first/last child directly instead.
-                className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] rounded-xl border border-rule/60 bg-white py-1 shadow-lg [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl [&>*>*:first-child]:rounded-t-xl [&>*>*:last-child]:rounded-b-xl"
+                className="absolute left-0 top-full z-20 mt-1 min-w-[11rem] rounded-xl border border-line/60 bg-white py-1 shadow-lg [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl [&>*>*:first-child]:rounded-t-xl [&>*>*:last-child]:rounded-b-xl"
               >
                 {item.tools.map((entry) =>
                   isSubmenu(entry) ? (

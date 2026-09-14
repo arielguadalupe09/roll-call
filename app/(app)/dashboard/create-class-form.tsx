@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 export default function CreateClassForm({
   teacherId,
@@ -56,12 +57,12 @@ export default function CreateClassForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap gap-3">
-      <input
+      <Input
         type="text"
         placeholder="New class name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="min-w-0 flex-1 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+        className="min-w-0 flex-1"
       />
       <Button type="submit" disabled={loading} className="whitespace-nowrap">
         {loading ? "Adding..." : "Add class"}

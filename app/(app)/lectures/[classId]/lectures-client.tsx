@@ -8,6 +8,7 @@ import { useConfirm } from "@/app/_components/confirm-provider";
 import { buildLectureStoragePath, formatFileSize, formatRecordingSeconds } from "@/lib/video-lecture-path";
 import type { VideoLecture } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Input, Textarea } from "@/app/_components/input";
 
 const RECORDING_CAP_SECONDS = 600;
 const BUCKET = "lecture-videos";
@@ -252,7 +253,7 @@ export default function LecturesClient({
 
   const modeButtonClass = (m: Mode) =>
     `rounded-sm border px-3 py-1.5 text-sm transition ${
-      mode === m ? "border-brass bg-brass text-chalk" : "border-rule text-ink/70 hover:border-brass"
+      mode === m ? "border-gold bg-gold text-navy" : "border-line text-ink/70 hover:border-gold"
     }`;
 
   return (
@@ -263,21 +264,19 @@ export default function LecturesClient({
 
       <form
         onSubmit={handleSave}
-        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
+        className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
-        <input
+        <Input
           type="text"
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
-        <textarea
+        <Textarea
           placeholder="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
 
         <div className="flex gap-2">
@@ -322,7 +321,7 @@ export default function LecturesClient({
               if (dropped) setFile(dropped);
             }}
             className={`flex cursor-pointer flex-col items-center gap-2 rounded-sm border-2 border-dashed px-4 py-8 text-center transition ${
-              dragActive ? "border-brass bg-brass/10" : "border-rule hover:border-brass"
+              dragActive ? "border-gold bg-gold/10" : "border-line hover:border-gold"
             }`}
           >
             <UploadIcon className="h-6 w-6 text-ink/40" />
@@ -345,7 +344,7 @@ export default function LecturesClient({
               </div>
             ) : (
               <p className="text-sm text-ink/60">
-                Drag a video here, or <span className="text-teal underline underline-offset-2">browse</span>
+                Drag a video here, or <span className="text-slate underline underline-offset-2">browse</span>
               </p>
             )}
             <input
@@ -359,29 +358,28 @@ export default function LecturesClient({
         )}
 
         {mode === "link" && (
-          <input
+          <Input
             type="url"
             placeholder="https://youtube.com/..."
             value={externalUrl}
             onChange={(e) => setExternalUrl(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
         )}
 
         {mode === "record" && (
           <div className="flex flex-col gap-2">
             {recording && (
-              <video ref={videoPreviewRef} playsInline autoPlay muted className="w-full rounded-sm bg-chalk" />
+              <video ref={videoPreviewRef} playsInline autoPlay muted className="w-full rounded-sm bg-navy" />
             )}
             {!recording && previewUrl && (
-              <video key={previewUrl} src={previewUrl} controls playsInline className="w-full rounded-sm bg-chalk" />
+              <video key={previewUrl} src={previewUrl} controls playsInline className="w-full rounded-sm bg-navy" />
             )}
             {!recording && !recordedBlob && (
               <div className="flex gap-2">
-                <Button variant="neutral" size="sm" onClick={() => handleStartRecording("webcam")}>
+                <Button variant="secondary" size="sm" onClick={() => handleStartRecording("webcam")}>
                   Record webcam
                 </Button>
-                <Button variant="neutral" size="sm" onClick={() => handleStartRecording("screen")}>
+                <Button variant="secondary" size="sm" onClick={() => handleStartRecording("screen")}>
                   Record screen
                 </Button>
               </div>
@@ -424,7 +422,7 @@ export default function LecturesClient({
 
       <ul className="mt-6 flex flex-col gap-3">
         {lectures.map((lecture) => (
-          <li key={lecture.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+          <li key={lecture.id} className="rounded-[10px] border border-line bg-card p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-display text-lg font-semibold text-ink">{lecture.title}</p>
@@ -446,7 +444,7 @@ export default function LecturesClient({
                     </Button>
                   )}
                   <Button
-                    variant={lecture.published ? "neutral" : "primary"}
+                    variant={lecture.published ? "secondary" : "primary"}
                     size="sm"
                     onClick={() => setPublished(lecture.id, !lecture.published)}
                   >

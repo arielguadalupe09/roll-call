@@ -11,6 +11,7 @@ import { useConfirm } from "@/app/_components/confirm-provider";
 import IconButton from "@/app/_components/icon-button";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import Button from "@/app/_components/button";
+import { Input, Select } from "@/app/_components/input";
 
 const MAX_ATTEMPTS = 5;
 
@@ -369,12 +370,12 @@ export default function StudentsManager({
   return (
     <div className="mt-6">
       <form onSubmit={handleAdd} className="flex flex-wrap gap-3">
-        <input
+        <Input
           type="text"
           placeholder="Lastname, Firstname M.I."
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="min-w-0 flex-1 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+          className="min-w-0 flex-1"
         />
         <Button type="submit" disabled={loading} className="whitespace-nowrap">
           {loading ? "Adding..." : "Add student"}
@@ -391,15 +392,15 @@ export default function StudentsManager({
             if (file) handleImport(file);
           }}
           disabled={importing}
-          className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-rule file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+          className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
         />
         {importing && (
           <span className="text-sm text-ink/60">Importing...</span>
         )}
-        <Button href={`/record-card/${classId}`} variant="secondary" className="ml-auto">
+        <Button href={`/record-card/${classId}`} variant="highlight" className="ml-auto">
           Record Cards (all students)
         </Button>
-        <Button href={`/qr/${classId}`} variant="secondary">
+        <Button href={`/qr/${classId}`} variant="highlight">
           Print QR codes
         </Button>
       </div>
@@ -411,20 +412,20 @@ export default function StudentsManager({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               onClick={() => setSortMode((prev) => NEXT_SORT[prev])}
-              className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink transition hover:bg-ink/5"
+              className="rounded-sm border border-line px-3 py-1.5 text-sm text-ink transition hover:bg-slate-light"
             >
               {SORT_LABEL[sortMode]}
             </button>
 
             {selected.size > 0 && (
-              <div className="flex items-center gap-3 rounded-sm border border-brass bg-brass/10 px-3 py-1.5">
+              <div className="flex items-center gap-3 rounded-sm border border-gold bg-gold/10 px-3 py-1.5">
                 <span className="text-sm font-medium text-ink">
                   {selected.size} selected
                 </span>
-                <Button href={`/qr/${classId}?ids=${Array.from(selected).join(",")}`} variant="secondary" size="sm">
+                <Button href={`/qr/${classId}?ids=${Array.from(selected).join(",")}`} variant="highlight" size="sm">
                   Print QR for selected
                 </Button>
-                <Button variant="neutral" size="sm" onClick={() => openTransfer(Array.from(selected))}>
+                <Button variant="secondary" size="sm" onClick={() => openTransfer(Array.from(selected))}>
                   Transfer selected
                 </Button>
                 <Button variant="danger" size="sm" onClick={handleRemoveSelected}>
@@ -436,7 +437,7 @@ export default function StudentsManager({
 
           <table className="mt-3 w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-rule font-mono text-xs uppercase tracking-wide text-ink/60">
+              <tr className="bg-navy text-card font-display text-[13px] font-medium">
                 <th className="w-8 py-2">
                   <input
                     type="checkbox"
@@ -458,7 +459,7 @@ export default function StudentsManager({
               {displayedStudents.map((s, i) => {
                 const isEditing = editingId === s.id;
                 return (
-                  <tr key={s.id} className="border-b border-rule/50">
+                  <tr key={s.id} className="border-b border-line">
                     <td className="py-2">
                       <input
                         type="checkbox"
@@ -467,19 +468,19 @@ export default function StudentsManager({
                         aria-label={`Select ${s.name}`}
                       />
                     </td>
-                    <td className="py-2 font-mono text-xs text-ink/50">{i + 1}.</td>
+                    <td className="py-2 font-mono text-xs text-muted">{i + 1}.</td>
                     <td className="py-2 text-ink">
                       {isEditing ? (
-                        <input
+                        <Input
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           autoFocus
-                          className="w-full rounded-sm border border-brass bg-white px-2 py-1 text-ink outline-none"
+                          className="w-full border-gold py-1"
                         />
                       ) : (
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="font-semibold uppercase tracking-wide">
+                          <span className="font-semibold">
                             {s.name}
                           </span>
                           {s.device_id && (
@@ -499,14 +500,14 @@ export default function StudentsManager({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 font-mono text-teal">{s.code}</td>
+                    <td className="py-2 font-mono text-slate">{s.code}</td>
                     <td className="py-2 text-right">
                       {isEditing ? (
                         <div className="flex justify-end gap-2">
                           <Button size="sm" onClick={saveEdit} disabled={editSaving}>
                             {editSaving ? "Saving..." : "Save"}
                           </Button>
-                          <Button variant="neutral" size="sm" onClick={cancelEdit}>
+                          <Button variant="secondary" size="sm" onClick={cancelEdit}>
                             Cancel
                           </Button>
                         </div>
@@ -514,13 +515,13 @@ export default function StudentsManager({
                         <div className="flex justify-end gap-2">
                           <IconButton
                             icon="record"
-                            color="brass"
+                            color="gold"
                             label="Record Card"
                             href={`/record-card/${classId}/${s.id}`}
                           />
                           <IconButton
                             icon="edit"
-                            color="teal"
+                            color="success"
                             label="Edit"
                             onClick={() => startEdit(s)}
                           />
@@ -533,7 +534,7 @@ export default function StudentsManager({
                           {s.device_id && (
                             <IconButton
                               icon="reset"
-                              color="teal"
+                              color="success"
                               label="Reset check-in device"
                               onClick={() => resetDevice(s.id, s.name)}
                             />
@@ -568,7 +569,7 @@ export default function StudentsManager({
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-[10px] border border-line bg-card p-5 shadow-lg">
             <p className="font-display text-lg font-semibold text-ink">
               Transfer {transferIds.length} student{transferIds.length === 1 ? "" : "s"}
             </p>
@@ -583,11 +584,11 @@ export default function StudentsManager({
                 No other classes to transfer into. Create another class first.
               </p>
             ) : (
-              <select
+              <Select
                 value={transferTarget}
                 onChange={(e) => setTransferTarget(e.target.value)}
                 autoFocus
-                className="mt-4 w-full rounded-sm border border-rule bg-white px-3 py-2 text-ink outline-none focus:border-brass"
+                className="mt-4 w-full"
               >
                 <option value="" disabled>
                   Select a class or section...
@@ -597,7 +598,7 @@ export default function StudentsManager({
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
 
             {transferError && (
@@ -605,7 +606,7 @@ export default function StudentsManager({
             )}
 
             <div className="mt-5 flex justify-end gap-3">
-              <Button variant="neutral" onClick={closeTransfer}>
+              <Button variant="secondary" onClick={closeTransfer}>
                 Cancel
               </Button>
               <Button onClick={confirmTransfer} disabled={!transferTarget || transferSaving}>

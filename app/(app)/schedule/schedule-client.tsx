@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { colorForSubject } from "@/lib/schedule-colors";
+import { colorForSubject, borderColorForSubject } from "@/lib/schedule-colors";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import type { DayOfWeek, ScheduleEntry, TeacherOption } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { Input, Select } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 const DAYS: DayOfWeek[] = [
   "Monday",
@@ -296,7 +299,7 @@ export default function ScheduleClient({
         // html2canvas doesn't apply — filter those elements (Edit/Remove
         // links) out explicitly so the exported PDF matches what prints.
         ignoreElements: (el) => el.classList.contains("no-print"),
-        // Same reason: the app shell's dark bg-chalk lives on <html>/<body>
+        // Same reason: the app shell's dark bg-navy lives on <html>/<body>
         // and is only overridden white under @media print (which
         // html2canvas ignores), so it bleeds in behind the captured node
         // unless we clear it on the clone html2canvas actually renders.
@@ -416,7 +419,7 @@ export default function ScheduleClient({
   }
 
   return (
-    <div className="mx-auto max-w-5xl rounded-sm border border-rule bg-paper p-8">
+    <div className="mx-auto max-w-5xl rounded-sm border border-line bg-paper p-8">
       <style>{`
         /* Explicit width > height already implies landscape — mixing in
            the "landscape" keyword too is invalid CSS and gets the whole
@@ -428,13 +431,13 @@ export default function ScheduleClient({
         <h1 className="font-display text-3xl font-semibold text-ink">
           Instructor&apos;s Schedule
         </h1>
-        <div className="flex gap-1 rounded-sm border border-rule p-1">
+        <div className="flex gap-1 rounded-sm border border-line p-1">
           <button
             onClick={() => setMode("mine")}
-            className={`rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition ${
+            className={`rounded-sm px-3 py-1.5 text-sm transition ${
               mode === "mine"
-                ? "bg-brass text-chalk font-semibold"
-                : "text-ink/70 hover:bg-ink/5"
+                ? "bg-gold text-navy font-semibold"
+                : "text-muted hover:bg-slate-light"
             }`}
           >
             My schedule
@@ -447,10 +450,10 @@ export default function ScheduleClient({
                 ? "No other teachers have shared their schedule yet."
                 : undefined
             }
-            className={`rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`rounded-sm px-3 py-1.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
               mode === "shared"
-                ? "bg-brass text-chalk font-semibold"
-                : "text-ink/70 hover:bg-ink/5"
+                ? "bg-gold text-navy font-semibold"
+                : "text-muted hover:bg-slate-light"
             }`}
           >
             Shared schedules
@@ -460,22 +463,21 @@ export default function ScheduleClient({
 
       {mode === "mine" && (
         <>
-          <div className="no-print mt-4 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
-            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+          <div className="no-print mt-4 rounded-[10px] border border-line bg-card p-4">
+            <p className="text-sm font-semibold text-ink">
               Share my schedule (view-only)
             </p>
-            <p className="mt-1 text-sm text-ink/60">
+            <p className="mt-1 text-sm text-muted">
               Pick specific teachers who can view your schedule — they can
               never edit or delete your entries.
             </p>
             <div className="mt-3 flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-ink">Add teacher</span>
-                <select
+              <FormField label="Add teacher">
+                <Select
                   value={addTeacherId}
                   onChange={(e) => setAddTeacherId(e.target.value)}
                   disabled={shareableTeachers.length === 0}
-                  className="min-w-[14rem] rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass disabled:opacity-60"
+                  className="min-w-[14rem]"
                 >
                   <option value="">
                     {shareableTeachers.length === 0
@@ -487,9 +489,9 @@ export default function ScheduleClient({
                       {t.full_name || t.email}
                     </option>
                   ))}
-                </select>
-              </label>
-              <Button type="button" onClick={handleAddShare} disabled={!addTeacherId || savingShare}>
+                </Select>
+              </FormField>
+              <Button type="button" variant="highlight" onClick={handleAddShare} disabled={!addTeacherId || savingShare}>
                 Share
               </Button>
             </div>
@@ -498,7 +500,7 @@ export default function ScheduleClient({
                 {sharedWithTeachers.map((t) => (
                   <li
                     key={t.id}
-                    className="flex items-center gap-2 rounded-sm border border-rule bg-paper px-3 py-1.5 text-sm text-ink"
+                    className="flex items-center gap-2 rounded-sm border border-line bg-paper px-3 py-1.5 text-sm text-ink"
                   >
                     {t.full_name || t.email}
                     <Button
@@ -516,105 +518,86 @@ export default function ScheduleClient({
           </div>
 
           <div className="no-print mt-4 flex flex-wrap gap-4">
-            <label className="flex flex-col gap-1">
-              <span className="font-mono text-xs uppercase tracking-wide text-ink/60">
-                School Year
-              </span>
-              <input
+            <FormField label="School year">
+              <Input
                 type="text"
                 value={schoolYear}
                 onChange={(e) => setSchoolYear(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-mono text-xs uppercase tracking-wide text-ink/60">
-                Semester
-              </span>
-              <input
+            </FormField>
+            <FormField label="Semester">
+              <Input
                 type="text"
                 value={semester}
                 onChange={(e) => setSemester(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
               />
-            </label>
+            </FormField>
           </div>
 
           <form
             onSubmit={handleSubmit}
             className={`no-print mt-6 flex flex-wrap items-end gap-3 rounded-sm border p-4 ${
-              editingId ? "border-brass bg-brass/5" : "border-rule bg-white"
+              editingId ? "border-gold bg-gold-soft" : "border-line bg-card"
             }`}
           >
             {editingId && (
-              <p className="w-full font-mono text-xs uppercase tracking-wide text-brass">
-                Editing class — Save changes or Cancel
+              <p className="w-full text-sm font-semibold text-gold">
+                Editing class — save changes or cancel
               </p>
             )}
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Subject code</span>
-              <input
+            <FormField label="Subject code">
+              <Input
                 type="text"
                 value={subjectCode}
                 onChange={(e) => setSubjectCode(e.target.value)}
                 placeholder="e.g. CSS 113"
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Section</span>
-              <input
+            </FormField>
+            <FormField label="Section">
+              <Input
                 type="text"
                 value={section}
                 onChange={(e) => setSection(e.target.value)}
                 placeholder="e.g. INFO1A"
-                className="w-28 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+                className="w-28"
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Room</span>
-              <input
+            </FormField>
+            <FormField label="Room">
+              <Input
                 type="text"
                 value={room}
                 onChange={(e) => setRoom(e.target.value)}
                 placeholder="e.g. A201(LAB1)"
-                className="w-32 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+                className="w-32"
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Day</span>
-              <select
-                value={day}
-                onChange={(e) => setDay(e.target.value as DayOfWeek)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink"
-              >
+            </FormField>
+            <FormField label="Day">
+              <Select value={day} onChange={(e) => setDay(e.target.value as DayOfWeek)}>
                 {DAYS.map((d) => (
                   <option key={d} value={d}>
                     {d}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Start</span>
-              <input
+              </Select>
+            </FormField>
+            <FormField label="Start">
+              <Input
                 type="time"
                 step={1800}
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink"
+                className="font-mono"
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">End</span>
-              <input
+            </FormField>
+            <FormField label="End">
+              <Input
                 type="time"
                 step={1800}
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink"
+                className="font-mono"
               />
-            </label>
+            </FormField>
             <Button type="submit" disabled={loading}>
               {loading
                 ? editingId
@@ -625,7 +608,7 @@ export default function ScheduleClient({
                   : "Add class"}
             </Button>
             {editingId && (
-              <Button type="button" variant="neutral" onClick={resetForm}>
+              <Button type="button" variant="secondary" onClick={resetForm}>
                 Cancel
               </Button>
             )}
@@ -636,35 +619,25 @@ export default function ScheduleClient({
 
       {mode === "shared" && (
         <div className="no-print mt-4 flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="font-mono text-xs uppercase tracking-wide text-ink/60">
-              Teacher
-            </span>
-            <select
+          <FormField label="Teacher">
+            <Select
               value={selectedTeacherId}
               onChange={(e) => {
                 setSelectedTeacherId(e.target.value);
                 setSharedTermRaw(null);
               }}
-              className="min-w-[14rem] rounded-sm border border-rule bg-white px-3 py-2 text-ink outline-none focus:border-brass"
+              className="min-w-[14rem]"
             >
               {sharedTeachers.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.full_name || t.email}
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </FormField>
           {sharedTermOptions.length > 0 && (
-            <label className="flex flex-col gap-1">
-              <span className="font-mono text-xs uppercase tracking-wide text-ink/60">
-                Term
-              </span>
-              <select
-                value={sharedTerm}
-                onChange={(e) => setSharedTermRaw(e.target.value)}
-                className="rounded-sm border border-rule bg-white px-3 py-2 text-ink outline-none focus:border-brass"
-              >
+            <FormField label="Term">
+              <Select value={sharedTerm} onChange={(e) => setSharedTermRaw(e.target.value)}>
                 {sharedTermOptions.map((key) => {
                   const [sy, sem] = key.split(TERM_KEY_SEP);
                   return (
@@ -673,12 +646,12 @@ export default function ScheduleClient({
                     </option>
                   );
                 })}
-              </select>
-            </label>
+              </Select>
+            </FormField>
           )}
-          {loadingShared && <p className="text-sm text-ink/60">Loading…</p>}
+          {loadingShared && <p className="text-sm text-muted">Loading…</p>}
           {!loadingShared && sharedTermOptions.length === 0 && (
-            <p className="text-sm text-ink/60">
+            <p className="text-sm text-muted">
               This teacher hasn&apos;t added any schedule entries yet.
             </p>
           )}
@@ -686,14 +659,14 @@ export default function ScheduleClient({
       )}
 
       <div className="no-print mt-4 flex justify-end gap-3">
-        <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf}>
+        <Button variant="highlight" onClick={handleSavePdf} disabled={exportingPdf}>
           {exportingPdf ? "Saving PDF..." : "Save PDF"}
         </Button>
-        <Button onClick={() => window.print()}>Print</Button>
+        <Button variant="highlight" onClick={() => window.print()}>Print</Button>
       </div>
 
-      <div id="schedule-print" ref={printRef} className="mt-6 bg-white p-4">
-        <div className="mb-3 flex items-center gap-3 border-b border-black/20 pb-3">
+      <div id="schedule-print" ref={printRef} className="mt-6 rounded-[10px] border border-line bg-card p-4">
+        <div className="mb-3 flex items-center gap-3 border-b border-line pb-3">
           {logoUrl && (
             <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -701,96 +674,106 @@ export default function ScheduleClient({
             </div>
           )}
           <div>
-            <p className="font-display text-base font-bold uppercase leading-tight text-ink">
+            <p className="font-display text-base font-semibold leading-tight text-ink">
               {schoolName || "School name not set"}
             </p>
-            <p className="text-xs uppercase text-ink/70">{campusLine || ""}</p>
+            <p className="text-xs text-muted">{campusLine || ""}</p>
           </div>
         </div>
         <p className="mb-3 font-display text-lg font-semibold text-ink">
           {mode === "mine"
-            ? "Instructor's Schedule"
-            : `${selectedTeacher?.full_name || selectedTeacher?.email || "Teacher"}'s Schedule`}
+            ? "Instructor's schedule"
+            : `${selectedTeacher?.full_name || selectedTeacher?.email || "Teacher"}'s schedule`}
           {activeSchoolYear && (
-            <span className="ml-2 font-mono text-sm font-normal text-ink/60">
+            <span className="ml-2 font-mono text-sm font-normal text-muted">
               {activeSchoolYear} · {activeSemester}
             </span>
           )}
         </p>
-        <div className="overflow-x-auto rounded-2xl border border-rule/60">
-          <table className="w-full table-fixed border-collapse text-left">
-            <thead>
-              <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">
-                <th className="w-24 py-2 px-3">Time</th>
-                {DAYS.map((d) => (
-                  <th key={d} className="py-2 px-3 text-center">
-                    {d}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {SLOTS.map((slotMinutes, rowIdx) => (
-                <tr key={slotMinutes} className="border-b border-rule/30">
-                  <td className="whitespace-nowrap bg-white py-1.5 px-3 font-mono text-xs text-ink/60">
-                    {toTimeRangeLabel(slotMinutes)}
-                  </td>
-                  {DAYS.map((d) => {
-                    const cell = coverageByDay.get(d)?.[rowIdx];
-                    if (!cell || cell.kind === "covered") return null;
-                    if (cell.kind === "empty") {
-                      return <td key={d} className="bg-white py-1.5 px-3" />;
-                    }
-                    const { entry, span } = cell;
-                    return (
-                      <td
-                        key={d}
-                        rowSpan={span}
-                        className="relative p-1"
-                        style={{ backgroundColor: colorForSubject(entry.subject_code) }}
-                      >
-                        <div
-                          className={`flex h-full flex-col items-center justify-center rounded-sm p-2 text-center ${
-                            editingId === entry.id
-                              ? "ring-2 ring-inset ring-brass"
-                              : ""
-                          }`}
-                        >
-                          <p className="font-display text-sm font-bold text-ink">
-                            {entry.subject_code}
-                          </p>
-                          {entry.section && (
-                            <p className="text-xs text-ink/70">{entry.section}</p>
-                          )}
-                          {entry.room && (
-                            <p className="font-mono text-xs text-ink/70">
-                              {entry.room}
-                            </p>
-                          )}
-                          {!readOnly && (
-                            <div className="no-print mt-1 flex justify-center gap-2">
-                              <button
-                                onClick={() => startEdit(entry)}
-                                className="text-xs text-teal underline underline-offset-2"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDelete(entry.id)}
-                                className="text-xs text-danger underline underline-offset-2"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell className="w-24">Time</TableHeaderCell>
+              {DAYS.map((d) => (
+                <TableHeaderCell key={d} align="center">
+                  {d}
+                </TableHeaderCell>
               ))}
-            </tbody>
-          </table>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {SLOTS.map((slotMinutes, rowIdx) => (
+              <TableRow key={slotMinutes}>
+                <TableCell tabular className="whitespace-nowrap bg-card text-xs text-muted">
+                  {toTimeRangeLabel(slotMinutes)}
+                </TableCell>
+                {DAYS.map((d) => {
+                  const cell = coverageByDay.get(d)?.[rowIdx];
+                  if (!cell || cell.kind === "covered") return null;
+                  if (cell.kind === "empty") {
+                    return <TableCell key={d} className="bg-card" />;
+                  }
+                  const { entry, span } = cell;
+                  return (
+                    <td
+                      key={d}
+                      rowSpan={span}
+                      className="relative p-1"
+                      style={{
+                        backgroundColor: colorForSubject(entry.subject_code),
+                        borderLeft: `3px solid ${borderColorForSubject(entry.subject_code)}`,
+                      }}
+                    >
+                      <div
+                        className={`flex h-full flex-col items-center justify-center rounded-sm p-2 text-center ${
+                          editingId === entry.id
+                            ? "ring-2 ring-inset ring-gold"
+                            : ""
+                        }`}
+                      >
+                        <p className="font-display text-sm font-bold text-ink">
+                          {entry.subject_code}
+                        </p>
+                        {entry.section && (
+                          <p className="text-xs text-ink/70">{entry.section}</p>
+                        )}
+                        {entry.room && (
+                          <p className="font-mono text-xs text-ink/70">
+                            {entry.room}
+                          </p>
+                        )}
+                        {!readOnly && (
+                          <div className="no-print mt-1 flex justify-center gap-2">
+                            <button
+                              onClick={() => startEdit(entry)}
+                              className="text-xs text-slate underline underline-offset-2"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(entry.id)}
+                              className="text-xs text-danger underline underline-offset-2"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "#6E8C7B" }} />
+              Subject color-coded by category
+            </span>
+          </div>
+          <span>Generated {new Date().toLocaleDateString()}</span>
         </div>
       </div>
     </div>

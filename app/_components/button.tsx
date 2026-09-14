@@ -1,10 +1,14 @@
 import Link from "next/link";
 
 const VARIANT_CLASSES = {
-  primary: "bg-brass text-chalk hover:brightness-110",
-  secondary: "bg-teal text-paper hover:brightness-110",
-  danger: "bg-danger text-paper hover:brightness-110",
-  neutral: "bg-rule/30 text-ink hover:bg-rule/45",
+  // Primary action on a screen (Save, Add, Submit).
+  primary: "bg-slate text-card hover:brightness-110",
+  // Accent/highlight action (Share, Print, Export) -- gold is reserved for
+  // this and active-state accents, not general-purpose primary actions.
+  highlight: "bg-gold text-navy hover:brightness-110",
+  // Secondary/lower-emphasis action -- outline, not a second filled color.
+  secondary: "border border-line bg-card text-ink hover:bg-slate-light",
+  danger: "bg-danger text-card hover:brightness-110",
 } as const;
 
 const SIZE_CLASSES = {

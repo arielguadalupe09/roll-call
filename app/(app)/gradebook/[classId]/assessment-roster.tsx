@@ -14,6 +14,8 @@ import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input, Select } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 export default function AssessmentRoster({
   classId,
@@ -155,47 +157,39 @@ export default function AssessmentRoster({
     <div className="mt-6">
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
+        className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
-        <input
+        <Input
           type="text"
           placeholder={`${categoryLabel} title`}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
         <div className="flex flex-wrap gap-3">
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Date (optional)</span>
-            <input
+          <FormField label="Date (optional)" className="flex-1">
+            <Input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              className="font-mono"
             />
-          </label>
-          <label className="flex w-32 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Max score</span>
-            <input
+          </FormField>
+          <FormField label="Max score" className="w-32">
+            <Input
               type="number"
               min={1}
               value={maxScore}
               onChange={(e) => setMaxScore(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              className="font-mono"
             />
-          </label>
-          <label className="flex w-36 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Period</span>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as Period)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
-            >
+          </FormField>
+          <FormField label="Period" className="w-36">
+            <Select value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
               {usePrelims && <option value="prelim">Prelim</option>}
               <option value="midterm">Midterm</option>
               <option value="finals">Finals</option>
-            </select>
-          </label>
+            </Select>
+          </FormField>
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={loading}>

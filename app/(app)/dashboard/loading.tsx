@@ -54,12 +54,12 @@ export default function DashboardLoading() {
           className="absolute inset-0"
           aria-hidden="true"
         >
-          <circle cx="40" cy="40" r="35" stroke="var(--rule)" strokeOpacity="0.3" strokeWidth="4" />
+          <circle cx="40" cy="40" r="35" stroke="var(--line)" strokeOpacity="0.3" strokeWidth="4" />
           <circle
             cx="40"
             cy="40"
             r="35"
-            stroke="var(--brass)"
+            stroke="var(--gold)"
             strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray="55 165"
@@ -77,14 +77,14 @@ export default function DashboardLoading() {
       </div>
 
       <div className="flex flex-col items-center gap-1 text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-brass">Loading</p>
+        <p className="text-sm text-gold">Loading</p>
         <p className="font-display text-lg font-semibold text-ink">Getting your dashboard ready</p>
       </div>
 
       <div data-animate="dots" className="flex items-center gap-1.5" aria-hidden="true">
-        <span className="h-1.5 w-1.5 rounded-full bg-teal" />
-        <span className="h-1.5 w-1.5 rounded-full bg-teal" />
-        <span className="h-1.5 w-1.5 rounded-full bg-teal" />
+        <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+        <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+        <span className="h-1.5 w-1.5 rounded-full bg-gold" />
       </div>
     </div>
   );

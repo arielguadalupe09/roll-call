@@ -21,10 +21,10 @@ import {
   StudentsSparkline,
 } from "./dashboard-charts";
 
-function TileIcon({ path, tone }: { path: string; tone: "brass" | "teal" | "danger" }) {
+function TileIcon({ path, tone }: { path: string; tone: "gold" | "success" | "danger" }) {
   const toneClass = {
-    brass: "bg-brass/10 text-brass",
-    teal: "bg-teal/10 text-teal",
+    gold: "bg-gold/10 text-gold",
+    success: "bg-success/10 text-success-text",
     danger: "bg-danger/10 text-danger",
   }[tone];
   return (
@@ -53,7 +53,7 @@ function attendanceBadge(rate: number | null) {
   }
   const pct = Math.round(rate * 100);
   const color =
-    rate >= 0.9 ? "bg-teal/20 text-teal" : rate >= 0.75 ? "bg-brass/20 text-brass" : "bg-danger/20 text-danger";
+    rate >= 0.9 ? "bg-success/20 text-success-text" : rate >= 0.75 ? "bg-gold/20 text-gold" : "bg-danger/20 text-danger";
   return (
     <span className={`rounded-sm px-2 py-0.5 font-mono text-xs font-semibold ${color}`}>
       {pct}% attendance
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
   return (
     <div className="px-8 py-10">
       <div className="mx-auto max-w-5xl">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-brass">Dashboard</p>
+        <p className="text-sm text-gold">Dashboard</p>
         <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
           Your classes
         </h1>
@@ -147,31 +147,31 @@ export default async function DashboardPage() {
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <a
             href="#class-list"
-            className="group rounded-2xl border border-rule/40 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className="group rounded-[10px] border border-line/60 bg-card p-4 transition hover:border-gold/60"
           >
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Classes</p>
-              <TileIcon path={ICON_CLASSES} tone="brass" />
+              <p className="text-xs text-muted">Classes</p>
+              <TileIcon path={ICON_CLASSES} tone="gold" />
             </div>
             <p className="mt-2 font-display text-3xl font-semibold text-ink">{classList.length}</p>
             <ActiveArchivedBar active={classList.length} archived={archivedClasses.length} />
           </a>
           <Link
             href="/students"
-            className="group rounded-2xl border border-rule/40 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className="group rounded-[10px] border border-line/60 bg-card p-4 transition hover:border-gold/60"
           >
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Students</p>
-              <TileIcon path={ICON_STUDENTS} tone="teal" />
+              <p className="text-xs text-muted">Students</p>
+              <TileIcon path={ICON_STUDENTS} tone="success" />
             </div>
             <p className="mt-2 font-display text-3xl font-semibold text-ink">{totalStudents}</p>
             <StudentsSparkline classes={studentsPerClass} />
           </Link>
           <Link
             href="/attendance"
-            className="group rounded-2xl border border-rule/40 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+            className="group rounded-[10px] border border-line/60 bg-card p-4 transition hover:border-gold/60"
           >
-            <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Attendance</p>
+            <p className="text-xs text-muted">Attendance</p>
             <div className="mt-2 flex items-center gap-3">
               <AttendanceRing rate={overallAttendanceRate} />
               <p className="text-xs text-ink/60">
@@ -182,14 +182,14 @@ export default async function DashboardPage() {
           </Link>
           <a
             href="#insights"
-            className={`group rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+            className={`group rounded-lg p-4 transition ${
               classesNeedingAttention > 0
                 ? "border border-danger/30 bg-danger/[0.04] hover:border-danger/60"
-                : "border border-rule/40 bg-white hover:border-brass/60"
+                : "border border-line/40 bg-white hover:border-gold/60"
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/60">Need attention</p>
+              <p className="text-xs text-muted">Need attention</p>
               <TileIcon path={ICON_ALERT} tone="danger" />
             </div>
             <p
@@ -209,8 +209,8 @@ export default async function DashboardPage() {
           </a>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-dashed border-brass/50 bg-brass/[0.04] p-5">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-brass">+ New</p>
+        <div className="mt-6 rounded-lg border border-dashed border-gold/50 bg-gold/[0.04] p-5">
+          <p className="text-xs text-gold">+ New</p>
           <CreateClassForm
             teacherId={user.id}
             defaultUsePrelims={teacherRow?.default_use_prelims ?? false}
@@ -231,7 +231,7 @@ export default async function DashboardPage() {
                   <li key={i} className="flex items-start gap-2 text-sm text-ink">
                     <span
                       className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                        insight.severity === "warning" ? "bg-danger" : "bg-teal"
+                        insight.severity === "warning" ? "bg-danger" : "bg-success"
                       }`}
                     />
                     {insight.text}
@@ -253,10 +253,10 @@ export default async function DashboardPage() {
               {stats.map((s) => (
                 <li
                   key={s.classRow.id}
-                  className="group flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brass/60 hover:shadow-md"
+                  className="group flex flex-col gap-3 rounded-[10px] border border-line bg-card p-5 transition hover:border-gold/60"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brass/10 font-display text-sm font-semibold text-brass">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold/10 font-display text-sm font-semibold text-gold">
                       {classInitials(s.classRow.name)}
                     </span>
                     <div className="min-w-0">
@@ -276,7 +276,7 @@ export default async function DashboardPage() {
                     {attendanceBadge(s.attendanceRate)}
                   </div>
 
-                  <div className="mt-auto flex items-center justify-between border-t border-rule/40 pt-3">
+                  <div className="mt-auto flex items-center justify-between border-t border-line/40 pt-3">
                     <Button href={`/dashboard/classes/${s.classRow.id}`} variant="secondary" size="sm">
                       Open →
                     </Button>

@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 function LogoBadge() {
   return (
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brass text-chalk">
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold text-navy">
       <SidebarIcon name="logo" className="h-6 w-6" />
     </span>
   );
@@ -73,8 +74,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center bg-chalk px-6 py-16">
-      <div className="w-full max-w-sm rounded-sm border border-rule bg-white p-8 shadow-xl">
+    <main className="flex min-h-full flex-1 items-center justify-center bg-navy px-6 py-16">
+      <div className="w-full max-w-sm rounded-sm border border-line bg-white p-8 shadow-lg">
         <div className="flex flex-col items-center text-center">
           <LogoBadge />
           <h1 className="mt-4 font-display text-xl font-semibold text-ink">
@@ -83,7 +84,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {done && (
-          <p className="mt-6 rounded-sm bg-teal/10 px-3 py-2 text-center text-sm text-teal">
+          <p className="mt-6 rounded-sm bg-success/10 px-3 py-2 text-center text-sm text-success-text">
             Password updated — redirecting to your dashboard…
           </p>
         )}
@@ -99,13 +100,13 @@ export default function ResetPasswordPage() {
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium text-ink">New password</span>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-sm border border-rule bg-white/60 px-3 py-2 pr-10 text-ink outline-none focus:border-brass"
+                  className="w-full pr-10"
                 />
                 <button
                   type="button"
@@ -136,13 +137,12 @@ export default function ResetPasswordPage() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium text-ink">Confirm new password</span>
-              <input
+              <Input
                 type={showPassword ? "text" : "password"}
                 required
                 minLength={6}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
               />
             </label>
 

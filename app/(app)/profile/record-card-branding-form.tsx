@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 type LogoSlot = "primary" | "secondary";
 
@@ -113,7 +115,7 @@ export default function RecordCardBrandingForm({
       </p>
 
       <div className="mt-4 flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-rule bg-white/60">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-line bg-white/60">
           {logoUrl ? (
             // Signed Supabase Storage URL — next/image would need the
             // project's storage domain configured as a remote pattern for
@@ -132,14 +134,14 @@ export default function RecordCardBrandingForm({
             accept="image/*"
             onChange={(e) => handleLogoChange("primary", e.target.files?.[0] ?? null)}
             disabled={uploading === "primary"}
-            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-rule file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
           />
           {uploading === "primary" && <span className="text-xs text-ink/60">Uploading...</span>}
         </label>
       </div>
 
       <div className="mt-3 flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-rule bg-white/60">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-line bg-white/60">
           {logoUrlSecondary ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -159,32 +161,28 @@ export default function RecordCardBrandingForm({
             accept="image/*"
             onChange={(e) => handleLogoChange("secondary", e.target.files?.[0] ?? null)}
             disabled={uploading === "secondary"}
-            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-rule file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
           />
           {uploading === "secondary" && <span className="text-xs text-ink/60">Uploading...</span>}
         </label>
       </div>
 
-      <label className="mt-4 flex flex-col gap-1">
-        <span className="text-sm font-medium text-ink">School name</span>
-        <input
+      <FormField label="School name" className="mt-4">
+        <Input
           type="text"
           placeholder="e.g. Pampanga State University"
           value={schoolName}
           onChange={(e) => setSchoolName(e.target.value)}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
-      </label>
-      <label className="mt-3 flex flex-col gap-1">
-        <span className="text-sm font-medium text-ink">Campus / department line</span>
-        <input
+      </FormField>
+      <FormField label="Campus / department line" className="mt-3">
+        <Input
           type="text"
           placeholder="e.g. Mexico Campus — College of Computing Studies"
           value={campusLine}
           onChange={(e) => setCampusLine(e.target.value)}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
-      </label>
+      </FormField>
 
       <div className="mt-4 flex items-center gap-3">
         <Button type="submit" disabled={saving}>

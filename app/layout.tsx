@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Lora, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "./_components/toast";
 import { ConfirmProvider } from "./_components/confirm-provider";
 
-const fraunces = Fraunces({
+const lora = Lora({
   variable: "--font-display-src",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
 });
 
-const plexSans = IBM_Plex_Sans({
+const inter = Inter({
   variable: "--font-sans-src",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -35,9 +35,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${lora.variable} ${inter.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="h-full flex flex-col bg-chalk text-ink font-sans">
+      <body className="h-full flex flex-col bg-paper text-ink font-sans">
         <ConfirmProvider>
           <ToastProvider>{children}</ToastProvider>
         </ConfirmProvider>

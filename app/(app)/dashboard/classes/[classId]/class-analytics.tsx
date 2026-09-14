@@ -15,7 +15,7 @@ export default function ClassAnalytics({
   const trend = stats.weekTrend;
 
   return (
-    <div className="mt-6 rounded-2xl border border-rule/60 bg-white p-5 shadow-sm">
+    <div className="mt-6 rounded-[10px] border border-line bg-card p-5">
       <p className="font-display text-lg font-semibold text-ink">Class analytics</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-6">
@@ -38,12 +38,12 @@ export default function ClassAnalytics({
       </div>
 
       {insights.length > 0 && (
-        <ul className="mt-4 flex flex-col gap-2 border-t border-rule pt-3">
+        <ul className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
           {insights.map((insight, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-ink">
               <span
                 className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                  insight.severity === "warning" ? "bg-danger" : "bg-teal"
+                  insight.severity === "warning" ? "bg-danger" : "bg-success"
                 }`}
               />
               {insight.text}
@@ -53,7 +53,7 @@ export default function ClassAnalytics({
       )}
 
       {lowAttendanceNames.length > 0 && (
-        <div className="mt-4 border-t border-rule pt-3">
+        <div className="mt-4 border-t border-line pt-3">
           <p className="text-sm text-ink/70">
             Below {Math.round(LOW_ATTENDANCE_THRESHOLD * 100)}% attendance
           </p>

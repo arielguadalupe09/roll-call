@@ -6,6 +6,7 @@ import type { Exam, ExamAnswer, ExamAttempt, ExamQuestion, ExamViolation, Studen
 import { syncExamAttemptToGradebook } from "@/lib/exam-gradebook-sync";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 const SNAPSHOTS_BUCKET = "exam-snapshots";
 const SUBMISSIONS_BUCKET = "exam-submissions";
@@ -141,10 +142,10 @@ export default function ExamResultsClient({
   }
 
   return (
-    <div className="mt-6 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+    <div className="mt-6 overflow-x-auto rounded-[10px] border border-line">
       <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">
+          <tr className="bg-navy text-card font-display text-[13px] font-medium">
             <th className="py-2 px-3">Student</th>
             <th className="py-2 px-3">Status</th>
             <th className="py-2 px-3">Score</th>
@@ -175,7 +176,7 @@ export default function ExamResultsClient({
 
             return (
               <Fragment key={student.id}>
-                <tr className="border-b border-rule/50 bg-white">
+                <tr className="border-b border-line/50 bg-white">
                   <td className="py-2 px-3 text-ink">{student.name}</td>
                   <td className="py-2 px-3 text-ink/80">{statusFor(attempt)}</td>
                   <td className="py-2 px-3 font-mono text-ink">
@@ -215,7 +216,7 @@ export default function ExamResultsClient({
                             setExpanded(isGradingExpanded ? null : { studentId: student.id, panel: "grading" })
                           }
                           className={`rounded-sm px-2 py-0.5 font-mono text-xs font-semibold ${
-                            attempt?.needs_grading ? "bg-brass/20 text-brass" : "bg-teal/15 text-teal"
+                            attempt?.needs_grading ? "bg-gold/20 text-gold" : "bg-success/15 text-success-text"
                           }`}
                         >
                           {attempt?.needs_grading ? "Needs grading" : "Graded"} {isGradingExpanded ? "▲" : "▼"}
@@ -225,7 +226,7 @@ export default function ExamResultsClient({
                   )}
                 </tr>
                 {isViolationsExpanded && (
-                  <tr className="border-b border-rule/50 bg-danger/5">
+                  <tr className="border-b border-line/50 bg-danger/5">
                     <td colSpan={columnCount} className="px-3 py-2">
                       <div className="flex items-start justify-between gap-3">
                         <ul className="flex flex-col gap-1.5">
@@ -250,7 +251,7 @@ export default function ExamResultsClient({
                               View snapshots ({snapshotCount}) {isSnapshotMenuOpen ? "▲" : "▼"}
                             </Button>
                             {isSnapshotMenuOpen && (
-                              <div className="absolute right-0 z-10 mt-1 flex w-56 flex-col overflow-hidden rounded-sm border border-rule bg-white shadow-md">
+                              <div className="absolute right-0 z-10 mt-1 flex w-56 flex-col overflow-hidden rounded-sm border border-line bg-white shadow-md">
                                 {studentViolations
                                   .filter((v) => v.snapshot_path)
                                   .map((v) => (
@@ -260,7 +261,7 @@ export default function ExamResultsClient({
                                         viewSnapshot(v.snapshot_path!);
                                         setSnapshotMenuStudentId(null);
                                       }}
-                                      className="flex flex-col items-start gap-0.5 border-b border-rule/50 px-3 py-2 text-left text-sm text-ink last:border-b-0 hover:bg-chalk"
+                                      className="flex flex-col items-start gap-0.5 border-b border-line/50 px-3 py-2 text-left text-sm text-ink last:border-b-0 hover:bg-navy"
                                     >
                                       <span>{VIOLATION_LABEL[v.type]}</span>
                                       <span className="font-mono text-xs text-ink/50">
@@ -277,12 +278,12 @@ export default function ExamResultsClient({
                   </tr>
                 )}
                 {isGradingExpanded && attempt && (
-                  <tr className="border-b border-rule/50 bg-brass/5">
+                  <tr className="border-b border-line/50 bg-gold/5">
                     <td colSpan={columnCount} className="px-3 py-3">
                       <ul className="flex flex-col gap-3">
                         {essayEntries.map(({ question, answer }) => (
-                          <li key={answer.id} className="rounded-sm border border-rule/60 bg-white p-3">
-                            <p className="text-xs font-mono uppercase tracking-wide text-ink/50">
+                          <li key={answer.id} className="rounded-sm border border-line/60 bg-white p-3">
+                            <p className="text-xs text-muted">
                               {question.prompt} · max {question.points} pt{question.points === 1 ? "" : "s"}
                             </p>
                             {question.type === "file_upload" ? (
@@ -302,7 +303,7 @@ export default function ExamResultsClient({
                               <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{answer.answer_text}</p>
                             )}
                             <div className="mt-2 flex items-center gap-2">
-                              <input
+                              <Input
                                 type="number"
                                 min={0}
                                 max={question.points}
@@ -311,7 +312,7 @@ export default function ExamResultsClient({
                                   setDrafts((prev) => ({ ...prev, [answer.id]: e.target.value }))
                                 }
                                 placeholder="Score"
-                                className="w-24 rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-sm text-ink outline-none focus:border-brass"
+                                className="w-24 py-1 font-mono text-sm"
                               />
                               <span className="text-xs text-ink/50">/ {question.points}</span>
                               <Button

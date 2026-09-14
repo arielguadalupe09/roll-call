@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { Student } from "@/lib/types";
 import { PAPER_SIZES, type PaperSize } from "@/lib/paper-sizes";
 import Button from "@/app/_components/button";
+import { Select } from "@/app/_components/input";
 
 export default function PrintSheet({
   className,
@@ -31,21 +32,21 @@ export default function PrintSheet({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-ink/70">
+          <label className="flex items-center gap-2 text-sm text-muted">
             Paper size
-            <select
+            <Select
               value={paperSize}
               onChange={(e) => setPaperSize(e.target.value as PaperSize)}
-              className="rounded-sm border border-rule bg-white px-2 py-1.5 text-ink outline-none focus:border-brass"
+              className="w-auto py-1.5"
             >
               {Object.entries(PAPER_SIZES).map(([key, { label }]) => (
                 <option key={key} value={key}>
                   {label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <Button onClick={() => window.print()}>Print This Sheet</Button>
+          <Button variant="highlight" onClick={() => window.print()}>Print this sheet</Button>
         </div>
       </div>
 
@@ -60,7 +61,7 @@ export default function PrintSheet({
           >
             <div className="flex h-8 w-full items-center justify-center px-1">
               {subject && (
-                <p className="line-clamp-2 text-center font-mono text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <p className="line-clamp-2 text-center font-mono text-xs font-semibold text-gray-500">
                   {subject}
                 </p>
               )}

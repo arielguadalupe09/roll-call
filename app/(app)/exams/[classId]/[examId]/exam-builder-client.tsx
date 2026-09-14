@@ -7,6 +7,8 @@ import { MAX_UPLOAD_BYTES, type ParsedExamQuestion } from "@/lib/exam-ai-parse";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import Button from "@/app/_components/button";
+import { Input, Select, Textarea } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 import { optionLetter } from "@/lib/option-letters";
 
 const TYPE_LABEL: Record<QuestionType, string> = {
@@ -311,7 +313,7 @@ export default function ExamBuilderClient({
 
   return (
     <div className="mt-6">
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+      <div className="mb-6 flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4">
         <div>
           <p className="font-medium text-ink">Upload questions</p>
           <p className="text-sm text-ink/60">
@@ -321,7 +323,7 @@ export default function ExamBuilderClient({
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="shrink-0 cursor-pointer rounded-sm bg-brass px-4 py-2 text-center text-sm font-medium text-chalk transition hover:brightness-110">
+          <label className="shrink-0 cursor-pointer rounded-sm bg-gold px-4 py-2 text-center text-sm font-medium text-navy transition hover:brightness-110">
             {questionsFile ? questionsFile.name : "Choose questions file"}
             <input
               type="file"
@@ -331,7 +333,7 @@ export default function ExamBuilderClient({
               className="hidden"
             />
           </label>
-          <label className="shrink-0 cursor-pointer rounded-sm bg-rule/30 px-4 py-2 text-center text-sm font-medium text-ink transition hover:bg-rule/45">
+          <label className="shrink-0 cursor-pointer rounded-sm bg-line/30 px-4 py-2 text-center text-sm font-medium text-ink transition hover:bg-line/45">
             {answerKeyFile ? answerKeyFile.name : "Choose answer key (optional)"}
             <input
               type="file"
@@ -349,14 +351,14 @@ export default function ExamBuilderClient({
       {uploadError && <p className="mb-4 text-sm text-danger">{uploadError}</p>}
 
       {previewQuestions && (
-        <div className="mb-6 rounded-2xl border border-brass/60 bg-brass/5 p-4 shadow-sm">
+        <div className="mb-6 rounded-[10px] border border-gold/60 bg-gold-soft p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="font-medium text-ink">
               {previewQuestions.length} question{previewQuestions.length === 1 ? "" : "s"} parsed --
               review before adding
             </p>
             <div className="flex items-center gap-3">
-              <Button variant="neutral" size="sm" onClick={() => setPreviewQuestions(null)}>
+              <Button variant="secondary" size="sm" onClick={() => setPreviewQuestions(null)}>
                 Discard all
               </Button>
               <Button
@@ -372,10 +374,10 @@ export default function ExamBuilderClient({
 
           <ul className="mt-4 flex flex-col gap-3">
             {previewQuestions.map((q, i) => (
-              <li key={i} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+              <li key={i} className="rounded-[10px] border border-line bg-card p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-mono uppercase tracking-wide text-ink/50">
+                    <p className="text-xs text-muted">
                       {TYPE_LABEL[q.type]} · {q.points} pt{q.points === 1 ? "" : "s"}
                     </p>
                     <p className="mt-1 text-ink">{q.prompt}</p>
@@ -384,7 +386,7 @@ export default function ExamBuilderClient({
                         {q.options.map((o, oi) => (
                           <li
                             key={oi}
-                            className={`text-sm ${o.isCorrect ? "font-medium text-teal" : "text-ink/70"}`}
+                            className={`text-sm ${o.isCorrect ? "font-medium text-success-text" : "text-ink/70"}`}
                           >
                             {o.isCorrect ? "✓ " : "· "}
                             {optionLetter(oi)}. {o.label}
@@ -394,7 +396,7 @@ export default function ExamBuilderClient({
                     ) : q.type === "essay" || q.type === "file_upload" ? (
                       <p className="mt-2 text-sm text-ink/60">Manually graded -- no fixed answer.</p>
                     ) : (
-                      <p className="mt-2 text-sm text-teal">
+                      <p className="mt-2 text-sm text-success-text">
                         Correct: {q.correctAnswer?.split("|").join(" / ")}
                       </p>
                     )}
@@ -411,45 +413,38 @@ export default function ExamBuilderClient({
 
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
+        className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
-        <textarea
+        <Textarea
           placeholder="Question prompt"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={2}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
         <div className="flex gap-3">
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Type</span>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as QuestionType)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
-            >
+          <FormField label="Type" className="flex-1">
+            <Select value={type} onChange={(e) => setType(e.target.value as QuestionType)}>
               <option value="multiple_choice">Multiple choice</option>
               <option value="true_false">True / False</option>
               <option value="identification">Identification</option>
               <option value="essay">Essay</option>
               <option value="file_upload">File upload</option>
-            </select>
-          </label>
-          <label className="flex w-28 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Points</span>
-            <input
+            </Select>
+          </FormField>
+          <FormField label="Points" className="w-28">
+            <Input
               type="number"
               min={1}
               value={points}
               onChange={(e) => setPoints(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+              className="font-mono"
             />
-          </label>
+          </FormField>
         </div>
 
         {type === "multiple_choice" && (
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-ink">Options (mark the correct one)</span>
+            <span className="text-xs font-semibold text-ink">Options (mark the correct one)</span>
             {draftOptions.map((option, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input
@@ -459,15 +454,15 @@ export default function ExamBuilderClient({
                   onChange={() =>
                     setDraftOptions((prev) => prev.map((o, j) => ({ ...o, isCorrect: j === i })))
                   }
-                  className="accent-brass"
+                  className="accent-gold"
                 />
-                <span className="w-5 shrink-0 text-sm font-medium text-ink/60">{optionLetter(i)}.</span>
-                <input
+                <span className="w-5 shrink-0 text-sm font-medium text-muted">{optionLetter(i)}.</span>
+                <Input
                   type="text"
                   placeholder={`Option ${i + 1}`}
                   value={option.label}
                   onChange={(e) => updateDraftOption(i, { label: e.target.value })}
-                  className="flex-1 rounded-sm border border-rule bg-white/60 px-3 py-1.5 text-sm text-ink outline-none focus:border-brass"
+                  className="flex-1 py-1.5 text-sm"
                 />
                 {draftOptions.length > 2 && (
                   <Button variant="danger" size="sm" onClick={() => removeDraftOption(i)}>
@@ -483,32 +478,26 @@ export default function ExamBuilderClient({
         )}
 
         {type === "true_false" && (
-          <label className="flex w-40 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Correct answer</span>
-            <select
+          <FormField label="Correct answer" className="w-40">
+            <Select
               value={trueFalseAnswer}
               onChange={(e) => setTrueFalseAnswer(e.target.value as "true" | "false")}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
             >
               <option value="true">True</option>
               <option value="false">False</option>
-            </select>
-          </label>
+            </Select>
+          </FormField>
         )}
 
         {type === "identification" && (
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-ink">
-              Correct answer (separate accepted alternates with &quot;|&quot;)
-            </span>
-            <input
+          <FormField label='Correct answer (separate accepted alternates with "|")'>
+            <Input
               type="text"
               placeholder="e.g. Manila|Manila City"
               value={correctAnswer}
               onChange={(e) => setCorrectAnswer(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
             />
-          </label>
+          </FormField>
         )}
 
         {type === "essay" && (
@@ -535,10 +524,10 @@ export default function ExamBuilderClient({
 
       <ul className="mt-6 flex flex-col gap-3">
         {questions.map((q, i) => (
-          <li key={q.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+          <li key={q.id} className="rounded-[10px] border border-line bg-card p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-mono uppercase tracking-wide text-ink/50">
+                <p className="text-xs text-muted">
                   {i + 1}. {TYPE_LABEL[q.type]} · {q.points} pt{q.points === 1 ? "" : "s"}
                 </p>
                 <p className="mt-1 text-ink">{q.prompt}</p>
@@ -547,7 +536,7 @@ export default function ExamBuilderClient({
                     {(optionsByQuestion[q.id] ?? []).map((o, oi) => (
                       <li
                         key={o.id}
-                        className={`text-sm ${o.is_correct ? "font-medium text-teal" : "text-ink/70"}`}
+                        className={`text-sm ${o.is_correct ? "font-medium text-success-text" : "text-ink/70"}`}
                       >
                         {o.is_correct ? "✓ " : "· "}
                         {optionLetter(oi)}. {o.label}
@@ -557,7 +546,7 @@ export default function ExamBuilderClient({
                 ) : q.type === "essay" || q.type === "file_upload" ? (
                   <p className="mt-2 text-sm text-ink/60">Manually graded -- no fixed answer.</p>
                 ) : (
-                  <p className="mt-2 text-sm text-teal">
+                  <p className="mt-2 text-sm text-success-text">
                     Correct: {q.correct_answer?.split("|").join(" / ")}
                   </p>
                 )}

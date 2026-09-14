@@ -8,6 +8,7 @@ import { toLastNameFirst } from "@/lib/name-format";
 import type { Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Input, Select } from "@/app/_components/input";
 
 type Row = { student: Student; classId: string; className: string };
 type NameFix = { id: string; className: string; from: string; to: string };
@@ -92,44 +93,40 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
   return (
     <div className="mt-6">
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-rule/60 bg-white p-4 text-center shadow-sm">
+        <div className="rounded-[10px] border border-line bg-card p-4 text-center">
           <p className="font-display text-2xl font-semibold text-ink">{rows.length}</p>
-          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+          <p className="text-xs text-muted">
             Total students
           </p>
         </div>
-        <div className="rounded-2xl border border-rule/60 bg-white p-4 text-center shadow-sm">
+        <div className="rounded-[10px] border border-line bg-card p-4 text-center">
           <p className="font-display text-2xl font-semibold text-ink">
             {classOptions.length}
           </p>
-          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Classes</p>
+          <p className="text-xs text-muted">Classes</p>
         </div>
-        <div className="rounded-2xl border border-rule/60 bg-white p-4 text-center shadow-sm">
+        <div className="rounded-[10px] border border-line bg-card p-4 text-center">
           <p className="font-display text-2xl font-semibold text-ink">{filtered.length}</p>
-          <p className="font-mono text-xs uppercase tracking-wide text-ink/60">Showing</p>
+          <p className="text-xs text-muted">Showing</p>
         </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <input
+        <Input
           type="text"
           placeholder="Search by name, code, or class..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="min-w-0 flex-1 rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+          className="min-w-0 flex-1"
         />
-        <select
-          value={classFilter}
-          onChange={(e) => setClassFilter(e.target.value)}
-          className="rounded-sm border border-rule bg-white px-3 py-2 text-ink outline-none focus:border-brass"
-        >
+        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-auto">
           <option value="all">All classes</option>
           {classOptions.map(([id, name]) => (
             <option key={id} value={id}>
               {name}
             </option>
           ))}
-        </select>
+        </Select>
         <Button
           variant="secondary"
           className="whitespace-nowrap"
@@ -141,18 +138,18 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
       </div>
 
       {pendingFixes && pendingFixes.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-brass/60 bg-brass/10 p-4">
+        <div className="mt-4 rounded-lg border border-gold/60 bg-gold/10 p-4">
           <p className="font-medium text-ink">
             {pendingFixes.length} name{pendingFixes.length === 1 ? "" : "s"} across all
             classes {pendingFixes.length === 1 ? "doesn&apos;t" : "don&apos;t"} match
             &ldquo;Lastname, Firstname M.I.&rdquo; — mostly full middle names that
             weren&apos;t abbreviated.
           </p>
-          <ul className="mt-3 max-h-64 overflow-y-auto rounded-sm border border-rule/60 bg-white">
+          <ul className="mt-3 max-h-64 overflow-y-auto rounded-sm border border-line/60 bg-white">
             {pendingFixes.map((fix) => (
               <li
                 key={fix.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/40 px-3 py-2 text-sm last:border-b-0"
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-line/40 px-3 py-2 text-sm last:border-b-0"
               >
                 <span className="text-ink/60">{fix.className}</span>
                 <span className="font-mono">
@@ -169,17 +166,17 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
                 ? "Updating..."
                 : `Apply ${pendingFixes.length} fix${pendingFixes.length === 1 ? "" : "es"}`}
             </Button>
-            <Button variant="neutral" onClick={() => setPendingFixes(null)}>
+            <Button variant="secondary" onClick={() => setPendingFixes(null)}>
               Cancel
             </Button>
           </div>
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+      <div className="mt-4 overflow-x-auto rounded-[10px] border border-line">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">
+            <tr className="bg-navy text-card font-display text-[13px] font-medium">
               <th className="py-2 px-3">Name</th>
               <th className="py-2 px-3">Class</th>
               <th className="py-2 px-3">Code</th>
@@ -188,19 +185,19 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={r.student.id} className="border-b border-rule/50 bg-white">
-                <td className="py-2 px-3 font-semibold uppercase tracking-wide text-ink">
+              <tr key={r.student.id} className="border-b border-line/50 bg-white">
+                <td className="py-2 px-3 font-semibold text-ink">
                   {r.student.name}
                 </td>
                 <td className="py-2 px-3">
                   <Link
                     href={`/dashboard/classes/${r.classId}`}
-                    className="text-teal underline underline-offset-2"
+                    className="text-slate underline underline-offset-2"
                   >
                     {r.className}
                   </Link>
                 </td>
-                <td className="py-2 px-3 font-mono text-teal">{r.student.code}</td>
+                <td className="py-2 px-3 font-mono text-slate">{r.student.code}</td>
                 <td className="py-2 px-3 text-right">
                   <Button href={`/record-card/${r.classId}/${r.student.id}`} variant="secondary" size="sm">
                     Record Card

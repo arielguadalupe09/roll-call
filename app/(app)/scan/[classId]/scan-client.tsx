@@ -6,6 +6,7 @@ import { todayLocalDate } from "@/lib/date";
 import { playBeep } from "@/lib/beep";
 import type { AttendanceStatus, ParticipationType } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 const READER_ID = "scan-reader";
 
@@ -30,26 +31,26 @@ const STATUS_CONFIG: Record<
   present: {
     label: "P",
     full: "Present",
-    active: "bg-teal text-chalk border-teal",
-    inactive: "text-teal border-teal/40 hover:bg-teal/10",
+    active: "bg-success text-card border-success",
+    inactive: "text-card/70 border-card/25 hover:bg-white/10",
   },
   absent: {
     label: "A",
     full: "Absent",
-    active: "bg-danger text-chalk border-danger",
-    inactive: "text-danger border-danger/40 hover:bg-danger/10",
+    active: "bg-danger text-card border-danger",
+    inactive: "text-card/70 border-card/25 hover:bg-white/10",
   },
   excused: {
     label: "E",
     full: "Excused",
-    active: "bg-paper text-ink border-paper",
-    inactive: "text-paper border-paper/40 hover:bg-white/5",
+    active: "bg-card text-navy border-card",
+    inactive: "text-card/70 border-card/25 hover:bg-white/10",
   },
   late: {
     label: "L",
     full: "Late",
-    active: "bg-brass text-chalk border-brass",
-    inactive: "text-brass border-brass/40 hover:bg-brass/10",
+    active: "bg-warning text-navy border-warning",
+    inactive: "text-card/70 border-card/25 hover:bg-white/10",
   },
 };
 
@@ -281,25 +282,25 @@ export default function ScanClient({
 
   return (
     <div>
-      <div className="flex flex-col items-center bg-chalk px-6 py-10 text-paper">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">
+      <div className="flex flex-col items-center bg-navy px-6 py-10 text-card">
+        <p className="text-sm text-gold">
           Teacher scan
         </p>
         <h1 className="mt-2 font-display text-3xl font-semibold">
           {className}
         </h1>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-1 rounded-sm border border-rule/40 p-1">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-1 rounded-sm border border-line/40 p-1">
           {(["attendance", "recitation", "activity"] as ScanMode[]).map(
             (m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
                 disabled={running}
-                className={`rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition disabled:opacity-60 ${
+                className={`rounded-sm px-3 py-1.5 text-sm transition disabled:opacity-60 ${
                   mode === m
-                    ? "bg-brass text-chalk font-semibold"
-                    : "text-rule hover:bg-white/5"
+                    ? "bg-gold text-navy font-semibold"
+                    : "text-card/70 hover:bg-white/5"
                 }`}
               >
                 {MODE_LABELS[m]}
@@ -315,7 +316,7 @@ export default function ScanClient({
                 key={status}
                 onClick={() => setAttendanceStatus(status)}
                 title={`Scans will be logged as ${STATUS_CONFIG[status].full}`}
-                className={`rounded-sm border px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition ${
+                className={`rounded-sm border px-3 py-1.5 text-sm transition ${
                   attendanceStatus === status
                     ? STATUS_CONFIG[status].active
                     : STATUS_CONFIG[status].inactive
@@ -330,24 +331,24 @@ export default function ScanClient({
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
           <label className="flex items-center gap-2 text-sm">
             Date
-            <input
+            <Input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               disabled={running}
-              className="rounded-sm border border-rule bg-paper px-2 py-1 font-mono text-ink"
+              className="w-auto bg-paper py-1 font-mono"
             />
           </label>
           {mode === "activity" && (
             <label className="flex items-center gap-2 text-sm">
               Activity name
-              <input
+              <Input
                 type="text"
                 value={activityLabel}
                 onChange={(e) => setActivityLabel(e.target.value)}
                 disabled={running}
                 placeholder="e.g. Group presentation"
-                className="rounded-sm border border-rule bg-paper px-2 py-1 text-ink"
+                className="w-auto bg-paper py-1"
               />
             </label>
           )}
@@ -357,7 +358,7 @@ export default function ScanClient({
           onSubmit={handleHardwareSubmit}
           className="mt-4 flex w-full max-w-xs flex-col items-center gap-1"
         >
-          <input
+          <Input
             ref={hardwareInputRef}
             type="text"
             value={hardwareCode}
@@ -365,9 +366,9 @@ export default function ScanClient({
             disabled={!canStart}
             placeholder="Click here, then scan with a USB/Bluetooth scanner"
             autoComplete="off"
-            className="w-full rounded-sm border border-rule bg-paper px-3 py-2 text-center font-mono text-ink outline-none focus:border-brass disabled:opacity-60"
+            className="w-full bg-paper text-center font-mono"
           />
-          <p className="font-mono text-[10px] uppercase tracking-wide text-rule/70">
+          <p className="text-xs text-card/70">
             Hardware scanner input
           </p>
         </form>
@@ -379,7 +380,7 @@ export default function ScanClient({
               <p className="font-display text-lg font-bold text-ink">
                 {pendingLog.name}
               </p>
-              <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+              <p className="text-xs text-muted">
                 Score this {mode}
               </p>
               <div className="flex gap-1.5">
@@ -387,7 +388,7 @@ export default function ScanClient({
                   <button
                     key={n}
                     onClick={() => submitScore(n)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-brass font-mono text-lg font-bold text-chalk transition hover:brightness-110"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gold font-mono text-lg font-bold text-navy transition hover:brightness-110"
                   >
                     {n}
                   </button>
@@ -411,8 +412,8 @@ export default function ScanClient({
           <p
             className={`mt-4 rounded-sm px-3 py-2 text-sm ${
               toast.kind === "error"
-                ? "bg-danger/20 text-danger"
-                : "bg-teal/20 text-teal"
+                ? "bg-danger/30 text-card"
+                : "bg-success/30 text-card"
             }`}
           >
             {toast.message}

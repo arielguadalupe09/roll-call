@@ -83,7 +83,7 @@ export default async function ExamPreviewPage({
         </div>
 
         <div className="print:hidden">
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-ink/50">
+          <p className="mt-4 text-xs text-muted">
             Preview -- exactly what students will see, plus the answer key
           </p>
           <h1 className="mt-1 font-display text-3xl font-semibold text-ink">{examRow.title}</h1>
@@ -98,8 +98,8 @@ export default async function ExamPreviewPage({
 
           <ol className="mt-8 flex flex-col gap-5">
             {questionList.map((q, i) => (
-              <li key={q.id} className="rounded-2xl border border-rule/60 bg-white p-5 shadow-sm">
-                <p className="text-xs font-mono uppercase tracking-wide text-ink/50">
+              <li key={q.id} className="rounded-[10px] border border-line bg-card p-5">
+                <p className="text-xs text-muted">
                   {i + 1}. {TYPE_LABEL[q.type]} · {q.points} pt{q.points === 1 ? "" : "s"}
                 </p>
                 <p className="mt-1 text-ink">{q.prompt}</p>
@@ -109,7 +109,7 @@ export default async function ExamPreviewPage({
                     {(optionsByQuestion.get(q.id) ?? []).map((o, oi) => (
                       <li
                         key={o.id}
-                        className={`text-sm ${o.is_correct ? "font-medium text-teal" : "text-ink/70"}`}
+                        className={`text-sm ${o.is_correct ? "font-medium text-success-text" : "text-ink/70"}`}
                       >
                         {o.is_correct ? "✓ " : "· "}
                         {optionLetter(oi)}. {o.label}
@@ -119,7 +119,7 @@ export default async function ExamPreviewPage({
                 ) : q.type === "essay" || q.type === "file_upload" ? (
                   <p className="mt-3 text-sm text-ink/60">Manually graded -- no fixed answer.</p>
                 ) : (
-                  <p className="mt-3 text-sm text-teal">
+                  <p className="mt-3 text-sm text-success-text">
                     Correct: {q.correct_answer?.split("|").join(" / ")}
                   </p>
                 )}

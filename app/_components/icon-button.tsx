@@ -56,8 +56,8 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
 };
 
 const COLOR_CLASSES = {
-  brass: "bg-brass/15 text-brass hover:bg-brass/25",
-  teal: "bg-teal/15 text-teal hover:bg-teal/25",
+  gold: "bg-gold/15 text-gold hover:bg-gold/25",
+  success: "bg-success/15 text-success-text hover:bg-success/25",
   danger: "bg-danger/15 text-danger hover:bg-danger/25",
   ink: "bg-ink/10 text-ink hover:bg-ink/20",
 };

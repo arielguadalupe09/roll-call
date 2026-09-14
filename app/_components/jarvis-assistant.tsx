@@ -243,21 +243,21 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {open && (
-        <div className="flex h-[28rem] w-80 flex-col overflow-hidden rounded-lg border border-rule/40 bg-paper shadow-2xl">
-          <div className="flex items-center justify-between gap-2 border-b border-rule/40 bg-chalk px-3 py-2.5">
+        <div className="flex h-[28rem] w-80 flex-col overflow-hidden rounded-[10px] border border-line bg-paper shadow-lg">
+          <div className="flex items-center justify-between gap-2 border-b border-line/40 bg-navy px-3 py-2.5">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brass text-chalk">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold text-navy">
                 <WaveformIcon className="h-4 w-4" />
               </span>
               <div>
-                <p className="font-display text-sm font-semibold text-paper">Jarvis</p>
-                <p className="text-[11px] text-rule">Commands &amp; class analytics</p>
+                <p className="font-display text-sm font-semibold text-card">Jarvis</p>
+                <p className="text-[11px] text-card/70">Commands &amp; class analytics</p>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
               aria-label="Close Jarvis"
-              className="text-rule transition hover:text-paper"
+              className="text-card/70 transition hover:text-card"
             >
               <CloseIcon className="h-4 w-4" />
             </button>
@@ -268,7 +268,7 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
               <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
                   className={`max-w-[85%] whitespace-pre-line rounded-lg px-3 py-1.5 text-sm ${
-                    m.role === "user" ? "bg-brass text-chalk" : "bg-chalk text-paper"
+                    m.role === "user" ? "bg-gold text-navy" : "bg-navy text-card"
                   }`}
                 >
                   {m.text}
@@ -305,12 +305,12 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSubmitText} className="flex items-center gap-1.5 border-t border-rule/40 px-2 py-2">
+          <form onSubmit={handleSubmitText} className="flex items-center gap-1.5 border-t border-line/40 px-2 py-2">
             <input
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Type a command..."
-              className="min-w-0 flex-1 rounded-sm border border-rule/50 bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brass"
+              className="min-w-0 flex-1 rounded-sm border border-line/50 bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-gold"
             />
             <Button type="submit" variant="secondary" size="sm" className="shrink-0">
               Send
@@ -322,7 +322,7 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close Jarvis" : "Chat with Jarvis"}
         title={open ? "Close Jarvis" : "Chat with Jarvis"}
-        className="flex h-14 w-14 items-center justify-center rounded-full border border-rule/40 bg-brass text-chalk shadow-lg transition hover:brightness-110"
+        className="flex h-14 w-14 items-center justify-center rounded-full border border-line/40 bg-gold text-navy shadow-lg transition hover:brightness-110"
       >
         {open ? <CloseIcon className="h-6 w-6" /> : <WaveformIcon className="h-6 w-6" />}
       </button>

@@ -7,6 +7,8 @@ import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
+import { Card } from "@/app/_components/card";
+import { Input } from "@/app/_components/input";
 
 function ExamSection({
   classId,
@@ -84,17 +86,17 @@ function ExamSection({
   }
 
   return (
-    <div className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+    <Card>
       <p className="font-display text-lg font-semibold text-ink">{label}</p>
       <div className="mt-3 flex items-end gap-3">
         <label className="flex w-32 flex-col gap-1">
-          <span className="text-sm text-ink">Max score</span>
-          <input
+          <span className="text-xs font-semibold text-ink">Max score</span>
+          <Input
             type="number"
             min={1}
             value={maxScore}
             onChange={(e) => setMaxScore(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+            className="font-mono"
           />
         </label>
         <Button onClick={handleSaveMaxScore} disabled={savingMax}>
@@ -115,11 +117,11 @@ function ExamSection({
           </CollapsibleSection>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-ink/60">
+        <p className="mt-4 text-sm text-muted">
           Set a max score to start entering scores for the {label.toLowerCase()}.
         </p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -146,7 +148,7 @@ export default function MajorExamTab({
         <ExamSection
           classId={classId}
           period="prelim"
-          label="Prelim Exam"
+          label="Prelim exam"
           initialExam={prelimExam}
           students={students}
           initialScores={
@@ -159,7 +161,7 @@ export default function MajorExamTab({
       <ExamSection
         classId={classId}
         period="midterm"
-        label="Midterm Exam"
+        label="Midterm exam"
         initialExam={midtermExam}
         students={students}
         initialScores={
@@ -171,7 +173,7 @@ export default function MajorExamTab({
       <ExamSection
         classId={classId}
         period="finals"
-        label="Final Exam"
+        label="Final exam"
         initialExam={finalsExam}
         students={students}
         initialScores={

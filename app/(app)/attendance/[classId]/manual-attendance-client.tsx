@@ -7,6 +7,8 @@ import type { Attendance, AttendanceStatus, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
 const STATUS_ORDER: AttendanceStatus[] = ["present", "absent", "excused", "late"];
 
@@ -17,26 +19,26 @@ const STATUS_CONFIG: Record<
   present: {
     label: "P",
     full: "Present",
-    active: "bg-teal text-chalk border-teal",
-    inactive: "text-teal border-teal/40 hover:bg-teal/10",
+    active: "bg-success text-card border-success",
+    inactive: "text-success-text border-success/40 hover:bg-success/10",
   },
   absent: {
     label: "A",
     full: "Absent",
-    active: "bg-danger text-chalk border-danger",
+    active: "bg-danger text-card border-danger",
     inactive: "text-danger border-danger/40 hover:bg-danger/10",
   },
   excused: {
     label: "E",
     full: "Excused",
-    active: "bg-ink text-paper border-ink",
-    inactive: "text-ink/70 border-ink/30 hover:bg-ink/5",
+    active: "bg-ink text-card border-ink",
+    inactive: "text-muted border-line hover:bg-slate-light",
   },
   late: {
     label: "L",
     full: "Late",
-    active: "bg-brass text-chalk border-brass",
-    inactive: "text-brass border-brass/40 hover:bg-brass/10",
+    active: "bg-warning text-navy border-warning",
+    inactive: "text-warning-text border-warning/40 hover:bg-warning/10",
   },
 };
 
@@ -162,16 +164,16 @@ export default function ManualAttendanceClient({
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm text-ink/70">
+        <label className="flex items-center gap-2 text-sm text-muted">
           Date
-          <input
+          <Input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-sm border border-rule bg-white px-3 py-1.5 font-mono text-ink outline-none focus:border-brass"
+            className="w-auto"
           />
         </label>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-ink/60">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
           {STATUS_ORDER.map((s) => (
             <span key={s} className="flex items-center gap-1">
               <span
@@ -205,53 +207,49 @@ export default function ManualAttendanceClient({
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">
-              <th className="py-2 px-3">Student</th>
-              <th className="py-2 px-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((s) => {
-              const current = byStudent.get(s.id);
-              return (
-                <tr key={s.id} className="border-b border-rule/50 bg-white">
-                  <td className="py-2 px-3 text-ink">{s.name}</td>
-                  <td className="py-2 px-3">
-                    <div className="flex gap-2">
-                      {STATUS_ORDER.map((status) => {
-                        const isActive = current?.status === status;
-                        return (
-                          <button
-                            key={status}
-                            onClick={() => markStatus(s.id, status)}
-                            disabled={savingId === s.id}
-                            title={STATUS_CONFIG[status].full}
-                            className={`flex h-8 w-8 items-center justify-center rounded-full border font-mono text-xs font-bold transition disabled:opacity-40 ${
-                              isActive ? STATUS_CONFIG[status].active : STATUS_CONFIG[status].inactive
-                            }`}
-                          >
-                            {STATUS_CONFIG[status].label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {students.length === 0 && (
-              <tr>
-                <td colSpan={2} className="py-4 px-3 text-ink/60">
-                  No students in this class yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table className="mt-4">
+        <TableHead>
+          <TableRow>
+            <TableHeaderCell>Student</TableHeaderCell>
+            <TableHeaderCell>Status</TableHeaderCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {students.map((s) => {
+            const current = byStudent.get(s.id);
+            return (
+              <TableRow key={s.id} striped>
+                <TableCell>{s.name}</TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    {STATUS_ORDER.map((status) => {
+                      const isActive = current?.status === status;
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => markStatus(s.id, status)}
+                          disabled={savingId === s.id}
+                          title={STATUS_CONFIG[status].full}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold transition disabled:opacity-40 ${
+                            isActive ? STATUS_CONFIG[status].active : STATUS_CONFIG[status].inactive
+                          }`}
+                        >
+                          {STATUS_CONFIG[status].label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+          {students.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={2} className="py-4 text-muted">No students in this class yet.</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

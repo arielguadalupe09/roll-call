@@ -6,6 +6,8 @@ import IconButton from "@/app/_components/icon-button";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import Button from "@/app/_components/button";
+import { Input, Select } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 export default function AdminTeachersClient({
   initialTeachers,
@@ -176,54 +178,41 @@ export default function AdminTeachersClient({
     <div className="mt-6">
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
+        className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">Email</span>
-          <input
+        <FormField label="Email">
+          <Input
             type="email"
             placeholder="e.g. juan.delacruz@pampangastateu.edu.ph"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">Password</span>
-          <input
+        </FormField>
+        <FormField label="Password">
+          <Input
             type="password"
             placeholder="Min 6 characters"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">Full name (optional)</span>
-          <input
+        </FormField>
+        <FormField label="Full name (optional)">
+          <Input
             type="text"
             placeholder="e.g. Juan Dela Cruz"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-ink">Role</span>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as "teacher" | "admin")}
-            className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
-          >
+        </FormField>
+        <FormField
+          label="Role"
+          hint={role === "admin" ? "Admins can create, edit, and delete teacher accounts." : undefined}
+        >
+          <Select value={role} onChange={(e) => setRole(e.target.value as "teacher" | "admin")}>
             <option value="teacher">Teacher</option>
             <option value="admin">Admin</option>
-          </select>
-          {role === "admin" && (
-            <p className="text-xs text-ink/60">
-              Admins can create, edit, and delete teacher accounts.
-            </p>
-          )}
-        </label>
+          </Select>
+        </FormField>
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={loading}>
             {loading
@@ -236,10 +225,10 @@ export default function AdminTeachersClient({
         </div>
       </form>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+      <div className="mt-6 overflow-x-auto rounded-[10px] border border-line">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">
+            <tr className="bg-navy text-card font-display text-[13px] font-medium">
               <th className="py-2 px-3">Email</th>
               <th className="py-2 px-3">Name</th>
               <th className="py-2 px-3">Role</th>
@@ -249,17 +238,17 @@ export default function AdminTeachersClient({
           </thead>
           <tbody>
             {teachers.map((t) => (
-              <tr key={t.id} className="border-b border-rule/50 bg-white">
+              <tr key={t.id} className="border-b border-line odd:bg-paper/60">
                 <td className="py-2 px-3 text-ink">{t.email}</td>
                 <td className="py-2 px-3 text-ink">
                   {editingId === t.id ? (
-                    <input
+                    <Input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       placeholder="e.g. Juan Dela Cruz"
                       autoFocus
-                      className="w-full rounded-sm border border-brass bg-white px-2 py-1 text-ink outline-none"
+                      className="w-full border-gold py-1"
                     />
                   ) : (
                     t.full_name || "—"
@@ -267,19 +256,19 @@ export default function AdminTeachersClient({
                 </td>
                 <td className="py-2 px-3">
                   {t.id === currentUserId ? (
-                    <span className="rounded-sm bg-brass/20 px-2 py-0.5 font-mono text-xs font-semibold text-brass">
+                    <span className="rounded-full bg-gold-soft px-2.5 py-0.5 text-xs font-medium text-ink">
                       Admin (you)
                     </span>
                   ) : (
-                    <select
+                    <Select
                       value={t.is_admin ? "admin" : "teacher"}
                       onChange={(e) => handleSetAdmin(t, e.target.value === "admin")}
                       disabled={settingAdminId === t.id}
-                      className="rounded-sm border border-rule bg-white px-2 py-1 font-mono text-xs text-ink outline-none focus:border-brass disabled:opacity-60"
+                      className="w-auto py-1 text-xs"
                     >
                       <option value="teacher">Teacher</option>
                       <option value="admin">Admin</option>
-                    </select>
+                    </Select>
                   )}
                 </td>
                 <td className="py-2 px-3 font-mono text-xs text-ink/60">
@@ -291,7 +280,7 @@ export default function AdminTeachersClient({
                       <Button size="sm" onClick={() => handleSaveEdit(t.id)} disabled={savingEdit}>
                         {savingEdit ? "Saving..." : "Save"}
                       </Button>
-                      <Button variant="neutral" size="sm" onClick={cancelEdit}>
+                      <Button variant="secondary" size="sm" onClick={cancelEdit}>
                         Cancel
                       </Button>
                     </div>
@@ -299,14 +288,14 @@ export default function AdminTeachersClient({
                     <div className="flex justify-end gap-2">
                       <IconButton
                         icon="reset"
-                        color="brass"
+                        color="gold"
                         label="Reset password"
                         onClick={() => handleResetPassword(t)}
                         disabled={resettingId === t.id}
                       />
                       <IconButton
                         icon="edit"
-                        color="teal"
+                        color="success"
                         label="Edit"
                         onClick={() => startEdit(t)}
                       />

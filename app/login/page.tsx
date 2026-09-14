@@ -9,6 +9,7 @@ import SidebarIcon from "@/app/_components/sidebar-icons";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
 import { STUDENT_CODE_KEY } from "@/lib/student-profile";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 const FEATURES = [
   "Track attendance via QR scan or self check-in",
@@ -144,15 +145,15 @@ export default function LoginPage() {
 
   return (
     <main ref={rootRef} className="flex min-h-full flex-1 flex-col md:flex-row">
-      <div className="relative flex flex-col justify-center overflow-hidden bg-chalk px-8 py-16 sm:px-14 md:w-1/2 md:py-0">
+      <div className="relative flex flex-col justify-center overflow-hidden bg-navy px-8 py-16 sm:px-14 md:w-1/2 md:py-0">
         <div
           data-animate="left-decor"
-          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brass/10"
+          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gold/10"
           aria-hidden="true"
         />
         <div
           data-animate="left-decor"
-          className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-teal/10"
+          className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-slate/10"
           aria-hidden="true"
         />
 
@@ -162,20 +163,20 @@ export default function LoginPage() {
           </div>
           <span
             data-animate="left-item"
-            className="mt-6 inline-block rounded-full border border-rule/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-rule"
+            className="mt-6 inline-block rounded-full border border-line/40 px-3 py-1 text-xs text-card/70"
           >
-            {portal === "teacher" ? "Teacher" : "Student"} Portal
+            {portal === "teacher" ? "Teacher" : "Student"} portal
           </span>
-          <h1 data-animate="left-item" className="mt-4 font-display text-4xl font-semibold text-paper">
+          <h1 data-animate="left-item" className="mt-4 font-display text-4xl font-semibold text-card">
             GAINS
           </h1>
-          <p data-animate="left-item" className="mt-1 font-mono text-[11px] uppercase tracking-[0.15em] text-rule/70">
-            Grading &amp; Attendance Intelligent Network System
+          <p data-animate="left-item" className="mt-1 text-xs text-card/70">
+            Grading &amp; attendance intelligent network system
           </p>
-          <p data-animate="left-item" className="mt-3 max-w-sm font-display text-lg italic text-rule">
+          <p data-animate="left-item" className="mt-3 max-w-sm font-display text-lg italic text-card/70">
             Attendance and grading, simplified.
           </p>
-          <p data-animate="left-item" className="mt-1 max-w-sm text-sm text-rule/80">
+          <p data-animate="left-item" className="mt-1 max-w-sm text-sm text-card/70">
             Pampanga State University — College of Computing Studies
           </p>
 
@@ -184,9 +185,9 @@ export default function LoginPage() {
               <li
                 key={feature}
                 data-animate="feature-item"
-                className="flex items-start gap-2 text-sm text-paper/90"
+                className="flex items-start gap-2 text-sm text-card"
               >
-                <SidebarIcon name="attendance" className="mt-0.5 h-4 w-4 shrink-0 text-brass" />
+                <SidebarIcon name="attendance" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 {feature}
               </li>
             ))}
@@ -197,7 +198,7 @@ export default function LoginPage() {
       <div className="ledger-page flex flex-1 items-center justify-center px-6 py-16">
         <div
           data-animate="form-card"
-          className="w-full max-w-sm rounded-2xl border border-rule/60 bg-white p-8 shadow-xl"
+          className="w-full max-w-sm rounded-[10px] border border-line bg-card p-8 shadow-lg"
         >
           <div className="flex flex-col items-center text-center">
             <LogoBadge size="h-12 w-12" />
@@ -211,7 +212,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setPortal("teacher")}
               className={`flex-1 rounded-sm px-4 py-2 text-sm font-medium transition ${
-                portal === "teacher" ? "bg-white text-brass shadow-sm" : "text-ink/60 hover:text-ink"
+                portal === "teacher" ? "bg-white text-gold shadow-sm" : "text-ink/60 hover:text-ink"
               }`}
             >
               Teacher
@@ -220,7 +221,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setPortal("student")}
               className={`flex-1 rounded-sm px-4 py-2 text-sm font-medium transition ${
-                portal === "student" ? "bg-white text-brass shadow-sm" : "text-ink/60 hover:text-ink"
+                portal === "student" ? "bg-white text-gold shadow-sm" : "text-ink/60 hover:text-ink"
               }`}
             >
               Student
@@ -241,7 +242,7 @@ export default function LoginPage() {
           ) : (
             <>
           <div className="mt-6 flex flex-col items-center text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-teal">
+            <p className="text-sm text-gold">
               {mode === "signin" && "Sign in"}
               {mode === "signup" && "Create account"}
               {mode === "forgot" && "Reset password"}
@@ -256,19 +257,18 @@ export default function LoginPage() {
 
           {mode === "forgot" ? (
             resetSent ? (
-              <p className="mt-6 rounded-sm bg-teal/10 px-3 py-2 text-center text-sm text-teal">
+              <p className="mt-6 rounded-sm bg-success/10 px-3 py-2 text-center text-sm text-success-text">
                 Check your email for a reset link.
               </p>
             ) : (
               <form onSubmit={handleForgotSubmit} className="mt-6 flex flex-col gap-4">
                 <label className="flex flex-col gap-1">
                   <span className="text-sm font-medium text-ink">Email</span>
-                  <input
+                  <Input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
                   />
                 </label>
 
@@ -287,24 +287,23 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-ink">Email</span>
-                <input
+                <Input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
                 />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-ink">Password</span>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showPassword ? "text" : "password"}
                     required
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-sm border border-rule bg-white/60 px-3 py-2 pr-10 text-ink outline-none focus:border-brass"
+                    className="w-full pr-10"
                   />
                   <button
                     type="button"
@@ -363,7 +362,7 @@ export default function LoginPage() {
           )}
 
           <Button
-            variant="neutral"
+            variant="secondary"
             className="mt-4 block w-full text-center"
             onClick={() =>
               switchMode(mode === "signup" ? "signin" : mode === "forgot" ? "signin" : "signup")

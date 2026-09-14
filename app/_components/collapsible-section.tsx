@@ -3,9 +3,9 @@
 import { useState, type ReactNode } from "react";
 
 const SHELL_CLASSES = {
-  default: "border border-rule/60 bg-white p-4 shadow-sm",
+  default: "border border-line bg-card p-4",
   flat: "p-4",
-  primary: "border border-rule/40 bg-white p-5 shadow-md border-t-2 border-t-brass",
+  primary: "border border-line bg-card p-5 border-t-2 border-t-gold",
 } as const;
 
 export default function CollapsibleSection({
@@ -35,7 +35,7 @@ export default function CollapsibleSection({
   const toggle = onToggle ?? (() => setInternalOpen((v) => !v));
 
   return (
-    <div id={id} className={`scroll-mt-6 rounded-2xl ${SHELL_CLASSES[variant]}`}>
+    <div id={id} className={`scroll-mt-6 rounded-[10px] ${SHELL_CLASSES[variant]}`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           onClick={toggle}
@@ -45,7 +45,7 @@ export default function CollapsibleSection({
         >
           <div>
             <p className="font-display text-lg font-semibold text-ink">{title}</p>
-            {subtitle && <p className="mt-0.5 text-sm text-ink/60">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
           </div>
           <svg
             width="16"
@@ -53,7 +53,7 @@ export default function CollapsibleSection({
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
-            className={`shrink-0 text-teal transition-transform ${open ? "rotate-180" : ""}`}
+            className={`shrink-0 text-slate transition-transform ${open ? "rotate-180" : ""}`}
           >
             <path
               d="M4 6l4 4 4-4"

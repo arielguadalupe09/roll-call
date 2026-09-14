@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Attendance, AttendanceStatus, ParticipationLog, Student } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Select } from "@/app/_components/input";
 
 const STATUS_LABEL: Record<AttendanceStatus, string> = {
   present: "P",
@@ -13,10 +14,10 @@ const STATUS_LABEL: Record<AttendanceStatus, string> = {
 };
 
 const STATUS_CLASS: Record<AttendanceStatus, string> = {
-  present: "bg-teal/20 text-teal",
+  present: "bg-success/20 text-success-text",
   absent: "bg-danger/20 text-danger",
   excused: "bg-ink/10 text-ink/70",
-  late: "bg-brass/20 text-brass",
+  late: "bg-gold/20 text-gold",
 };
 
 export default function RecordsClient({
@@ -238,11 +239,11 @@ export default function RecordsClient({
             </h1>
             <p className="mt-1 flex flex-wrap gap-4 text-sm text-ink/70">
               <span>
-                <span className="inline-block h-3 w-3 rounded-full bg-brass align-middle" />{" "}
+                <span className="inline-block h-3 w-3 rounded-full bg-gold align-middle" />{" "}
                 Teacher scan
               </span>
               <span>
-                <span className="inline-block h-3 w-3 rounded-full bg-teal align-middle" />{" "}
+                <span className="inline-block h-3 w-3 rounded-full bg-slate align-middle" />{" "}
                 Self check-in
               </span>
             </p>
@@ -259,17 +260,17 @@ export default function RecordsClient({
               ))}
             </p>
           </div>
-          <Button onClick={downloadCsv}>Export CSV</Button>
+          <Button variant="highlight" onClick={downloadCsv}>Export CSV</Button>
         </div>
 
         <div className="mt-6 flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-ink/70">
+          <label className="flex items-center gap-2 text-sm text-muted">
             Date
-            <select
+            <Select
               value={activeDate ?? ""}
               onChange={(e) => setSelectedDate(e.target.value)}
               disabled={dates.length === 0}
-              className="rounded-sm border border-rule bg-white px-3 py-1.5 font-mono text-ink outline-none focus:border-brass disabled:opacity-60"
+              className="w-auto"
             >
               {dates.length === 0 && <option value="">No dates yet</option>}
               {dates.map((d) => (
@@ -277,20 +278,20 @@ export default function RecordsClient({
                   {d}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         </div>
 
         {dates.length === 0 ? (
-          <p className="mt-6 rounded-2xl border border-rule/60 bg-white p-4 text-ink/60 shadow-sm">
+          <p className="mt-6 rounded-[10px] border border-line bg-card p-4 text-ink/60">
             No records yet.
           </p>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
-            <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+            <div className="overflow-x-auto rounded-[10px] border border-line">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
+                  <tr className="bg-navy text-card font-display text-[13px] font-medium">
                     <th className="py-2 px-3">Attendance</th>
                     <th className="py-2 px-3">Status</th>
                   </tr>
@@ -299,7 +300,7 @@ export default function RecordsClient({
                   {students.map((s) => {
                     const a = attendanceByStudent.get(s.id);
                     return (
-                      <tr key={s.id} className="border-b border-rule/50 bg-white">
+                      <tr key={s.id} className="border-b border-line/50 bg-white">
                         <td className="py-2 px-3 text-ink">{s.name}</td>
                         <td className="py-2 px-3">
                           {a ? (
@@ -332,10 +333,10 @@ export default function RecordsClient({
               </table>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+            <div className="overflow-x-auto rounded-[10px] border border-line">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
+                  <tr className="bg-navy text-card font-display text-[13px] font-medium">
                     <th className="py-2 px-3">Recitation</th>
                     <th className="py-2 px-3">Taps</th>
                     <th className="py-2 px-3">Avg score (/5)</th>
@@ -345,7 +346,7 @@ export default function RecordsClient({
                   {students.map((s) => {
                     const r = recitationByStudent.get(s.id);
                     return (
-                      <tr key={s.id} className="border-b border-rule/50 bg-white">
+                      <tr key={s.id} className="border-b border-line/50 bg-white">
                         <td className="py-2 px-3 text-ink">{s.name}</td>
                         <td className="py-2 px-3 font-mono text-ink">{r?.count ?? 0}</td>
                         <td className="py-2 px-3 font-mono text-ink">
@@ -360,10 +361,10 @@ export default function RecordsClient({
               </table>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+            <div className="overflow-x-auto rounded-[10px] border border-line">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
+                  <tr className="bg-navy text-card font-display text-[13px] font-medium">
                     <th className="py-2 px-3">Activity</th>
                     <th className="py-2 px-3">Label</th>
                     <th className="py-2 px-3">Taps</th>
@@ -374,7 +375,7 @@ export default function RecordsClient({
                   {students.map((s) => {
                     const act = activityByStudent.get(s.id);
                     return (
-                      <tr key={s.id} className="border-b border-rule/50 bg-white">
+                      <tr key={s.id} className="border-b border-line/50 bg-white">
                         <td className="py-2 px-3 text-ink">{s.name}</td>
                         <td className="py-2 px-3 text-ink/70">
                           {act && act.labels.size > 0

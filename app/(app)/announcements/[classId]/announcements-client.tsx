@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Announcement } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Input, Textarea } from "@/app/_components/input";
 
 export default function AnnouncementsClient({
   classId,
@@ -63,21 +64,19 @@ export default function AnnouncementsClient({
     <div className="mt-6">
       <form
         onSubmit={handlePost}
-        className="flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm"
+        className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
-        <input
+        <Input
           type="text"
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
-        <textarea
+        <Textarea
           placeholder="Write an announcement for this class..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={loading}>
@@ -89,7 +88,7 @@ export default function AnnouncementsClient({
 
       <ul className="mt-6 flex flex-col gap-3">
         {announcements.map((a) => (
-          <li key={a.id} className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+          <li key={a.id} className="rounded-[10px] border border-line bg-card p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-display text-lg font-semibold text-ink">

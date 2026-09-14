@@ -8,6 +8,7 @@ import { STUDENT_CODE_KEY } from "@/lib/student-profile";
 import type { ExamKind, QuestionType, ViolationType } from "@/lib/types";
 import Button from "@/app/_components/button";
 import { useConfirm } from "@/app/_components/confirm-provider";
+import { Input, Textarea } from "@/app/_components/input";
 
 type ExamOptionView = { id: string; label: string };
 type ExamQuestionView = {
@@ -452,8 +453,8 @@ export default function StudentExamPage() {
 
   if (step === "code") {
     return (
-      <main className="flex flex-1 flex-col items-center bg-chalk px-6 py-16 text-paper">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">GAINS</p>
+      <main className="flex flex-1 flex-col items-center bg-navy px-6 py-16 text-card">
+        <p className="text-sm text-gold">GAINS</p>
         <h1 className="mt-2 font-display text-3xl font-semibold">Sign in to take this exam</h1>
         <div className="mt-8 w-full max-w-xs">
           <StudentCodeEntry
@@ -470,15 +471,15 @@ export default function StudentExamPage() {
 
   if (step === "resolving") {
     return (
-      <main className="flex flex-1 items-center justify-center bg-chalk px-6 py-16 text-paper">
-        <p className="text-rule">Loading exam...</p>
+      <main className="flex flex-1 items-center justify-center bg-navy px-6 py-16 text-card">
+        <p className="text-card/70">Loading exam...</p>
       </main>
     );
   }
 
   if (step === "error") {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center bg-chalk px-6 py-16 text-paper">
+      <main className="flex flex-1 flex-col items-center justify-center bg-navy px-6 py-16 text-card">
         <p className="rounded-sm bg-danger/20 px-4 py-3 text-center text-danger">{error}</p>
         <Button
           variant="secondary"
@@ -497,15 +498,15 @@ export default function StudentExamPage() {
 
   if (step === "submitted") {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center bg-chalk px-6 py-16 text-paper">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">Exam submitted</p>
+      <main className="flex flex-1 flex-col items-center justify-center bg-navy px-6 py-16 text-card">
+        <p className="text-sm text-gold">Exam submitted</p>
         {result &&
           (result.needsGrading ? (
-            <p className="mt-4 max-w-xs text-center text-lg text-paper/80">
+            <p className="mt-4 max-w-xs text-center text-lg text-card">
               Your score will be available once your teacher reviews your written answers.
             </p>
           ) : (
-            <p className="mt-4 font-mono text-5xl font-semibold text-brass">
+            <p className="mt-4 font-mono text-5xl font-semibold text-gold">
               {result.score} / {result.totalPoints}
             </p>
           ))}
@@ -517,17 +518,17 @@ export default function StudentExamPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center bg-chalk px-6 py-10 text-paper">
-      <div className="sticky top-0 z-10 flex w-full max-w-xl flex-col items-center gap-2 bg-chalk pb-4 pt-2">
-        <Button href="/student" variant="neutral" size="sm" onClick={handleLeave} className="self-start">
+    <main className="flex flex-1 flex-col items-center bg-navy px-6 py-10 text-card">
+      <div className="sticky top-0 z-10 flex w-full max-w-xl flex-col items-center gap-2 bg-navy pb-4 pt-2">
+        <Button href="/student" variant="secondary" size="sm" onClick={handleLeave} className="self-start">
           ← My profile
         </Button>
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">{exam?.title}</p>
+        <p className="text-sm text-gold">{exam?.title}</p>
         {deadline != null ? (
           <p className="font-mono text-4xl font-semibold">{formatClock(remaining)}</p>
         ) : (
           exam?.availableUntil && (
-            <p className="text-sm text-paper/80">
+            <p className="text-sm text-card">
               Due {new Date(exam.availableUntil).toLocaleString()}
             </p>
           )
@@ -546,8 +547,8 @@ export default function StudentExamPage() {
 
       <div className="mt-4 flex w-full max-w-xl flex-col gap-4">
         {questions.map((q, i) => (
-          <div key={q.id} className="ledger-page rounded-sm border border-rule p-4 text-ink">
-            <p className="text-xs font-mono uppercase tracking-wide text-ink/50">
+          <div key={q.id} className="ledger-page rounded-sm border border-line p-4 text-ink">
+            <p className="text-xs text-muted">
               {i + 1}. {q.points} pt{q.points === 1 ? "" : "s"}
             </p>
             <p className="mt-1 font-medium">{q.prompt}</p>
@@ -561,19 +562,19 @@ export default function StudentExamPage() {
                       name={q.id}
                       checked={answers[q.id]?.selectedOptionId === o.id}
                       onChange={() => setSelectedOption(q.id, o.id)}
-                      className="accent-brass"
+                      className="accent-gold"
                     />
                     {o.label}
                   </label>
                 ))}
               </div>
             ) : q.type === "essay" ? (
-              <textarea
+              <Textarea
                 value={answers[q.id]?.answerText ?? ""}
                 onChange={(e) => setAnswerText(q.id, e.target.value)}
                 placeholder="Your answer"
                 rows={6}
-                className="mt-3 w-full rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+                className="mt-3 w-full"
               />
             ) : q.type === "file_upload" ? (
               <div className="mt-3 flex flex-col gap-2">
@@ -586,18 +587,18 @@ export default function StudentExamPage() {
                   className="text-sm text-ink"
                 />
                 {(answers[q.id]?.fileName || answers[q.id]?.filePath) && (
-                  <p className="text-xs text-teal">
+                  <p className="text-xs text-success-text">
                     Uploaded: {answers[q.id]?.fileName ?? "a file (from an earlier visit)"}
                   </p>
                 )}
               </div>
             ) : (
-              <input
+              <Input
                 type="text"
                 value={answers[q.id]?.answerText ?? ""}
                 onChange={(e) => setAnswerText(q.id, e.target.value)}
                 placeholder={q.type === "true_false" ? "true or false" : "Your answer"}
-                className="mt-3 w-full rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
+                className="mt-3 w-full"
               />
             )}
           </div>

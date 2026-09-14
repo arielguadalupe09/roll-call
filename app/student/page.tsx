@@ -159,8 +159,8 @@ export default function StudentProfilePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center bg-chalk px-6 py-16 text-paper">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">
+    <main className="flex flex-1 flex-col items-center bg-navy px-6 py-16 text-card">
+      <p className="text-sm text-gold">
         GAINS
       </p>
       <h1 className="mt-2 font-display text-3xl font-semibold">
@@ -187,17 +187,17 @@ export default function StudentProfilePage() {
           <p className="text-center font-display text-2xl font-semibold">
             {profile.studentName}
           </p>
-          <p className="text-center text-rule">{profile.className}</p>
+          <p className="text-center text-card/70">{profile.className}</p>
 
           <div className="mt-6 flex flex-col items-center">
-            <p className="font-mono text-5xl font-semibold text-brass">
+            <p className="font-mono text-5xl font-semibold text-gold">
               {profile.attendancePercent == null ? "--" : `${profile.attendancePercent.toFixed(0)}%`}
             </p>
-            <p className="text-rule">attendance</p>
+            <p className="text-card/70">attendance</p>
           </div>
 
-          <div className="mt-6 ledger-page rounded-sm border border-rule p-4 text-ink">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/60">
+          <div className="mt-6 ledger-page rounded-sm border border-line p-4 text-ink">
+            <p className="text-xs text-muted">
               Grades
             </p>
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -323,7 +323,7 @@ export default function StudentProfilePage() {
                         )}
 
                         {turnedIn && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-sm bg-teal/10 px-3 py-2 text-sm text-teal">
+                          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-sm bg-success/10 px-3 py-2 text-sm text-success-text">
                             <span>✓ Turned in</span>
                             {a.fileSignedUrl && (
                               <a
@@ -349,7 +349,7 @@ export default function StudentProfilePage() {
                                   [a.assignmentId]: e.target.files?.[0] ?? null,
                                 }))
                               }
-                              className="text-xs text-ink/70 file:mr-3 file:rounded-sm file:border file:border-rule file:bg-white/60 file:px-2 file:py-1 file:text-xs file:font-medium"
+                              className="text-xs text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white/60 file:px-2 file:py-1 file:text-xs file:font-medium"
                             />
                             {pendingFile && (
                               <p className="mt-1 text-xs text-ink/60">
@@ -413,7 +413,7 @@ export default function StudentProfilePage() {
                           <p className="font-medium">
                             {exam.title}
                             {exam.isNew && (
-                              <span className="ml-2 rounded-sm bg-danger/15 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold uppercase tracking-wide text-danger">
+                              <span className="ml-2 rounded-full bg-danger/15 px-2 py-0.5 align-middle text-[10px] font-semibold text-danger">
                                 New
                               </span>
                             )}
@@ -427,7 +427,7 @@ export default function StudentProfilePage() {
                           {exam.durationMinutes != null ? ` · ${exam.durationMinutes} min` : ""} · {exam.period}
                         </p>
                         {exam.status === "submitted" ? (
-                          <p className="mt-1 text-sm text-teal">
+                          <p className="mt-1 text-sm text-success-text">
                             Score: {exam.score} / {exam.totalPoints}
                           </p>
                         ) : notYetOpen ? (

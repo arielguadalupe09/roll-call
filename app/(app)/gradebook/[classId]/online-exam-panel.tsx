@@ -9,13 +9,15 @@ import { MAX_UPLOAD_BYTES } from "@/lib/exam-ai-parse";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import Button from "@/app/_components/button";
+import { Input, Select, Textarea } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 function isUntimedKind(kind: ExamKind): boolean {
   return kind === "written" || kind === "laboratory";
 }
 
 function publishedBadge(published: boolean) {
-  const color = published ? "bg-teal/20 text-teal" : "bg-ink/10 text-ink/60";
+  const color = published ? "bg-success/20 text-success-text" : "bg-ink/10 text-ink/60";
   return (
     <span className={`rounded-sm px-2 py-0.5 font-mono text-xs font-semibold ${color}`}>
       {published ? "Published" : "Draft"}
@@ -168,81 +170,71 @@ export default function OnlineExamPanel({
 
   return (
     <div>
-      <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+      <p className="text-xs text-muted">
         Online {EXAM_KIND_LABEL[kind]} · {exams.length} exam{exams.length === 1 ? "" : "s"}
       </p>
       <form
         onSubmit={handleAdd}
-        className="mt-3 flex flex-col gap-3 rounded-2xl border border-rule/60 bg-white p-4"
+        className="mt-3 flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
-        <input
+        <Input
           type="text"
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
-        <textarea
+        <Textarea
           placeholder="Description / instructions (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
         />
         <div className="flex flex-wrap gap-3">
-          <label className="flex w-36 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Period</span>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as Period)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-ink outline-none focus:border-brass"
-            >
+          <FormField label="Period" className="w-36">
+            <Select value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
               {usePrelims && <option value="prelim">Prelim</option>}
               <option value="midterm">Midterm</option>
               <option value="finals">Finals</option>
-            </select>
-          </label>
+            </Select>
+          </FormField>
           {!isUntimedKind(kind) && (
-            <label className="flex w-32 flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Duration (min)</span>
-              <input
+            <FormField label="Duration (min)" className="w-32">
+              <Input
                 type="number"
                 min={1}
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-ink outline-none focus:border-brass"
+                className="font-mono"
               />
-            </label>
+            </FormField>
           )}
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Opens (optional)</span>
-            <input
+          <FormField label="Opens (optional)" className="flex-1">
+            <Input
               type="datetime-local"
               value={availableFrom}
               onChange={(e) => setAvailableFrom(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-sm text-ink outline-none focus:border-brass"
+              className="font-mono text-sm"
             />
-          </label>
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-ink">Closes (optional)</span>
-            <input
+          </FormField>
+          <FormField label="Closes (optional)" className="flex-1">
+            <Input
               type="datetime-local"
               value={availableUntil}
               onChange={(e) => setAvailableUntil(e.target.value)}
-              className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono text-sm text-ink outline-none focus:border-brass"
+              className="font-mono text-sm"
             />
-          </label>
+          </FormField>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-rule/60 pt-3">
-          <span className="text-sm font-medium text-ink">Upload questions (optional)</span>
-          <p className="text-xs text-ink/60">
+        <div className="flex flex-col gap-2 border-t border-line pt-3">
+          <span className="text-xs font-semibold text-ink">Upload questions (optional)</span>
+          <p className="text-xs text-muted">
             Upload a .txt, .docx, or PDF with your questions now and we&apos;ll parse them as soon as the
             exam is created -- add a separate answer key file too if they live in different documents.
             You&apos;ll review everything before it&apos;s saved.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="shrink-0 cursor-pointer rounded-sm bg-brass px-4 py-2 text-center text-sm font-medium text-chalk transition hover:brightness-110">
+            <label className="shrink-0 cursor-pointer rounded-sm bg-gold px-4 py-2 text-center text-sm font-medium text-navy transition hover:brightness-110">
               {questionsFile ? questionsFile.name : "Choose questions file"}
               <input
                 type="file"
@@ -252,7 +244,7 @@ export default function OnlineExamPanel({
                 className="hidden"
               />
             </label>
-            <label className="shrink-0 cursor-pointer rounded-sm bg-rule/30 px-4 py-2 text-center text-sm font-medium text-ink transition hover:bg-rule/45">
+            <label className="shrink-0 cursor-pointer rounded-sm bg-line/30 px-4 py-2 text-center text-sm font-medium text-ink transition hover:bg-line/45">
               {answerKeyFile ? answerKeyFile.name : "Choose answer key (optional)"}
               <input
                 type="file"
@@ -282,14 +274,14 @@ export default function OnlineExamPanel({
         {exams.map((exam) => (
           <li
             key={exam.id}
-            className="rounded-2xl border border-rule/60 bg-white p-4 shadow-sm transition hover:border-brass/60 hover:shadow-md"
+            className="rounded-[10px] border border-line bg-card p-4 transition hover:border-gold/60"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/exams/${classId}/${exam.id}`}
-                    className="font-display text-lg font-semibold text-ink underline decoration-ink/20 underline-offset-2 hover:text-teal hover:decoration-teal"
+                    className="font-display text-lg font-semibold text-ink underline decoration-ink/20 underline-offset-2 hover:text-slate hover:decoration-slate"
                   >
                     {exam.title}
                   </Link>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getDeviceId } from "@/lib/device-id";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 const CODE_READER_ID = "student-code-reader";
 
@@ -170,8 +171,8 @@ export default function PublicCheckinPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center bg-chalk px-6 py-16 text-paper">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">
+    <main className="flex flex-1 flex-col items-center bg-navy px-6 py-16 text-card">
+      <p className="text-sm text-gold">
         GAINS
       </p>
       <h1 className="mt-2 font-display text-3xl font-semibold">
@@ -185,7 +186,7 @@ export default function PublicCheckinPage() {
               Install app
             </Button>
           ) : (
-            <p className="text-xs text-rule">
+            <p className="text-xs text-card/70">
               On iPhone: tap Share, then &quot;Add to Home Screen&quot; for
               one-tap check-in next time.
             </p>
@@ -195,7 +196,7 @@ export default function PublicCheckinPage() {
 
       {step === "code" && (
         <div className="mt-8 w-full max-w-xs">
-          <div className="ledger-page rounded-sm border border-rule p-6 text-ink">
+          <div className="ledger-page rounded-sm border border-line p-6 text-ink">
             <p className="text-sm text-ink/70">
               Scan the QR code on your personal card, or type your code below
               — this only works while your teacher has an active check-in
@@ -217,12 +218,12 @@ export default function PublicCheckinPage() {
                   <span className="text-sm font-medium">
                     Your personal code
                   </span>
-                  <input
+                  <Input
                     autoFocus
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="e.g. 7F3KQ9M"
-                    className="rounded-sm border border-rule bg-white/60 px-3 py-2 font-mono uppercase tracking-widest text-ink outline-none focus:border-brass"
+                    className="font-mono uppercase tracking-widest"
                   />
                 </label>
                 <Button type="submit" disabled={loading}>
@@ -247,24 +248,24 @@ export default function PublicCheckinPage() {
 
       {step === "done" && (
         <div className="stamp-in mt-12 flex w-full max-w-xs flex-col items-center">
-          <p className="rotate-[-6deg] border-4 border-brass px-6 py-4 text-center font-display text-2xl font-bold uppercase text-brass">
+          <p className="rotate-[-6deg] border-4 border-gold px-6 py-4 text-center font-display text-2xl font-bold uppercase text-gold">
             Welcome, {studentName}
           </p>
-          <p className="mt-4 text-rule">You&apos;re marked present.</p>
+          <p className="mt-4 text-card/70">You&apos;re marked present.</p>
           <Button href="/student" variant="secondary" size="sm" className="mt-4">
             View your attendance &amp; grades
           </Button>
 
           {announcements.length > 0 && (
             <div className="mt-8 w-full">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-rule">
+              <p className="text-xs text-card/70">
                 Announcements
               </p>
               <ul className="mt-3 flex flex-col gap-3">
                 {announcements.map((a) => (
                   <li
                     key={a.id}
-                    className="ledger-page rounded-sm border border-rule p-4 text-left text-ink"
+                    className="ledger-page rounded-sm border border-line p-4 text-left text-ink"
                   >
                     <p className="font-display text-lg font-semibold">{a.title}</p>
                     <p className="mt-1 whitespace-pre-wrap text-ink/80">{a.body}</p>

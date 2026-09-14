@@ -51,15 +51,15 @@ export default function ParticipationClient({
           <h1 className="font-display text-3xl font-semibold text-ink">
             Participation
           </h1>
-          <div className="flex gap-1 rounded-sm border border-rule p-1">
+          <div className="flex gap-1 rounded-sm border border-line p-1">
             {(["recitation", "activity"] as ParticipationType[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className={`rounded-sm px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition ${
+                className={`rounded-sm px-3 py-1.5 text-sm transition ${
                   type === t
-                    ? "bg-brass text-chalk font-semibold"
-                    : "text-ink/70 hover:bg-ink/5"
+                    ? "bg-gold text-navy font-semibold"
+                    : "text-muted hover:bg-slate-light"
                 }`}
               >
                 {t === "recitation" ? "Recitation" : "Activity"}
@@ -72,10 +72,10 @@ export default function ParticipationClient({
           {useLabelColumns ? ", grouped by activity" : ", by date"}.
         </p>
 
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+        <div className="mt-6 overflow-x-auto rounded-[10px] border border-line">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
+              <tr className="bg-navy text-card font-display text-[13px] font-medium">
                 <th className="sticky left-0 bg-paper py-2 px-3">Student</th>
                 {columns.map((c) => (
                   <th key={c} className="py-2 px-3 text-center">
@@ -86,7 +86,7 @@ export default function ParticipationClient({
             </thead>
             <tbody>
               {students.map((s) => (
-                <tr key={s.id} className="border-b border-rule/50">
+                <tr key={s.id} className="border-b border-line/50">
                   <td className="sticky left-0 bg-paper py-2 px-3 text-ink">
                     {s.name}
                   </td>
@@ -96,7 +96,7 @@ export default function ParticipationClient({
                       <td key={c} className="py-2 px-3 text-center">
                         {cell && cell.count > 0 ? (
                           <span className="font-mono">
-                            <span className="font-semibold text-brass">
+                            <span className="font-semibold text-gold">
                               {cell.count}
                             </span>
                             {cell.scoreCount > 0 && (

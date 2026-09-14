@@ -7,6 +7,7 @@ import { todayLocalDate } from "@/lib/date";
 import type { Session, Student } from "@/lib/types";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
 
 export default function SessionClient({
   classId,
@@ -184,8 +185,8 @@ export default function SessionClient({
 
   return (
     <div>
-      <div className="flex flex-col items-center bg-chalk px-6 py-10 text-paper">
-      <p className="font-mono text-xs uppercase tracking-[0.3em] text-brass">
+      <div className="flex flex-col items-center bg-navy px-6 py-10 text-card">
+      <p className="text-sm text-gold">
         Self check-in session
       </p>
       <h1 className="mt-2 font-display text-3xl font-semibold">
@@ -194,12 +195,12 @@ export default function SessionClient({
 
       <label className="mt-4 flex items-center gap-2 text-sm">
         Date
-        <input
+        <Input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           disabled={!!session}
-          className="rounded-sm border border-rule bg-paper px-2 py-1 font-mono text-ink"
+          className="w-auto py-1 font-mono"
         />
       </label>
 
@@ -211,19 +212,19 @@ export default function SessionClient({
 
       {session ? (
         <>
-          <p className="mt-4 max-w-sm text-center text-sm text-rule">
+          <p className="mt-4 max-w-sm text-center text-sm text-card/70">
             Your students can check themselves in from their own phone at{" "}
-            <span className="font-mono text-paper" suppressHydrationWarning>
+            <span className="font-mono text-card" suppressHydrationWarning>
               {origin || "your GAINS link"}/checkin
             </span>{" "}
             using their personal QR code — no need to scan anything from
             this screen.
           </p>
 
-          <p className="mt-6 font-mono text-5xl font-semibold text-brass">
+          <p className="mt-6 font-mono text-5xl font-semibold text-gold">
             {checkedIn.length}
           </p>
-          <p className="text-rule">
+          <p className="text-card/70">
             of {students.length} student{students.length === 1 ? "" : "s"} checked in
           </p>
 
@@ -271,14 +272,14 @@ export default function SessionClient({
               End session
             </Button>
           </div>
-          <p className="mt-3 max-w-sm text-center text-xs text-rule/70">
+          <p className="mt-3 max-w-sm text-center text-xs text-card/70">
             &quot;End session&quot; closes it so no more students can check
             in today.
           </p>
         </>
       ) : (
         <>
-          <p className="mt-4 max-w-xs text-center text-rule">
+          <p className="mt-4 max-w-xs text-center text-card/70">
             Starting a session lets your students check themselves in using
             their own personal QR code for today.
           </p>

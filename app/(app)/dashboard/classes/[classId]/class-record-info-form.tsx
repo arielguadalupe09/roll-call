@@ -6,23 +6,25 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/app/_components/toast";
 import type { ClassRow } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Input, Select } from "@/app/_components/input";
+import { FormField } from "@/app/_components/form-field";
 
 const PROGRAM_TYPES = ["Non-board program", "Board program", "Board program (Medicine)"];
 
 const CLASS_FIELDS: { key: keyof ClassRow; label: string; placeholder: string }[] = [
-  { key: "academic_year", label: "Academic Year", placeholder: "e.g. 2026-2027" },
+  { key: "academic_year", label: "Academic year", placeholder: "e.g. 2026-2027" },
   { key: "semester", label: "Semester", placeholder: "e.g. First Semester" },
-  { key: "course_code", label: "Course Code", placeholder: "e.g. CSS 113" },
-  { key: "total_units", label: "Total Units", placeholder: "e.g. 3/1" },
-  { key: "course_type", label: "Course Type", placeholder: "e.g. Lecture" },
-  { key: "year_level", label: "Year Level", placeholder: "e.g. Second Year" },
+  { key: "course_code", label: "Course code", placeholder: "e.g. CSS 113" },
+  { key: "total_units", label: "Total units", placeholder: "e.g. 3/1" },
+  { key: "course_type", label: "Course type", placeholder: "e.g. Lecture" },
+  { key: "year_level", label: "Year level", placeholder: "e.g. Second Year" },
   { key: "campus", label: "Campus", placeholder: "e.g. DHVSU Bacolor" },
   { key: "college", label: "College", placeholder: "e.g. College of Computing Studies" },
   { key: "department", label: "Department", placeholder: "e.g. Information Technology" },
   { key: "program", label: "Program", placeholder: "e.g. BS Information Technology" },
   {
     key: "session_schedule",
-    label: "Session Schedule",
+    label: "Session schedule",
     placeholder: "e.g. Tuesday 3:30-5:00pm, Friday 2:00-3:30pm",
   },
 ];
@@ -79,56 +81,47 @@ export default function ClassRecordInfoForm({
     <div className="mt-3">
       <button
         onClick={() => setExpanded((prev) => !prev)}
-        className="text-sm text-teal underline underline-offset-2"
+        className="text-sm text-slate underline underline-offset-2"
       >
         {expanded ? "Hide class record info" : "Class record info (for Excel export)"}
       </button>
 
       {expanded && (
-        <div className="mt-3 rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+        <div className="mt-3 rounded-[10px] border border-line bg-card p-4">
           <p className="text-sm text-ink/60">
             Used to fill the header of your official Class Record Excel export.
           </p>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Program Type</span>
-              <select
-                value={programType}
-                onChange={(e) => setProgramType(e.target.value)}
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-sm text-ink outline-none focus:border-brass"
-              >
+            <FormField label="Program type">
+              <Select value={programType} onChange={(e) => setProgramType(e.target.value)}>
                 <option value="">Not set</option>
                 {PROGRAM_TYPES.map((p) => (
                   <option key={p} value={p}>
                     {p}
                   </option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </FormField>
             {CLASS_FIELDS.map((f) => (
-              <label key={f.key} className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-ink">{f.label}</span>
-                <input
+              <FormField key={f.key} label={f.label}>
+                <Input
                   type="text"
                   value={values[f.key]}
                   onChange={(e) =>
                     setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
                   }
                   placeholder={f.placeholder}
-                  className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-sm text-ink outline-none focus:border-brass"
                 />
-              </label>
+              </FormField>
             ))}
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink">Faculty Rank</span>
-              <input
+            <FormField label="Faculty rank">
+              <Input
                 type="text"
                 value={facultyRank}
                 onChange={(e) => setFacultyRank(e.target.value)}
                 placeholder="e.g. Instructor I"
-                className="rounded-sm border border-rule bg-white/60 px-3 py-2 text-sm text-ink outline-none focus:border-brass"
               />
-            </label>
+            </FormField>
           </div>
           <Button onClick={handleSave} disabled={saving} className="mt-4">
             {saving ? "Saving..." : "Save class record info"}

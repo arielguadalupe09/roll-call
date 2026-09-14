@@ -6,6 +6,7 @@ import type { Assignment, Student, Submission, SubmissionStatus } from "@/lib/ty
 import { useToast } from "@/app/_components/toast";
 import { nextStatusAfterUpload } from "@/lib/submission-status";
 import Button from "@/app/_components/button";
+import { Input, Select } from "@/app/_components/input";
 
 const READER_ID = "roster-scan-reader";
 
@@ -233,10 +234,10 @@ export default function SubmissionRoster({
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
+      <div className="mt-4 overflow-x-auto rounded-[10px] border border-line">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-rule bg-white font-mono text-xs uppercase tracking-wide text-ink/60">
+            <tr className="bg-navy text-card font-display text-[13px] font-medium">
               <th className="py-2 px-3">Student</th>
               <th className="py-2 px-3">Status</th>
               <th className="py-2 px-3">Score / {assignment.max_score}</th>
@@ -254,26 +255,26 @@ export default function SubmissionRoster({
                   ref={(el) => {
                     rowRefs.current[s.id] = el;
                   }}
-                  className={`border-b border-rule/50 align-top transition-colors ${
-                    highlightedId === s.id ? "bg-brass/20" : "bg-white"
+                  className={`border-b border-line align-top transition-colors ${
+                    highlightedId === s.id ? "bg-gold/20" : "bg-card"
                   }`}
                 >
                   <td className="py-2 px-3 text-ink">{s.name}</td>
                   <td className="py-2 px-3">
-                    <select
+                    <Select
                       value={row.status}
                       onChange={(e) =>
                         updateRow(s.id, { status: e.target.value as SubmissionStatus })
                       }
-                      className="rounded-sm border border-rule bg-white/60 px-2 py-1 text-sm text-ink"
+                      className="py-1 text-sm"
                     >
                       <option value="missing">Missing</option>
                       <option value="submitted">Submitted</option>
                       <option value="graded">Graded</option>
-                    </select>
+                    </Select>
                   </td>
                   <td className="py-2 px-3">
-                    <input
+                    <Input
                       ref={(el) => {
                         scoreInputRefs.current[s.id] = el;
                       }}
@@ -282,15 +283,15 @@ export default function SubmissionRoster({
                       max={assignment.max_score}
                       value={row.score}
                       onChange={(e) => updateRow(s.id, { score: e.target.value })}
-                      className="w-20 rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-sm text-ink"
+                      className="w-20 py-1 font-mono text-sm"
                     />
                   </td>
                   <td className="py-2 px-3">
-                    <input
+                    <Input
                       type="text"
                       value={row.feedback}
                       onChange={(e) => updateRow(s.id, { feedback: e.target.value })}
-                      className="w-full min-w-[10rem] rounded-sm border border-rule bg-white/60 px-2 py-1 text-sm text-ink"
+                      className="w-full min-w-[10rem] py-1 text-sm"
                     />
                   </td>
                   <td className="py-2 px-3">
@@ -298,7 +299,7 @@ export default function SubmissionRoster({
                       {row.file_name && (
                         <button
                           onClick={() => row.file_path && handleViewFile(row.file_path)}
-                          className="text-left text-xs text-teal underline underline-offset-2"
+                          className="text-left text-xs text-slate underline underline-offset-2"
                         >
                           {row.file_name}
                         </button>

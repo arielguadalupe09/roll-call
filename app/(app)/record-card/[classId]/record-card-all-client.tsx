@@ -8,6 +8,7 @@ import RecordCardSheet from "../record-card-sheet";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import Button from "@/app/_components/button";
+import { Select } from "@/app/_components/input";
 
 export default function RecordCardAllClient({
   classRow,
@@ -135,44 +136,44 @@ export default function RecordCardAllClient({
       <div className="no-print mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 pb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">
-            {classRow.name} — Record Cards
+            {classRow.name} — Record cards
           </h1>
           <p className="text-ink/60">
             {allData.length} student{allData.length === 1 ? "" : "s"}, 1 page each.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-ink/70">
+          <label className="flex items-center gap-2 text-sm text-muted">
             Paper size
-            <select
+            <Select
               value={paperSize}
               onChange={(e) => setPaperSize(e.target.value as PaperSize)}
-              className="rounded-sm border border-rule bg-white px-2 py-1.5 text-ink outline-none focus:border-brass"
+              className="w-auto py-1.5"
             >
               {Object.entries(PAPER_SIZES).map(([key, { label }]) => (
                 <option key={key} value={key}>
                   {label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf || allData.length === 0}>
+          <Button variant="highlight" onClick={handleSavePdf} disabled={exportingPdf || allData.length === 0}>
             {exportingPdf
               ? "Saving PDF..."
               : selected.size > 0
                 ? `Save PDF (${selected.size} selected)`
                 : "Save PDF (all students)"}
           </Button>
-          <Button onClick={handlePrint}>
+          <Button variant="highlight" onClick={handlePrint}>
             {selected.size > 0 ? `Print (${selected.size} selected)` : "Print all"}
           </Button>
         </div>
       </div>
 
       {allData.length > 0 && (
-        <div className="no-print mx-auto mb-6 max-w-4xl rounded-2xl border border-rule/60 bg-white p-4 shadow-sm">
+        <div className="no-print mx-auto mb-6 max-w-4xl rounded-[10px] border border-line bg-card p-4">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-xs uppercase tracking-wide text-ink/60">
+            <p className="text-xs text-muted">
               Jump to a student
             </p>
             <label className="flex items-center gap-2 text-sm text-ink/70">
@@ -199,7 +200,7 @@ export default function RecordCardAllClient({
                 />
                 <button
                   onClick={() => jumpTo(d.student.id)}
-                  className="truncate text-left text-sm text-teal underline underline-offset-2"
+                  className="truncate text-left text-sm text-slate underline underline-offset-2"
                 >
                   {d.student.name}
                 </button>

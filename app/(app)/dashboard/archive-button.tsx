@@ -57,7 +57,7 @@ export default function ArchiveButton({
 
   return (
     <Button
-      variant={archived ? "secondary" : "neutral"}
+      variant="secondary"
       size="sm"
       onClick={handleClick}
       disabled={loading}

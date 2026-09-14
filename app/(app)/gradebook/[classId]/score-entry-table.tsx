@@ -1,5 +1,7 @@
 import type { Student } from "@/lib/types";
 import Button from "@/app/_components/button";
+import { Input } from "@/app/_components/input";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
 export type ScoreRow = { score: string; saving: boolean };
 
@@ -17,48 +19,46 @@ export default function ScoreEntryTable({
   onSave: (studentId: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-rule/60 shadow-sm">
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b border-rule bg-paper font-mono text-xs uppercase tracking-wide text-ink/60">
-            <th className="py-2 px-3">Student</th>
-            <th className="py-2 px-3">Score / {maxScore}</th>
-            <th className="py-2 px-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {students.map((s) => {
-            const row = rows[s.id] ?? { score: "", saving: false };
-            return (
-              <tr key={s.id} className="border-b border-rule/50 bg-white">
-                <td className="py-2 px-3 text-ink">{s.name}</td>
-                <td className="py-2 px-3">
-                  <input
-                    type="number"
-                    min={0}
-                    max={maxScore}
-                    value={row.score}
-                    onChange={(e) => onScoreChange(s.id, e.target.value)}
-                    className="w-20 rounded-sm border border-rule bg-white/60 px-2 py-1 font-mono text-sm text-ink"
-                  />
-                </td>
-                <td className="py-2 px-3">
-                  <Button size="sm" onClick={() => onSave(s.id)} disabled={row.saving}>
-                    {row.saving ? "Saving..." : "Save"}
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-          {students.length === 0 && (
-            <tr>
-              <td colSpan={3} className="py-4 px-3 text-ink/60">
-                No students in this class yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableHeaderCell>Student</TableHeaderCell>
+          <TableHeaderCell>Score / {maxScore}</TableHeaderCell>
+          <TableHeaderCell />
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {students.map((s) => {
+          const row = rows[s.id] ?? { score: "", saving: false };
+          return (
+            <TableRow key={s.id} striped>
+              <TableCell>{s.name}</TableCell>
+              <TableCell>
+                <Input
+                  type="number"
+                  min={0}
+                  max={maxScore}
+                  value={row.score}
+                  onChange={(e) => onScoreChange(s.id, e.target.value)}
+                  className="w-20 font-mono"
+                />
+              </TableCell>
+              <TableCell>
+                <Button size="sm" onClick={() => onSave(s.id)} disabled={row.saving}>
+                  {row.saving ? "Saving..." : "Save"}
+                </Button>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+        {students.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={3} className="py-4 text-muted">
+              No students in this class yet.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
   );
 }
