@@ -23,6 +23,62 @@ function tierFor(rate: number): Tier {
   return "critical";
 }
 
+// Shared hover/focus tooltip for a single mark (bar, segment, dot) -- the
+// mark itself is the hit target, per the dataviz skill's interaction spec,
+// rather than a crude native `title` attribute tooltip.
+function ChartTooltip({
+  label,
+  className = "",
+  style,
+  children,
+}: {
+  label: string;
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`group/tip relative flex items-end outline-none ${className}`}
+      style={style}
+      tabIndex={0}
+    >
+      {children}
+      <div
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-navy px-2 py-1 text-[11px] font-medium text-card opacity-0 transition-opacity duration-100 group-hover/tip:opacity-100 group-focus-visible/tip:opacity-100"
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function TierLegend({ hasNoData }: { hasNoData?: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+      <LegendSwatch tone="good" label="≥ 90%" />
+      <LegendSwatch tone="warning" label="75–89%" />
+      <LegendSwatch tone="critical" label="< 75%" />
+      {hasNoData && (
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-ink/15" />
+          No data
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LegendSwatch({ tone, label }: { tone: Tier; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={`h-2 w-2 rounded-full ${TIER_BG[tone]}`} />
+      {label}
+    </span>
+  );
+}
+
 /** Small radial gauge for a single 0-1 rate, used in the Attendance KPI tile. */
 export function AttendanceRing({ rate }: { rate: number | null }) {
   const r = 15.5;
@@ -33,7 +89,7 @@ export function AttendanceRing({ rate }: { rate: number | null }) {
 
   return (
     <svg width="52" height="52" viewBox="0 0 36 36" className="shrink-0" role="img" aria-label={rate == null ? "No attendance data yet" : `${Math.round(pct * 100)}% average attendance`}>
-      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--line)" strokeOpacity="0.3" strokeWidth="3" />
+      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--line)" strokeWidth="3" />
       {rate != null && (
         <circle
           cx="18"
@@ -64,18 +120,14 @@ export function ActiveArchivedBar({ active, archived }: { active: number; archiv
 
   return (
     <div className="mt-2">
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-ink/10">
-        <div
-          className="h-full bg-chart-good"
-          style={{ width: `${activePct}%` }}
-          title={`${active} active`}
-        />
+      <div className="flex h-1.5 w-full gap-[2px]">
+        <ChartTooltip label={`${active} active`} className="h-full" style={{ width: `${activePct}%` }}>
+          <div className="h-full w-full rounded-full bg-chart-good transition hover:brightness-110" />
+        </ChartTooltip>
         {archived > 0 && (
-          <div
-            className="h-full bg-line"
-            style={{ width: `${100 - activePct}%` }}
-            title={`${archived} archived`}
-          />
+          <ChartTooltip label={`${archived} archived`} className="h-full" style={{ width: `${100 - activePct}%` }}>
+            <div className="h-full w-full rounded-full bg-line transition hover:brightness-95" />
+          </ChartTooltip>
         )}
       </div>
       <p className="mt-1 font-mono text-[10px] text-ink/50">
@@ -91,14 +143,18 @@ export function StudentsSparkline({ classes }: { classes: { name: string; count:
   const max = Math.max(1, ...classes.map((c) => c.count));
 
   return (
-    <div className="mt-2 flex h-6 items-end gap-[2px]" role="img" aria-label="Students per class">
+    <div className="mt-2 flex h-6 items-end justify-center gap-[2px]" role="img" aria-label="Students per class">
       {classes.map((c) => (
-        <div
+        <ChartTooltip
           key={c.name}
-          title={`${c.name}: ${c.count} student${c.count === 1 ? "" : "s"}`}
-          className="min-h-[3px] flex-1 rounded-t-sm bg-chart-good/70"
-          style={{ height: `${Math.max(10, (c.count / max) * 100)}%` }}
-        />
+          label={`${c.name}: ${c.count} student${c.count === 1 ? "" : "s"}`}
+          className="h-full max-w-[10px] flex-1"
+        >
+          <div
+            className="min-h-[3px] w-full rounded-t bg-chart-good/70 transition hover:bg-chart-good"
+            style={{ height: `${Math.max(10, (c.count / max) * 100)}%` }}
+          />
+        </ChartTooltip>
       ))}
     </div>
   );
@@ -119,7 +175,7 @@ export function AttentionBreakdown({
   return (
     <div className="mt-2 flex flex-col gap-1">
       {visible.slice(0, 3).map((i) => (
-        <div key={i.label} className="flex items-center gap-1.5" title={`${i.label}: ${i.count}`}>
+        <div key={i.label} className="flex items-center gap-1.5">
           <span className="w-[4.5rem] shrink-0 truncate text-[9px] text-ink/60">{i.label}</span>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink/10">
             <div
@@ -150,19 +206,12 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
       subtitle="Session attendance rate for each of your active classes."
       defaultOpen
       variant="primary"
-      actions={
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-          <Legend swatch="bg-chart-good" label="≥ 90%" />
-          <Legend swatch="bg-chart-warning" label="75–89%" />
-          <Legend swatch="bg-chart-critical" label="< 75%" />
-          {hasNoData && <Legend swatch="bg-ink/15" label="No data" />}
-        </div>
-      }
+      actions={<TierLegend hasNoData={hasNoData} />}
     >
       {rows.length === 0 ? (
         <p className="text-sm text-ink/60">No classes yet.</p>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-0.5">
           {rows.map((s) => {
             const rate = s.attendanceRate;
             const pct = rate == null ? 0 : Math.round(rate * 100);
@@ -170,8 +219,7 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
             return (
               <div
                 key={s.classRow.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)_auto]"
-                title={`${s.classRow.name}: ${rate == null ? "no sessions recorded yet" : `${pct}% attendance`}, ${s.studentCount} student${s.studentCount === 1 ? "" : "s"}`}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md px-1.5 py-1.5 transition hover:bg-slate-light sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)_auto]"
               >
                 <span className="hidden truncate font-semibold text-ink sm:block">
                   {s.classRow.name}
@@ -182,7 +230,7 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
                   </span>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-ink/10">
                     <div
-                      className={`h-full rounded-full ${barColor}`}
+                      className={`h-full rounded-full transition-[width] duration-300 ${barColor}`}
                       style={{ width: `${rate == null ? 100 : Math.max(pct, 3)}%` }}
                     />
                   </div>
@@ -207,27 +255,31 @@ export function SessionTrendChart({ series }: { series: { date: string; rate: nu
   }
 
   return (
-    <div className="flex h-24 items-end gap-1" role="img" aria-label="Attendance rate per session">
-      {series.map((point) => {
-        const pct = Math.round(point.rate * 100);
-        return (
-          <div
-            key={point.date}
-            title={`${point.date}: ${pct}%`}
-            className={`min-h-[3px] flex-1 rounded-t-sm ${TIER_BG[tierFor(point.rate)]}`}
-            style={{ height: `${Math.max(4, pct)}%` }}
-          />
-        );
-      })}
+    <div>
+      <div className="mb-1.5 flex justify-end">
+        <TierLegend />
+      </div>
+      <div className="flex h-24 items-end justify-center gap-1" role="img" aria-label="Attendance rate per session">
+        {series.map((point) => {
+          const pct = Math.round(point.rate * 100);
+          const formattedDate = new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          });
+          return (
+            <ChartTooltip
+              key={point.date}
+              label={`${formattedDate}: ${pct}%`}
+              className="h-full max-w-6 flex-1"
+            >
+              <div
+                className={`min-h-[3px] w-full rounded-t transition hover:brightness-110 ${TIER_BG[tierFor(point.rate)]}`}
+                style={{ height: `${Math.max(4, pct)}%` }}
+              />
+            </ChartTooltip>
+          );
+        })}
+      </div>
     </div>
-  );
-}
-
-function Legend({ swatch, label }: { swatch: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1">
-      <span className={`h-2 w-2 rounded-full ${swatch}`} />
-      {label}
-    </span>
   );
 }
