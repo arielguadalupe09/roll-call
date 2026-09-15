@@ -39,7 +39,7 @@ function ToolControl({ tool, variant }: { tool: NavTool; variant: "flat" | "drop
     variant === "flat"
       ? `${FLAT_CLASS} ${
           tool.active
-            ? "border-gold font-semibold text-ink"
+            ? "border-gold text-ink"
             : "border-transparent text-muted hover:bg-slate-light hover:text-ink"
         }`
       : `${DROPDOWN_ITEM_CLASS} ${
@@ -142,7 +142,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
               aria-expanded={isOpen}
               className={`flex items-center gap-2 ${FLAT_CLASS} ${
                 groupActive
-                  ? "border-gold font-semibold text-ink"
+                  ? "border-gold text-ink"
                   : "border-transparent text-muted hover:bg-slate-light hover:text-ink"
               }`}
             >
