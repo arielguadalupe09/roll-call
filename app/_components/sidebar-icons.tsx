@@ -1,4 +1,4 @@
-type IconName =
+export type IconName =
   | "logo"
   | "dashboard"
   | "schedule"
@@ -6,6 +6,12 @@ type IconName =
   | "attendance"
   | "admin"
   | "class"
+  | "classes"
+  | "gradebook"
+  | "messages"
+  | "audit"
+  | "search"
+  | "bell"
   | "user"
   | "logout";
 
@@ -57,6 +63,50 @@ const ICON_PATHS: Record<IconName, React.ReactNode> = {
       d="M2 4.2A1.2 1.2 0 0 1 3.2 3h3.1l1.3 1.4H13A1.2 1.2 0 0 1 14 5.6V12a1.2 1.2 0 0 1-1.2 1.2H3.2A1.2 1.2 0 0 1 2 12V4.2z"
       strokeLinejoin="round"
     />
+  ),
+  classes: (
+    <>
+      <rect x="2" y="2" width="8.5" height="8.5" rx="1.2" />
+      <path d="M6.8 6.8H13a1 1 0 0 1 1 1V13a1 1 0 0 1-1 1H7.8a1 1 0 0 1-1-1V6.8z" strokeLinejoin="round" />
+    </>
+  ),
+  gradebook: (
+    <>
+      <path d="M3 2.5h8a1.2 1.2 0 0 1 1.2 1.2v9.8H4.2A1.2 1.2 0 0 1 3 12.3V2.5z" strokeLinejoin="round" />
+      <path d="M5.2 5.5h4.6M5.2 8h4.6M5.2 10.5h2.8" strokeLinecap="round" />
+    </>
+  ),
+  messages: (
+    <path
+      d="M2 3.5A1.2 1.2 0 0 1 3.2 2.3h9.6A1.2 1.2 0 0 1 14 3.5v6.2a1.2 1.2 0 0 1-1.2 1.2H6.4L3 13.7v-2.8H3.2A1.2 1.2 0 0 1 2 9.7V3.5z"
+      strokeLinejoin="round"
+    />
+  ),
+  audit: (
+    <>
+      <path
+        d="M5 2.5h6a1 1 0 0 1 1 1V13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.2 2h3.6a.5.5 0 0 1 .5.5v.7a.5.5 0 0 1-.5.5H6.2a.5.5 0 0 1-.5-.5v-.7a.5.5 0 0 1 .5-.5z"
+        strokeLinejoin="round"
+      />
+      <path d="M5.5 8l1.3 1.3L9.8 6.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.5 11.3h5" strokeLinecap="round" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="7" cy="7" r="4.5" />
+      <path d="M10.3 10.3 14 14" strokeLinecap="round" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M4 11V7a4 4 0 0 1 8 0v4l1.2 2H2.8L4 11z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" strokeLinecap="round" />
+    </>
   ),
   user: (
     <>

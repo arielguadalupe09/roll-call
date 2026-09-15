@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Lora, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Lora, Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "./_components/toast";
 import { ConfirmProvider } from "./_components/confirm-provider";
@@ -16,12 +16,6 @@ const inter = Inter({
   weight: ["400", "500", "600", "700"],
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-mono-src",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
 export const metadata: Metadata = {
   title: "GAINS",
   description: "QR attendance for the classroom.",
@@ -35,7 +29,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${lora.variable} ${inter.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${lora.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="h-full flex flex-col bg-paper text-ink font-sans">
         <ConfirmProvider>

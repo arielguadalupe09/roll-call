@@ -9,6 +9,7 @@ const SOLID_BG: Record<StatusTone, string> = {
   warning: "bg-chart-warning",
   danger: "bg-chart-critical",
   neutral: "bg-line",
+  navy: "bg-navy",
   sage: "bg-sage",
   dustyblue: "bg-dustyblue",
   clay: "bg-clay",

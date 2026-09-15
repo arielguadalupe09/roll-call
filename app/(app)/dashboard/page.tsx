@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser, getTeacherRow } from "@/lib/supabase/server";
-import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
+import type { Attendance, ClassRow, GradingConfig, ScheduleEntry, Student } from "@/lib/types";
 import {
   computeClassStats,
   computeInsights,
@@ -15,6 +15,9 @@ import ClassList from "./class-list";
 import { AttendanceByClassChart, AttentionBreakdown } from "./dashboard-charts";
 import { StatCard } from "@/app/_components/stat-card";
 import { TileIcon } from "@/app/_components/tile-icon";
+import { CardRow } from "@/app/_components/card-row";
+import { CalendarWidget } from "@/app/_components/calendar-widget";
+import { NextSessionWidget } from "@/app/_components/next-session-widget";
 
 const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14 5.8v5.7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z";
 const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
@@ -38,13 +41,37 @@ export default async function DashboardPage() {
   const archivedClasses = allClasses.filter((c) => c.archived);
   const classIds = classList.map((c) => c.id);
 
-  const [{ data: students }, { data: attendance }, { data: gradingConfigs }] = classIds.length
-    ? await Promise.all([
-        supabase.from("students").select("*").in("class_id", classIds),
-        supabase.from("attendance").select("*").in("class_id", classIds),
-        supabase.from("grading_configs").select("*").in("class_id", classIds),
-      ])
-    : [{ data: [] as Student[] }, { data: [] as Attendance[] }, { data: [] as GradingConfig[] }];
+  const now = new Date();
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthStart = `${monthPrefix}-01`;
+  const monthEnd = `${monthPrefix}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
+
+  const [
+    { data: students },
+    { data: attendance },
+    { data: gradingConfigs },
+    { data: monthSessions },
+    { data: scheduleEntries },
+  ] = await Promise.all([
+    classIds.length
+      ? supabase.from("students").select("*").in("class_id", classIds)
+      : Promise.resolve({ data: [] as Student[] }),
+    classIds.length
+      ? supabase.from("attendance").select("*").in("class_id", classIds)
+      : Promise.resolve({ data: [] as Attendance[] }),
+    classIds.length
+      ? supabase.from("grading_configs").select("*").in("class_id", classIds)
+      : Promise.resolve({ data: [] as GradingConfig[] }),
+    classIds.length
+      ? supabase
+          .from("sessions")
+          .select("date")
+          .in("class_id", classIds)
+          .gte("date", monthStart)
+          .lte("date", monthEnd)
+      : Promise.resolve({ data: [] as { date: string }[] }),
+    supabase.from("schedule_entries").select("*").eq("teacher_id", user.id),
+  ]);
 
   const studentsByClass = new Map<string, Student[]>();
   for (const s of (students as Student[] | null) ?? []) {
@@ -94,9 +121,11 @@ export default async function DashboardPage() {
   ).length;
   const ungradedClassCount = stats.filter((s) => !s.gradingConfigured).length;
 
+  const sessionDates = ((monthSessions as { date: string }[] | null) ?? []).map((s) => s.date);
+
   return (
     <div className="px-8 py-10">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <p className="text-sm text-gold">Dashboard</p>
         <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
           Your classes
@@ -105,7 +134,9 @@ export default async function DashboardPage() {
           Create a class, then manage students, QR sheets, and attendance.
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="min-w-0">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard
             href="#class-list"
             label="Classes"
@@ -173,22 +204,25 @@ export default async function DashboardPage() {
         </div>
 
         <div className="mt-6">
-          <CollapsibleSection id="insights" title="Insights" defaultOpen>
+          <CollapsibleSection id="insights" title="Insights">
             {insights.length === 0 ? (
               <p className="text-sm text-ink/60">No issues detected.</p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
                 {insights.map((insight, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-ink">
-                    <span
-                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                        insight.severity === "warning" ? "bg-danger" : "bg-success"
-                      }`}
-                    />
-                    {insight.text}
-                  </li>
+                  <CardRow
+                    key={i}
+                    leading={
+                      <span
+                        className={`mt-0.5 h-2 w-2 rounded-full ${
+                          insight.severity === "warning" ? "bg-danger" : "bg-success"
+                        }`}
+                      />
+                    }
+                    title={insight.text}
+                  />
                 ))}
-              </ul>
+              </div>
             )}
           </CollapsibleSection>
         </div>
@@ -198,7 +232,6 @@ export default async function DashboardPage() {
             id="class-list"
             title="Classes"
             subtitle={`${classList.length} class${classList.length === 1 ? "" : "es"}`}
-            defaultOpen
           >
             <ClassList stats={stats} />
             {classList.length === 0 && (
@@ -210,6 +243,13 @@ export default async function DashboardPage() {
         </div>
 
         <ArchivedClasses classes={archivedClasses} />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <CalendarWidget sessionDates={sessionDates} />
+          <NextSessionWidget scheduleEntries={(scheduleEntries as ScheduleEntry[] | null) ?? []} />
+        </div>
+        </div>
       </div>
     </div>
   );

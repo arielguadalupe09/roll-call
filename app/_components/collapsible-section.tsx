@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CardHeader } from "./card";
 
 const SHELL_CLASSES = {
@@ -34,6 +34,20 @@ export default function CollapsibleSection({
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : internalOpen;
   const toggle = onToggle ?? (() => setInternalOpen((v) => !v));
+
+  // Sections default closed, but a few pages link straight into one (e.g.
+  // the Dashboard's "Need attention" KPI tile links to #insights) -- honor
+  // that by opening on arrival instead of scrolling to a section that then
+  // shows nothing until the teacher also finds and clicks the chevron.
+  useEffect(() => {
+    if (id && !isControlled && window.location.hash === `#${id}`) {
+      // Syncing from the URL (an external system) on mount, not a
+      // render-triggered state cascade -- the case the lint rule's own
+      // guidance calls out as fine.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInternalOpen(true);
+    }
+  }, [id, isControlled]);
 
   return (
     <div id={id} className={`scroll-mt-6 rounded-[10px] ${SHELL_CLASSES[variant]}`}>

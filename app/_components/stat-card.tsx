@@ -45,7 +45,7 @@ export function StatCard({
   const content = (
     <>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted">{label}</p>
+        <p className="text-xs text-muted first-letter:capitalize">{label}</p>
         {icon}
       </div>
       <div className="mt-2">

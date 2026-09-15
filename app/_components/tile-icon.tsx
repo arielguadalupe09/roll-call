@@ -6,6 +6,7 @@ const TONE_CLASSES: Record<StatusTone | "gold", string> = {
   warning: "bg-warning/10 text-warning-text",
   danger: "bg-danger/10 text-danger",
   neutral: "bg-ink/[0.06] text-ink/60",
+  navy: "bg-navy/10 text-navy",
   sage: "bg-sage-tint text-ink",
   dustyblue: "bg-dustyblue-tint text-ink",
   clay: "bg-clay-tint text-ink",

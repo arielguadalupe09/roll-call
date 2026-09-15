@@ -3,7 +3,16 @@ import CollapsibleSection from "@/app/_components/collapsible-section";
 import { tierFor, TIER_BG } from "@/lib/chart-tiers";
 import { ChartTooltip } from "@/app/_components/chart-tooltip";
 import { TierLegend } from "@/app/_components/chart-legend";
-import { ThresholdBar } from "@/app/_components/threshold-bar";
+import { CardRow } from "@/app/_components/card-row";
+import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
+
+// Duotone: navy = meeting the 75% bar (good + warning tiers), gold = below
+// it (critical) -- see the --chart-* retint comment in app/globals.css.
+const TIER_TONE: Record<ReturnType<typeof tierFor>, StatusTone> = {
+  good: "navy",
+  warning: "navy",
+  critical: "warning",
+};
 
 /** Mini breakdown bars for the "Need attention" KPI tile. */
 export function AttentionBreakdown({
@@ -35,7 +44,7 @@ export function AttentionBreakdown({
   );
 }
 
-/** Full-width horizontal bar chart: attendance rate per class. */
+/** Card-row list: attendance rate per class, as a status pill rather than a bar. */
 export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
   const rows = [...stats].sort((a, b) => {
     if (a.attendanceRate == null && b.attendanceRate == null) return 0;
@@ -49,40 +58,28 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
     <CollapsibleSection
       title="Attendance by class"
       subtitle="Session attendance rate for each of your active classes."
-      defaultOpen
       variant="primary"
       actions={<TierLegend hasNoData={hasNoData} />}
     >
       {rows.length === 0 ? (
         <p className="text-sm text-ink/60">No classes yet.</p>
       ) : (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           {rows.map((s) => {
             const rate = s.attendanceRate;
-            const pct = rate == null ? 0 : Math.round(rate * 100);
+            const pct = rate == null ? null : Math.round(rate * 100);
+            const tone: StatusTone = rate == null ? "neutral" : TIER_TONE[tierFor(rate)];
             return (
-              <div
+              <CardRow
                 key={s.classRow.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md px-1.5 py-1.5 transition hover:bg-slate-light sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)_auto]"
-              >
-                <span className="hidden truncate font-semibold text-ink sm:block">
-                  {s.classRow.name}
-                </span>
-                <div className="col-span-2 flex flex-col gap-0.5 sm:col-span-1">
-                  <span className="truncate text-xs font-semibold text-ink sm:hidden">
-                    {s.classRow.name}
-                  </span>
-                  {rate == null ? (
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-ink/10" />
-                  ) : (
-                    <ThresholdBar value={rate} />
-                  )}
-                </div>
-                <span className="whitespace-nowrap text-right font-mono text-xs text-ink/70">
-                  {rate == null ? "No data" : `${pct}%`}
-                  <span className="ml-1.5 text-ink/40">· {s.studentCount}</span>
-                </span>
-              </div>
+                title={s.classRow.name}
+                meta={`${s.studentCount} student${s.studentCount === 1 ? "" : "s"}`}
+                trailing={
+                  <StatusPill tone={tone} dot className="font-mono">
+                    {pct == null ? "No data" : `${pct}%`}
+                  </StatusPill>
+                }
+              />
             );
           })}
         </div>

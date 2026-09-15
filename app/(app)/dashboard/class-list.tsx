@@ -3,9 +3,13 @@ import { getAttendanceGroup } from "@/lib/chart-tiers";
 import { ClassCard } from "@/app/_components/class-card";
 import ArchiveButton from "./archive-button";
 
+// Prop names ("danger"/"success") are just this file's own local labels for
+// "needs attention" vs "on track" groups -- rendered colors follow the same
+// navy/gold duotone as the rest of the attendance-rate tier system (see
+// app/globals.css's --chart-* comment), not the generic red/green tokens.
 const DOT_CLASSES = {
-  danger: "bg-danger",
-  success: "bg-success",
+  danger: "bg-warning",
+  success: "bg-navy",
   neutral: "bg-muted",
 } as const;
 

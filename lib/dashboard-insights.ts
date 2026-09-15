@@ -29,12 +29,51 @@ function isAttended(a: Attendance): boolean {
   return a.status === "present" || a.status === "late";
 }
 
+export type StudentActivityTier = "active" | "at-risk" | "inactive";
+
+// Same 90%/75% bands as the rest of the app's tier coloring (tierFor in
+// lib/chart-tiers.ts), just relabeled for a single student's own rate
+// rather than a class-wide rate.
+export function studentAttendanceTier(rate: number): StudentActivityTier {
+  if (rate >= 0.9) return "active";
+  if (rate >= LOW_ATTENDANCE_THRESHOLD) return "at-risk";
+  return "inactive";
+}
+
+/**
+ * Per-student attendance tier for a single class, keyed by student id.
+ * A class with no sessions yet maps every student to null (nothing to
+ * categorize) rather than guessing "active" by default.
+ */
+export function computeStudentTiers(
+  students: Student[],
+  attendance: Attendance[],
+): Map<string, StudentActivityTier | null> {
+  const sessionDates = Array.from(new Set(attendance.map((a) => a.date)));
+  const result = new Map<string, StudentActivityTier | null>();
+
+  if (sessionDates.length === 0) {
+    for (const s of students) result.set(s.id, null);
+    return result;
+  }
+
+  const countByStudent = new Map<string, number>();
+  for (const a of attendance.filter(isAttended)) {
+    countByStudent.set(a.student_id, (countByStudent.get(a.student_id) ?? 0) + 1);
+  }
+
+  for (const s of students) {
+    const rate = (countByStudent.get(s.id) ?? 0) / sessionDates.length;
+    result.set(s.id, studentAttendanceTier(rate));
+  }
+
+  return result;
+}
+
 /**
  * Buckets every student enrollment (one row per class) into Active/At-risk/
- * Inactive by that student's own attendance rate in that class, reusing the
- * same 90%/75% bands as the rest of the app's tier coloring. A class with no
- * sessions yet contributes no rows (nothing to categorize); a student with
- * zero attended sessions in a class that HAS sessions counts as inactive.
+ * Inactive via computeStudentTiers, then tallies the totals across classes
+ * -- used by the Dashboard's Students KPI tile breakdown.
  */
 export function computeStudentActivityCounts(
   classes: { id: string; students: Student[]; attendance: Attendance[] }[],
@@ -44,19 +83,11 @@ export function computeStudentActivityCounts(
   let inactive = 0;
 
   for (const c of classes) {
-    const sessionDates = Array.from(new Set(c.attendance.map((a) => a.date)));
-    if (sessionDates.length === 0) continue;
-
-    const countByStudent = new Map<string, number>();
-    for (const a of c.attendance.filter(isAttended)) {
-      countByStudent.set(a.student_id, (countByStudent.get(a.student_id) ?? 0) + 1);
-    }
-
-    for (const s of c.students) {
-      const rate = (countByStudent.get(s.id) ?? 0) / sessionDates.length;
-      if (rate >= 0.9) active += 1;
-      else if (rate >= LOW_ATTENDANCE_THRESHOLD) atRisk += 1;
-      else inactive += 1;
+    const tiers = computeStudentTiers(c.students, c.attendance);
+    for (const tier of tiers.values()) {
+      if (tier === "active") active += 1;
+      else if (tier === "at-risk") atRisk += 1;
+      else if (tier === "inactive") inactive += 1;
     }
   }
 

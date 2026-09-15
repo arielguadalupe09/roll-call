@@ -10,10 +10,12 @@ const AVATAR_CLASSES: Record<ReturnType<typeof getCategoryColor>, string> = {
   violet: "bg-violet-tint text-violet",
 };
 
+// Duotone: navy = meeting the 75% bar (good + warning tiers), gold = below
+// it (critical) -- see the --chart-* retint comment in app/globals.css.
 const TIER_TONE: Record<ReturnType<typeof tierFor>, StatusTone> = {
-  good: "success",
-  warning: "warning",
-  critical: "danger",
+  good: "navy",
+  warning: "navy",
+  critical: "warning",
 };
 
 function initials(name: string) {

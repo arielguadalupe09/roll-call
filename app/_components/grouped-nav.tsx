@@ -29,19 +29,16 @@ export type NavItem =
   | ({ kind: "tool" } & NavTool)
   | { kind: "group"; label: string; tools: NavGroupEntry[] };
 
-const FLAT_CLASS =
-  "border-b-2 px-3 py-1.5 text-sm transition";
+const FLAT_CLASS = "rounded-lg px-3 py-1.5 text-sm font-medium transition";
+const FLAT_ACTIVE_CLASS = "bg-navy text-card";
+const FLAT_INACTIVE_CLASS = "text-black hover:bg-slate-light";
 const DROPDOWN_ITEM_CLASS =
   "block w-full px-4 py-2 text-left text-sm transition";
 
 function ToolControl({ tool, variant }: { tool: NavTool; variant: "flat" | "dropdown" }) {
   const className =
     variant === "flat"
-      ? `${FLAT_CLASS} ${
-          tool.active
-            ? "border-gold text-ink"
-            : "border-transparent text-muted hover:bg-slate-light hover:text-ink"
-        }`
+      ? `${FLAT_CLASS} ${tool.active ? FLAT_ACTIVE_CLASS : FLAT_INACTIVE_CLASS}`
       : `${DROPDOWN_ITEM_CLASS} ${
           tool.active ? "bg-gold-soft font-semibold text-ink" : "text-muted hover:bg-slate-light hover:text-ink"
         }`;
@@ -141,9 +138,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
               onClick={() => setOpenGroup(isOpen ? null : item.label)}
               aria-expanded={isOpen}
               className={`flex items-center gap-2 ${FLAT_CLASS} ${
-                groupActive
-                  ? "border-gold text-ink"
-                  : "border-transparent text-muted hover:bg-slate-light hover:text-ink"
+                groupActive ? FLAT_ACTIVE_CLASS : FLAT_INACTIVE_CLASS
               }`}
             >
               {item.label}

@@ -6,20 +6,48 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { toLastNameFirst } from "@/lib/name-format";
 import type { Student } from "@/lib/types";
+import type { StudentActivityTier } from "@/lib/dashboard-insights";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
 import { Input, Select } from "@/app/_components/input";
-import { TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
-import { GradebookTable } from "@/app/_components/gradebook-table";
 import { StatCard } from "@/app/_components/stat-card";
 import { TileIcon } from "@/app/_components/tile-icon";
+import { CardRow } from "@/app/_components/card-row";
+import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
+import { getCategoryColor } from "@/lib/category-colors";
 
-type Row = { student: Student; classId: string; className: string };
+type Row = { student: Student; classId: string; className: string; tier: StudentActivityTier | null };
 type NameFix = { id: string; className: string; from: string; to: string };
 
 const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
 const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14 5.8v5.7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z";
 const ICON_SEARCH = "M7.2 12.4a5.2 5.2 0 1 0 0-10.4 5.2 5.2 0 0 0 0 10.4zM11 11l3.5 3.5";
+
+const TIER_LABEL: Record<StudentActivityTier, string> = {
+  active: "Active",
+  "at-risk": "At risk",
+  inactive: "Inactive",
+};
+
+const TIER_TONE: Record<StudentActivityTier, StatusTone> = {
+  active: "success",
+  "at-risk": "warning",
+  inactive: "danger",
+};
+
+const AVATAR_CLASSES: Record<ReturnType<typeof getCategoryColor>, string> = {
+  sage: "bg-sage-tint text-sage",
+  dustyblue: "bg-dustyblue-tint text-dustyblue",
+  clay: "bg-clay-tint text-clay",
+  violet: "bg-violet-tint text-violet",
+};
+
+function initials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
 
 export default function AllStudentsClient({ rows }: { rows: Row[] }) {
   const router = useRouter();
@@ -181,47 +209,48 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
       )}
 
       <div className="mt-6">
-        <GradebookTable
-          title="All students"
-          description="Every enrolled student across your classes."
-        >
-          <TableHead>
-            <TableRow>
-              <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell>Class</TableHeaderCell>
-              <TableHeaderCell>Code</TableHeaderCell>
-              <TableHeaderCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.map((r) => (
-              <TableRow key={r.student.id} striped>
-                <TableCell className="font-semibold">{r.student.name}</TableCell>
-                <TableCell>
-                  <Link
-                    href={`/dashboard/classes/${r.classId}`}
-                    className="text-slate underline underline-offset-2"
+        <p className="text-sm font-semibold text-ink">All students</p>
+        <p className="text-xs text-muted">Every enrolled student across your classes.</p>
+        <div className="mt-2 flex flex-col gap-1">
+          {filtered.map((r) => {
+            const category = getCategoryColor(`${r.className} ${r.student.name}`);
+            return (
+              <CardRow
+                key={r.student.id}
+                leading={
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-semibold ${AVATAR_CLASSES[category]}`}
                   >
-                    {r.className}
-                  </Link>
-                </TableCell>
-                <TableCell tabular className="text-slate">{r.student.code}</TableCell>
-                <TableCell align="right">
-                  <Button href={`/record-card/${r.classId}/${r.student.id}`} variant="secondary" size="sm">
-                    Record Card
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="py-4">
-                  {rows.length === 0 ? "No students yet." : "No students match your filters."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </GradebookTable>
+                    {initials(r.student.name)}
+                  </span>
+                }
+                title={r.student.name}
+                meta={
+                  <>
+                    <Link href={`/dashboard/classes/${r.classId}`} className="underline underline-offset-2 hover:text-ink">
+                      {r.className}
+                    </Link>
+                    {" · "}
+                    <span className="font-mono">{r.student.code}</span>
+                  </>
+                }
+                trailing={
+                  <>
+                    {r.tier && <StatusPill tone={TIER_TONE[r.tier]} dot>{TIER_LABEL[r.tier]}</StatusPill>}
+                    <Button href={`/record-card/${r.classId}/${r.student.id}`} variant="secondary" size="sm">
+                      Record Card
+                    </Button>
+                  </>
+                }
+              />
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="py-4 text-sm text-muted">
+              {rows.length === 0 ? "No students yet." : "No students match your filters."}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,14 +3,20 @@
 :root {
   /* LMS / academic-ledger motif: navy + slate structure, gold accents,
      printed-record table treatment. Token names/hexes match the design
-     spec exactly; see the *-text variants below for two exceptions. */
+     spec exactly, with two exceptions: the *-text variants below, and
+     --paper -- retinted twice since (cool gray-blue -> warm cream for the
+     card-row/pill portal pass -> the current near-white/light-gray, to
+     match a later reference screenshot's flatter admin-dashboard
+     background). Everything else in this file already matched both
+     briefs (navy as brand accent, success/warning/danger as the pill
+     vocabulary, --card as pure white) so only this one token has moved. */
   --navy: #14213d;
   --navy-soft: #1e2e52;
   --slate: #3d5a80;
   --slate-light: #e7edf5;
   --gold: #c9a227;
   --gold-soft: #f3e8c4;
-  --paper: #eff2f6;
+  --paper: #f5f6f8;
   --card: #ffffff;
   --ink: #1c2333;
   --muted: #5b6472;
@@ -45,13 +51,16 @@
   --violet: #7c6c9c;
   --violet-tint: #eae4f1;
 
-  /* Chart-fill variants: same brand hues, lightness/chroma tuned for small
-     bar/ring fills rather than reusing the text-sized tokens verbatim
-     (validated via the dataviz skill's palette checks, same approach as
-     before this token set changed). */
-  --chart-good: #3f7d5c;
-  --chart-warning: #c9a227;
-  --chart-critical: #8c3a2e;
+  /* Chart-fill variants: retinted to GAINS' own navy/gold duotone instead
+     of a green/amber/red traffic-light scheme -- "meeting the 75% bar"
+     (the tierFor good+warning bands, i.e. everything the app's own
+     LOW_ATTENDANCE_THRESHOLD doesn't flag) reads as navy; only the
+     critical band (below that threshold, the one insights/grouping logic
+     already treats as actionable) reads as gold. Two literal colors, one
+     meaningful boundary -- not three chart-tier hues. */
+  --chart-good: #14213d;
+  --chart-warning: #14213d;
+  --chart-critical: #c9a227;
 }
 
 @theme inline {
@@ -85,7 +94,12 @@
 
   --font-display: var(--font-display-src);
   --font-sans: var(--font-sans-src);
-  --font-mono: var(--font-mono-src);
+  /* Down to two typefaces app-wide (Lora display + Inter sans) -- font-mono
+     now aliases to the same sans font instead of loading IBM Plex Mono, so
+     every existing font-mono className (34 files, mostly tabular numbers/
+     codes) keeps working with zero per-file changes, just rendered in
+     Inter instead of a third family. */
+  --font-mono: var(--font-sans-src);
 }
 
 .ledger-page {
@@ -279,7 +293,7 @@
   #record-card-print .record-card-page {
     margin-bottom: 2.5rem;
     padding: 1.5rem;
-    border: 1px solid var(--color-rule);
+    border: 1px solid var(--color-line);
     border-radius: 4px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   }

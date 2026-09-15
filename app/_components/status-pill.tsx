@@ -6,6 +6,10 @@ const TONE_CLASSES = {
   warning: "bg-warning/15 text-warning-text",
   danger: "bg-danger/12 text-danger",
   neutral: "bg-line text-muted",
+  // Navy half of the attendance-rate duotone (lib/chart-tiers.ts) -- the
+  // "meeting the bar" signal, paired with the existing gold "warning" tone
+  // for "below it," instead of introducing a fourth traffic-light hue.
+  navy: "bg-navy/10 text-navy",
   // Category tones (subject/topic color-coding): tinted bg + dark ink text,
   // matching hue reserved for the accompanying left-accent border elsewhere.
   sage: "bg-sage-tint text-ink",
@@ -21,6 +25,7 @@ const DOT_CLASSES: Record<StatusTone, string> = {
   warning: "bg-warning",
   danger: "bg-danger",
   neutral: "bg-muted",
+  navy: "bg-navy",
   sage: "bg-sage",
   dustyblue: "bg-dustyblue",
   clay: "bg-clay",

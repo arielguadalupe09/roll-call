@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { ClassRow, Student } from "@/lib/types";
+import type { Attendance, ClassRow, Student } from "@/lib/types";
+import { computeStudentTiers, type StudentActivityTier } from "@/lib/dashboard-insights";
 import AllStudentsClient from "./all-students-client";
 
 export default async function AllStudentsPage() {
@@ -13,16 +14,39 @@ export default async function AllStudentsPage() {
   const classList = (classes as ClassRow[] | null) ?? [];
   const classIds = classList.map((c) => c.id);
 
-  const { data: students } = classIds.length
-    ? await supabase.from("students").select("*").in("class_id", classIds)
-    : { data: [] as Student[] };
+  const [{ data: students }, { data: attendance }] = classIds.length
+    ? await Promise.all([
+        supabase.from("students").select("*").in("class_id", classIds),
+        supabase.from("attendance").select("*").in("class_id", classIds),
+      ])
+    : [{ data: [] as Student[] }, { data: [] as Attendance[] }];
 
   const classById = new Map(classList.map((c) => [c.id, c]));
+  const studentsByClass = new Map<string, Student[]>();
+  const attendanceByClass = new Map<string, Attendance[]>();
+  for (const s of (students as Student[] | null) ?? []) {
+    const list = studentsByClass.get(s.class_id) ?? [];
+    list.push(s);
+    studentsByClass.set(s.class_id, list);
+  }
+  for (const a of (attendance as Attendance[] | null) ?? []) {
+    const list = attendanceByClass.get(a.class_id) ?? [];
+    list.push(a);
+    attendanceByClass.set(a.class_id, list);
+  }
+
+  const tierById = new Map<string, StudentActivityTier | null>();
+  for (const [classId, classStudents] of studentsByClass) {
+    const tiers = computeStudentTiers(classStudents, attendanceByClass.get(classId) ?? []);
+    for (const [studentId, tier] of tiers) tierById.set(studentId, tier);
+  }
+
   const rows = ((students as Student[] | null) ?? [])
     .map((s) => ({
       student: s,
       classId: s.class_id,
       className: classById.get(s.class_id)?.name ?? "Unknown class",
+      tier: tierById.get(s.id) ?? null,
     }))
     .sort((a, b) => a.student.name.localeCompare(b.student.name));
 

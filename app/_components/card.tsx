@@ -41,8 +41,8 @@ export function CardHeader({
 }) {
   const titleBlock = (
     <div>
-      <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
+      <h2 className="font-display text-lg font-semibold text-ink first-letter:capitalize">{title}</h2>
+      {subtitle && <p className="mt-0.5 text-sm text-muted first-letter:capitalize">{subtitle}</p>}
     </div>
   );
 
