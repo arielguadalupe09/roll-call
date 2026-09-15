@@ -100,7 +100,7 @@ export default function Sidebar({
           open ? "translate-x-0" : ""
         }`}
       >
-        <div className="flex items-center justify-between border-b border-line/20 px-5 py-5">
+        <div className="flex h-[86px] items-center justify-between border-b border-line/20 px-5">
           <div className="flex items-center gap-3">
             <LogoBadge />
             <div>
