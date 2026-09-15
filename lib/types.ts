@@ -228,10 +228,42 @@ export type ScheduleShare = {
   created_at: string;
 };
 
+export type Conversation = {
+  id: string;
+  name: string | null;
+  is_group: boolean;
+  created_by: string;
+  created_at: string;
+};
+
+export type ConversationParticipant = {
+  conversation_id: string;
+  teacher_id: string;
+  last_read_at: string | null;
+  created_at: string;
+};
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
 export type TeacherOption = {
   id: string;
   full_name: string | null;
   email: string;
+};
+
+export type AuditLog = {
+  id: string;
+  teacher_id: string;
+  action: string;
+  description: string;
+  class_id: string | null;
+  created_at: string;
 };
 
 export type ExamKind = "quiz" | "major_exam" | "written" | "laboratory";
