@@ -37,7 +37,7 @@ export default async function AppShellLayout({
         <div id="app-shell" className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
           <Sidebar classes={classRows} email={user?.email ?? ""} isAdmin={isAdmin} />
           <main id="app-main" className="ledger-page min-h-0 min-w-0 flex-1 overflow-y-auto">
-            <div className="border-b border-line bg-card px-4 pt-6 pb-3 sm:px-8">
+            <div className="sticky top-0 z-10 border-b border-line bg-card px-4 pt-6 pb-3 sm:px-8">
               <ClassSubNav />
             </div>
             {children}
