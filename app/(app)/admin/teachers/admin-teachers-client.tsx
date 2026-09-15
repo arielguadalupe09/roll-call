@@ -178,7 +178,7 @@ export default function AdminTeachersClient({
     <div className="mt-6">
       <form
         onSubmit={handleAdd}
-        className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
+        className="flex max-w-lg flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
       >
         <FormField label="Email">
           <Input
