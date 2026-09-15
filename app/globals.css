@@ -15,18 +15,24 @@
   --ink: #1c2333;
   --muted: #5b6472;
   --line: #dce1e8;
-  --danger: #7a2e2e;
+  --danger: #8c3a2e;
   --success: #3f7d5c;
-  --warning: #c77f26;
+  --warning: #c9a227;
 
   /* Text-safe variants: --warning and --success as specified fail WCAG AA
-     (4.5:1) when rendered as actual text -- --warning is as low as 2.7:1 on
-     its own tinted status-pill background, --success as low as 3.9:1. Same
-     hue, darkened until both pass on white and on a 15% self-tint; use
-     these for text/StatusPill foreground, keep the spec hex for swatches,
-     borders, and chart fills where the AA text ratio doesn't apply. */
+     (4.5:1) when rendered as actual text -- --warning is as low as 2.4:1 on
+     white (it shares --gold's exact hex, by design: gold accents and
+     warning status intentionally read as one brand color per a later
+     request, which trades away the two-color distinction the original
+     redesign used to keep "highlight" and "at-risk" from colliding --
+     accepted deliberately, not an oversight), --success as low as 3.9:1 on
+     its own tinted background. Same hue, darkened until both pass on white
+     and on a 15% self-tint; use these for text/StatusPill foreground, keep
+     the spec hex for swatches, borders, and chart fills where the AA text
+     ratio doesn't apply. --danger's new hex already clears AA as text
+     (7.6:1 on white), so it needs no separate darkened variant. */
   --success-text: #397153;
-  --warning-text: #955f1d;
+  --warning-text: #836919;
 
   /* Category/subject color-coding (lib/schedule-colors.ts) -- solid accent
      for the 3px left border, tinted tone for the cell background. */
@@ -44,8 +50,8 @@
      (validated via the dataviz skill's palette checks, same approach as
      before this token set changed). */
   --chart-good: #3f7d5c;
-  --chart-warning: #c77f26;
-  --chart-critical: #7a2e2e;
+  --chart-warning: #c9a227;
+  --chart-critical: #8c3a2e;
 }
 
 @theme inline {

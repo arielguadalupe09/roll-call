@@ -7,6 +7,7 @@ import { periodForDate } from "@/lib/record-card-data";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { Select } from "@/app/_components/input";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { tierFor, TIER_TEXT } from "@/lib/chart-tiers";
 
 function SummaryTable({
   title,
@@ -118,7 +119,7 @@ function SummaryTable({
                 <TableCell>{s.name}</TableCell>
                 <TableCell tabular>{entry.count}</TableCell>
                 <TableCell tabular>{entry.avg != null ? entry.avg.toFixed(1) : "—"}</TableCell>
-                <TableCell tabular>
+                <TableCell tabular className={entry.avg != null ? TIER_TEXT[tierFor(entry.avg / 5)] : undefined}>
                   {entry.avg != null ? `${((entry.avg / 5) * 100).toFixed(1)}%` : "—"}
                 </TableCell>
               </TableRow>

@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import type { Attendance, AttendanceStatus, ParticipationLog, Student } from "@/lib/types";
 import Button from "@/app/_components/button";
 import { Select } from "@/app/_components/input";
+import { TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { GradebookTable } from "@/app/_components/gradebook-table";
+import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
 
 const STATUS_LABEL: Record<AttendanceStatus, string> = {
   present: "P",
@@ -13,11 +16,11 @@ const STATUS_LABEL: Record<AttendanceStatus, string> = {
   late: "L",
 };
 
-const STATUS_CLASS: Record<AttendanceStatus, string> = {
-  present: "bg-success/20 text-success-text",
-  absent: "bg-danger/20 text-danger",
-  excused: "bg-ink/10 text-ink/70",
-  late: "bg-gold/20 text-gold",
+const STATUS_TONE: Record<AttendanceStatus, StatusTone> = {
+  present: "success",
+  absent: "danger",
+  excused: "neutral",
+  late: "warning",
 };
 
 export default function RecordsClient({
@@ -249,12 +252,10 @@ export default function RecordsClient({
             </p>
             <p className="mt-2 flex flex-wrap gap-3 text-xs text-ink/60">
               {(Object.keys(STATUS_LABEL) as AttendanceStatus[]).map((status) => (
-                <span key={status} className="flex items-center gap-1">
-                  <span
-                    className={`flex h-4 w-4 items-center justify-center rounded-full font-mono text-[9px] font-bold ${STATUS_CLASS[status]}`}
-                  >
+                <span key={status} className="flex items-center gap-1.5">
+                  <StatusPill tone={STATUS_TONE[status]} className="font-mono font-bold">
                     {STATUS_LABEL[status]}
-                  </span>
+                  </StatusPill>
                   {status[0].toUpperCase() + status.slice(1)}
                 </span>
               ))}
@@ -288,26 +289,26 @@ export default function RecordsClient({
           </p>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
-            <div className="overflow-x-auto rounded-[10px] border border-line">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-navy text-card font-display text-[13px] font-medium">
-                    <th className="py-2 px-3">Attendance</th>
-                    <th className="py-2 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => {
-                    const a = attendanceByStudent.get(s.id);
-                    return (
-                      <tr key={s.id} className="border-b border-line/50 bg-white">
-                        <td className="py-2 px-3 text-ink">{s.name}</td>
-                        <td className="py-2 px-3">
-                          {a ? (
-                            <span
-                              className={`inline-block rounded-full px-2 py-0.5 font-mono text-xs font-semibold ${STATUS_CLASS[a.status]}`}
-                            >
-                              {STATUS_LABEL[a.status]} —{" "}
+            <GradebookTable title="Attendance">
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell>Student</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {students.map((s) => {
+                  const a = attendanceByStudent.get(s.id);
+                  return (
+                    <TableRow key={s.id} striped>
+                      <TableCell>{s.name}</TableCell>
+                      <TableCell>
+                        {a ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <StatusPill tone={STATUS_TONE[a.status]} className="font-mono font-semibold">
+                              {STATUS_LABEL[a.status]}
+                            </StatusPill>
+                            <span className="text-xs text-ink/60">
                               {a.method === "scan"
                                 ? "Scanned"
                                 : a.method === "self"
@@ -315,85 +316,77 @@ export default function RecordsClient({
                                   : "Manual entry"}{" "}
                               at {new Date(a.recorded_at).toLocaleTimeString()}
                             </span>
-                          ) : (
-                            <span className="text-ink/20">— not marked</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {students.length === 0 && (
-                    <tr>
-                      <td colSpan={2} className="py-4 px-3 text-ink/60">
-                        No students in this class yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          </span>
+                        ) : (
+                          <span className="text-ink/20">— not marked</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {students.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={2} className="py-4">
+                      No students in this class yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </GradebookTable>
 
-            <div className="overflow-x-auto rounded-[10px] border border-line">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-navy text-card font-display text-[13px] font-medium">
-                    <th className="py-2 px-3">Recitation</th>
-                    <th className="py-2 px-3">Taps</th>
-                    <th className="py-2 px-3">Avg score (/5)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => {
-                    const r = recitationByStudent.get(s.id);
-                    return (
-                      <tr key={s.id} className="border-b border-line/50 bg-white">
-                        <td className="py-2 px-3 text-ink">{s.name}</td>
-                        <td className="py-2 px-3 font-mono text-ink">{r?.count ?? 0}</td>
-                        <td className="py-2 px-3 font-mono text-ink">
-                          {r && r.scoreCount > 0
-                            ? (r.scoreSum / r.scoreCount).toFixed(1)
-                            : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <GradebookTable title="Recitation">
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell>Student</TableHeaderCell>
+                  <TableHeaderCell align="right">Taps</TableHeaderCell>
+                  <TableHeaderCell align="right">Avg score (/5)</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {students.map((s) => {
+                  const r = recitationByStudent.get(s.id);
+                  return (
+                    <TableRow key={s.id} striped>
+                      <TableCell>{s.name}</TableCell>
+                      <TableCell align="right" tabular>{r?.count ?? 0}</TableCell>
+                      <TableCell align="right" tabular>
+                        {r && r.scoreCount > 0 ? (r.scoreSum / r.scoreCount).toFixed(1) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </GradebookTable>
 
-            <div className="overflow-x-auto rounded-[10px] border border-line">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-navy text-card font-display text-[13px] font-medium">
-                    <th className="py-2 px-3">Activity</th>
-                    <th className="py-2 px-3">Label</th>
-                    <th className="py-2 px-3">Taps</th>
-                    <th className="py-2 px-3">Avg score (/5)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => {
-                    const act = activityByStudent.get(s.id);
-                    return (
-                      <tr key={s.id} className="border-b border-line/50 bg-white">
-                        <td className="py-2 px-3 text-ink">{s.name}</td>
-                        <td className="py-2 px-3 text-ink/70">
-                          {act && act.labels.size > 0
-                            ? Array.from(act.labels).join(", ")
-                            : "—"}
-                        </td>
-                        <td className="py-2 px-3 font-mono text-ink">{act?.count ?? 0}</td>
-                        <td className="py-2 px-3 font-mono text-ink">
-                          {act && act.scoreCount > 0
-                            ? (act.scoreSum / act.scoreCount).toFixed(1)
-                            : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <GradebookTable title="Activity">
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell>Student</TableHeaderCell>
+                  <TableHeaderCell>Label</TableHeaderCell>
+                  <TableHeaderCell align="right">Taps</TableHeaderCell>
+                  <TableHeaderCell align="right">Avg score (/5)</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {students.map((s) => {
+                  const act = activityByStudent.get(s.id);
+                  return (
+                    <TableRow key={s.id} striped>
+                      <TableCell>{s.name}</TableCell>
+                      <TableCell className="text-ink/70">
+                        {act && act.labels.size > 0
+                          ? Array.from(act.labels).join(", ")
+                          : "—"}
+                      </TableCell>
+                      <TableCell align="right" tabular>{act?.count ?? 0}</TableCell>
+                      <TableCell align="right" tabular>
+                        {act && act.scoreCount > 0 ? (act.scoreSum / act.scoreCount).toFixed(1) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </GradebookTable>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ParticipationLog, ParticipationType, Student } from "@/lib/types";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
 export default function ParticipationClient({
   students,
@@ -72,30 +73,28 @@ export default function ParticipationClient({
           {useLabelColumns ? ", grouped by activity" : ", by date"}.
         </p>
 
-        <div className="mt-6 overflow-x-auto rounded-[10px] border border-line">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="bg-navy text-card font-display text-[13px] font-medium">
-                <th className="sticky left-0 bg-paper py-2 px-3">Student</th>
+        <div className="mt-6">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell className="sticky left-0 bg-navy">Student</TableHeaderCell>
                 {columns.map((c) => (
-                  <th key={c} className="py-2 px-3 text-center">
+                  <TableHeaderCell key={c} align="center">
                     {c}
-                  </th>
+                  </TableHeaderCell>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {students.map((s) => (
-                <tr key={s.id} className="border-b border-line/50">
-                  <td className="sticky left-0 bg-paper py-2 px-3 text-ink">
-                    {s.name}
-                  </td>
+                <TableRow key={s.id} striped>
+                  <TableCell className="sticky left-0 bg-card">{s.name}</TableCell>
                   {columns.map((c) => {
                     const cell = cells.get(`${s.id}_${c}`);
                     return (
-                      <td key={c} className="py-2 px-3 text-center">
+                      <TableCell key={c} align="center" tabular>
                         {cell && cell.count > 0 ? (
-                          <span className="font-mono">
+                          <>
                             <span className="font-semibold text-gold">
                               {cell.count}
                             </span>
@@ -104,26 +103,26 @@ export default function ParticipationClient({
                                 avg {(cell.scoreSum / cell.scoreCount).toFixed(1)}
                               </span>
                             )}
-                          </span>
+                          </>
                         ) : (
                           <span className="text-ink/20">—</span>
                         )}
-                      </td>
+                      </TableCell>
                     );
                   })}
-                </tr>
+                </TableRow>
               ))}
               {students.length === 0 && (
-                <tr>
-                  <td className="py-4 px-3 text-ink/60">
+                <TableRow>
+                  <TableCell colSpan={1 + columns.length} className="py-4">
                     No students in this class yet.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
           {columns.length === 0 && (
-            <p className="p-4 text-ink/60">
+            <p className="mt-3 text-ink/60">
               No {type} scans recorded yet.
             </p>
           )}

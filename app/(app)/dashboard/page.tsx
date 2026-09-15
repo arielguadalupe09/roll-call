@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getUser, getTeacherRow } from "@/lib/supabase/server";
 import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
@@ -13,13 +12,10 @@ import Button from "@/app/_components/button";
 import CreateClassForm from "./create-class-form";
 import ArchiveButton from "./archive-button";
 import ArchivedClasses from "./archived-classes";
-import {
-  ActiveArchivedBar,
-  AttendanceByClassChart,
-  AttendanceRing,
-  AttentionBreakdown,
-  StudentsSparkline,
-} from "./dashboard-charts";
+import { AttendanceByClassChart, AttentionBreakdown } from "./dashboard-charts";
+import { StatCard } from "@/app/_components/stat-card";
+import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
+import { tierFor } from "@/lib/chart-tiers";
 
 function TileIcon({ path, tone }: { path: string; tone: "gold" | "success" | "danger" }) {
   const toneClass = {
@@ -47,17 +43,21 @@ const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14
 const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
 const ICON_ALERT = "M8 2.5 14 13H2L8 2.5zM8 6.5v3M8 11.2v.1";
 
+const TIER_TONE: Record<ReturnType<typeof tierFor>, StatusTone> = {
+  good: "success",
+  warning: "warning",
+  critical: "danger",
+};
+
 function attendanceBadge(rate: number | null) {
   if (rate == null) {
-    return <span className="rounded-sm bg-ink/10 px-2 py-0.5 font-mono text-xs text-ink/50">No data</span>;
+    return <StatusPill tone="neutral">No data</StatusPill>;
   }
   const pct = Math.round(rate * 100);
-  const color =
-    rate >= 0.9 ? "bg-success/20 text-success-text" : rate >= 0.75 ? "bg-gold/20 text-gold" : "bg-danger/20 text-danger";
   return (
-    <span className={`rounded-sm px-2 py-0.5 font-mono text-xs font-semibold ${color}`}>
+    <StatusPill tone={TIER_TONE[tierFor(rate)]} className="font-mono font-semibold">
       {pct}% attendance
-    </span>
+    </StatusPill>
   );
 }
 
@@ -128,10 +128,6 @@ export default async function DashboardPage() {
     (s) => s.weekTrend && s.weekTrend.previous - s.weekTrend.current > TREND_DROP_THRESHOLD,
   ).length;
   const ungradedClassCount = stats.filter((s) => !s.gradingConfigured).length;
-  const studentsPerClass = classList.map((c) => ({
-    name: c.name,
-    count: studentsByClass.get(c.id)?.length ?? 0,
-  }));
 
   return (
     <div className="px-8 py-10">
@@ -145,68 +141,51 @@ export default async function DashboardPage() {
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <a
+          <StatCard
             href="#class-list"
-            className="group rounded-[10px] border border-line/60 bg-card p-4 transition hover:border-gold/60"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted">Classes</p>
-              <TileIcon path={ICON_CLASSES} tone="gold" />
-            </div>
-            <p className="mt-2 font-display text-3xl font-semibold text-ink">{classList.length}</p>
-            <ActiveArchivedBar active={classList.length} archived={archivedClasses.length} />
-          </a>
-          <Link
+            label="Classes"
+            icon={<TileIcon path={ICON_CLASSES} tone="gold" />}
+            figure={{
+              kind: "breakdown",
+              segments: [
+                { tone: "success", count: classList.length, label: "Active" },
+                { tone: "neutral", count: archivedClasses.length, label: "Archived" },
+              ],
+            }}
+          />
+          <StatCard
             href="/students"
-            className="group rounded-[10px] border border-line/60 bg-card p-4 transition hover:border-gold/60"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted">Students</p>
-              <TileIcon path={ICON_STUDENTS} tone="success" />
-            </div>
-            <p className="mt-2 font-display text-3xl font-semibold text-ink">{totalStudents}</p>
-            <StudentsSparkline classes={studentsPerClass} />
-          </Link>
-          <Link
+            label="Students"
+            icon={<TileIcon path={ICON_STUDENTS} tone="success" />}
+            figure={{ kind: "number", value: totalStudents }}
+          />
+          <StatCard
             href="/attendance"
-            className="group rounded-[10px] border border-line/60 bg-card p-4 transition hover:border-gold/60"
-          >
-            <p className="text-xs text-muted">Attendance</p>
-            <div className="mt-2 flex items-center gap-3">
-              <AttendanceRing rate={overallAttendanceRate} />
-              <p className="text-xs text-ink/60">
-                Average across {ratesWithData.length > 0 ? classList.length : 0} class
-                {classList.length === 1 ? "" : "es"}
-              </p>
-            </div>
-          </Link>
-          <a
+            label="Attendance"
+            figure={{
+              kind: "ring",
+              rate: overallAttendanceRate,
+              caption: `Average across ${ratesWithData.length > 0 ? classList.length : 0} class${
+                classList.length === 1 ? "" : "es"
+              }`,
+            }}
+          />
+          <StatCard
             href="#insights"
-            className={`group rounded-lg p-4 transition ${
-              classesNeedingAttention > 0
-                ? "border border-danger/30 bg-danger/[0.04] hover:border-danger/60"
-                : "border border-line/40 bg-white hover:border-gold/60"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted">Need attention</p>
-              <TileIcon path={ICON_ALERT} tone="danger" />
-            </div>
-            <p
-              className={`mt-2 font-display text-3xl font-semibold ${
-                classesNeedingAttention > 0 ? "text-danger" : "text-ink"
-              }`}
-            >
-              {classesNeedingAttention}
-            </p>
-            <AttentionBreakdown
-              items={[
-                { label: "Low attendance", count: lowAttendanceClassCount },
-                { label: "Attendance dropped", count: droppedTrendClassCount },
-                { label: "Grading not set up", count: ungradedClassCount },
-              ]}
-            />
-          </a>
+            label="Need attention"
+            icon={<TileIcon path={ICON_ALERT} tone="danger" />}
+            alert={classesNeedingAttention > 0}
+            figure={{ kind: "badge", value: classesNeedingAttention, danger: classesNeedingAttention > 0 }}
+            footnote={
+              <AttentionBreakdown
+                items={[
+                  { label: "Low attendance", count: lowAttendanceClassCount },
+                  { label: "Attendance dropped", count: droppedTrendClassCount },
+                  { label: "Grading not set up", count: ungradedClassCount },
+                ]}
+              />
+            }
+          />
         </div>
 
         <div className="mt-6 rounded-lg border border-dashed border-gold/50 bg-gold/[0.04] p-5">

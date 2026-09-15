@@ -4,14 +4,18 @@
 // of each screen hand-rolling its own border/shading classes.
 
 export function Table({
+  bordered = true,
   className = "",
   children,
 }: {
+  // Set false when nesting inside another bordered container (e.g.
+  // GradebookTable's Card) so the border doesn't double up.
+  bordered?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`overflow-x-auto rounded-[10px] border border-line ${className}`}>
+    <div className={`overflow-x-auto ${bordered ? "rounded-[10px] border border-line" : ""} ${className}`}>
       <table className="w-full border-collapse text-sm">{children}</table>
     </div>
   );

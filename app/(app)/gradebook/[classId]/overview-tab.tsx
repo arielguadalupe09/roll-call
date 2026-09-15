@@ -16,6 +16,8 @@ import { buildRecordCardData, type ClassGradingData } from "@/lib/record-card-da
 import { computeFinalGrade } from "@/lib/final-grade";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import Button from "@/app/_components/button";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { tierFor, TIER_TEXT } from "@/lib/chart-tiers";
 
 const PERIOD_LABEL: Record<Period, string> = {
   prelim: "Prelim",
@@ -25,9 +27,9 @@ const PERIOD_LABEL: Record<Period, string> = {
 
 function Cell({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border-b border-line/50 py-2 px-3 text-center font-mono text-xs text-ink">
+    <TableCell align="center" tabular>
       {children ?? <span className="text-ink/20">—</span>}
-    </td>
+    </TableCell>
   );
 }
 
@@ -119,6 +121,17 @@ export default function OverviewTab({
 
   const hasAnyColumns =
     assignments.length > 0 || quizzes.length > 0 || written.length > 0 || labs.length > 0 || majorExams.length > 0;
+  const examPeriods = periods.filter((p) => examByPeriod.has(p));
+  const totalCols =
+    1 + // student
+    assignments.length +
+    quizzes.length +
+    written.length +
+    labs.length +
+    examPeriods.length +
+    1 + // recitation
+    periods.length + // per-period grade
+    1; // final grade
 
   return (
     <div className="mt-6">
@@ -137,145 +150,136 @@ export default function OverviewTab({
         )}
       </div>
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>
-        <div className="overflow-x-auto rounded-[10px] border border-line">
-          <table className="w-full min-w-max border-collapse text-left text-sm">
-            <thead className="bg-navy">
-              <tr>
-                <th className="sticky left-0 bg-navy px-3 py-2.5 font-display text-[13px] font-medium text-card">
-                  Student
-                </th>
-                {assignments.map((a) => (
-                  <th key={a.id} className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                    {a.title}
-                    <span className="block font-sans text-[11px] font-normal text-card/70">
-                      Assignment / {a.max_score}
-                    </span>
-                  </th>
-                ))}
-                {quizzes.map((a) => (
-                  <th key={a.id} className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                    {a.title}
-                    <span className="block font-sans text-[11px] font-normal text-card/70">
-                      Quiz / {a.max_score}
-                    </span>
-                  </th>
-                ))}
-                {written.map((a) => (
-                  <th key={a.id} className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                    {a.title}
-                    <span className="block font-sans text-[11px] font-normal text-card/70">
-                      Written / {a.max_score}
-                    </span>
-                  </th>
-                ))}
-                {labs.map((a) => (
-                  <th key={a.id} className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                    {a.title}
-                    <span className="block font-sans text-[11px] font-normal text-card/70">
-                      Lab / {a.max_score}
-                    </span>
-                  </th>
-                ))}
-                {periods.map((p) => {
-                  const exam = examByPeriod.get(p);
-                  if (!exam) return null;
-                  return (
-                    <th key={p} className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                      Major exam
-                      <span className="block font-sans text-[11px] font-normal text-card/70">
-                        {PERIOD_LABEL[p]} / {exam.max_score}
-                      </span>
-                    </th>
-                  );
-                })}
-                <th className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                  Recitation
-                  <span className="block font-sans text-[11px] font-normal text-card/70">avg / 5</span>
-                </th>
-                {periods.map((p) => (
-                  <th key={p} className="px-3 py-2.5 text-center font-display text-[13px] font-medium text-card">
-                    {PERIOD_LABEL[p]}
-                    <span className="block font-sans text-[11px] font-normal text-card/70">grade</span>
-                  </th>
-                ))}
-                <th className="px-3 py-2.5 text-center font-display text-[13px] font-semibold text-card">
-                  Final grade
-                  <span className="block font-sans text-[11px] font-normal text-card/70">weighted</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((s) => {
-                const recitation = recitationByStudent.get(s.id);
-                const grade = finalGradeByStudent.get(s.id);
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell className="sticky left-0 bg-navy">Student</TableHeaderCell>
+              {assignments.map((a) => (
+                <TableHeaderCell key={a.id} align="center">
+                  {a.title}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    Assignment / {a.max_score}
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {quizzes.map((a) => (
+                <TableHeaderCell key={a.id} align="center">
+                  {a.title}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    Quiz / {a.max_score}
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {written.map((a) => (
+                <TableHeaderCell key={a.id} align="center">
+                  {a.title}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    Written / {a.max_score}
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {labs.map((a) => (
+                <TableHeaderCell key={a.id} align="center">
+                  {a.title}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    Lab / {a.max_score}
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {examPeriods.map((p) => {
+                const exam = examByPeriod.get(p)!;
                 return (
-                  <tr key={s.id} className="border-b border-line odd:bg-paper/60">
-                    <td className="sticky left-0 bg-card py-2 px-3 text-ink">{s.name}</td>
-                    {assignments.map((a) => {
-                      const score = submissionByKey.get(`${a.id}_${s.id}`)?.score;
-                      return (
-                        <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
-                      );
-                    })}
-                    {quizzes.map((a) => {
-                      const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
-                      return (
-                        <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
-                      );
-                    })}
-                    {written.map((a) => {
-                      const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
-                      return (
-                        <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
-                      );
-                    })}
-                    {labs.map((a) => {
-                      const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
-                      return (
-                        <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
-                      );
-                    })}
-                    {periods.map((p) => {
-                      const exam = examByPeriod.get(p);
-                      if (!exam) return null;
-                      const score = majorExamScoreByKey.get(`${exam.id}_${s.id}`)?.score;
-                      return (
-                        <Cell key={p}>{score != null ? `${score}/${exam.max_score}` : null}</Cell>
-                      );
-                    })}
-                    <Cell>
-                      {recitation?.avg != null ? `${recitation.avg.toFixed(1)}/5` : null}
-                    </Cell>
-                    {periods.map((p) => (
-                      <Cell key={p}>
-                        {grade?.[p] != null ? `${(grade[p] as number).toFixed(1)}%` : null}
-                      </Cell>
-                    ))}
-                    <td className="border-b border-line/50 py-2 px-3 text-center font-mono text-xs font-semibold text-ink">
-                      {grade?.final != null ? (
-                        `${grade.final.toFixed(1)}%`
-                      ) : (
-                        <span className="font-normal text-ink/20">—</span>
-                      )}
-                    </td>
-                  </tr>
+                  <TableHeaderCell key={p} align="center">
+                    Major exam
+                    <span className="block font-sans text-[11px] font-normal text-card/70">
+                      {PERIOD_LABEL[p]} / {exam.max_score}
+                    </span>
+                  </TableHeaderCell>
                 );
               })}
-              {students.length === 0 && (
-                <tr>
-                  <td colSpan={2} className="py-4 px-3 text-ink/60">
-                    No students in this class yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          {!hasAnyColumns && (
-            <p className="p-4 text-ink/60">
-              No assignments, quizzes, activities, or major exams recorded yet.
-            </p>
-          )}
-        </div>
+              <TableHeaderCell align="center">
+                Recitation
+                <span className="block font-sans text-[11px] font-normal text-card/70">avg / 5</span>
+              </TableHeaderCell>
+              {periods.map((p) => (
+                <TableHeaderCell key={p} align="center">
+                  {PERIOD_LABEL[p]}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">grade</span>
+                </TableHeaderCell>
+              ))}
+              <TableHeaderCell align="center" className="font-semibold">
+                Final grade
+                <span className="block font-sans text-[11px] font-normal text-card/70">weighted</span>
+              </TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {students.map((s) => {
+              const recitation = recitationByStudent.get(s.id);
+              const grade = finalGradeByStudent.get(s.id);
+              const finalTier = grade?.final != null ? tierFor(grade.final / 100) : null;
+              return (
+                <TableRow key={s.id} striped>
+                  <TableCell className="sticky left-0 bg-card">{s.name}</TableCell>
+                  {assignments.map((a) => {
+                    const score = submissionByKey.get(`${a.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
+                    );
+                  })}
+                  {quizzes.map((a) => {
+                    const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
+                    );
+                  })}
+                  {written.map((a) => {
+                    const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
+                    );
+                  })}
+                  {labs.map((a) => {
+                    const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
+                    );
+                  })}
+                  {examPeriods.map((p) => {
+                    const exam = examByPeriod.get(p)!;
+                    const score = majorExamScoreByKey.get(`${exam.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={p}>{score != null ? `${score}/${exam.max_score}` : null}</Cell>
+                    );
+                  })}
+                  <Cell>
+                    {recitation?.avg != null ? `${recitation.avg.toFixed(1)}/5` : null}
+                  </Cell>
+                  {periods.map((p) => (
+                    <Cell key={p}>
+                      {grade?.[p] != null ? `${(grade[p] as number).toFixed(1)}%` : null}
+                    </Cell>
+                  ))}
+                  <TableCell align="center" tabular className={`font-semibold ${finalTier ? TIER_TEXT[finalTier] : "text-ink/20 font-normal"}`}>
+                    {grade?.final != null ? `${grade.final.toFixed(1)}%` : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {students.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={totalCols} className="py-4">
+                  No students in this class yet.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {!hasAnyColumns && (
+          <p className="mt-3 text-ink/60">
+            No assignments, quizzes, activities, or major exams recorded yet.
+          </p>
+        )}
       </CollapsibleSection>
     </div>
   );

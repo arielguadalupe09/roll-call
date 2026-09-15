@@ -11,6 +11,7 @@ import {
   type StudentProfile as Profile,
 } from "@/lib/student-profile";
 import { EXAM_KIND_LABEL, type AttendanceStatus, type SubmissionStatus } from "@/lib/types";
+import { StatusRing } from "@/app/_components/status-ring";
 
 type Step = "code" | "profile";
 
@@ -190,10 +191,12 @@ export default function StudentProfilePage() {
           <p className="text-center text-card/70">{profile.className}</p>
 
           <div className="mt-6 flex flex-col items-center">
-            <p className="font-mono text-5xl font-semibold text-gold">
-              {profile.attendancePercent == null ? "--" : `${profile.attendancePercent.toFixed(0)}%`}
-            </p>
-            <p className="text-card/70">attendance</p>
+            <StatusRing
+              rate={profile.attendancePercent == null ? null : profile.attendancePercent / 100}
+              size={96}
+              variant="dark"
+            />
+            <p className="mt-1 text-card/70">attendance</p>
           </div>
 
           <div className="mt-6 ledger-page rounded-sm border border-line p-4 text-ink">
@@ -204,20 +207,20 @@ export default function StudentProfilePage() {
               {profile.usePrelims && (
                 <div>
                   <dt className="text-ink/60">Prelim</dt>
-                  <dd className="font-medium">{formatPercent(profile.finalGrade.prelim)}</dd>
+                  <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.prelim)}</dd>
                 </div>
               )}
               <div>
                 <dt className="text-ink/60">Midterm</dt>
-                <dd className="font-medium">{formatPercent(profile.finalGrade.midterm)}</dd>
+                <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.midterm)}</dd>
               </div>
               <div>
                 <dt className="text-ink/60">Finals</dt>
-                <dd className="font-medium">{formatPercent(profile.finalGrade.finals)}</dd>
+                <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.finals)}</dd>
               </div>
               <div>
                 <dt className="text-ink/60">Final grade</dt>
-                <dd className="font-medium">{formatPercent(profile.finalGrade.final)}</dd>
+                <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.final)}</dd>
               </div>
             </dl>
           </div>

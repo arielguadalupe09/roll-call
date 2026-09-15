@@ -1,5 +1,6 @@
 import { LOW_ATTENDANCE_THRESHOLD, type ClassStats, type Insight } from "@/lib/dashboard-insights";
-import { AttendanceRing, SessionTrendChart } from "../../dashboard-charts";
+import { SessionTrendChart } from "../../dashboard-charts";
+import { StatusRing } from "@/app/_components/status-ring";
 
 export default function ClassAnalytics({
   stats,
@@ -20,7 +21,7 @@ export default function ClassAnalytics({
 
       <div className="mt-3 flex flex-wrap items-center gap-6">
         <div className="flex items-center gap-3">
-          <AttendanceRing rate={stats.attendanceRate} />
+          <StatusRing rate={stats.attendanceRate} />
           <div>
             <p className="text-sm text-ink/70">Average attendance</p>
             {trend && (

@@ -9,6 +9,8 @@ import type { Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
 import { Input, Select } from "@/app/_components/input";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { StatCard } from "@/app/_components/stat-card";
 
 type Row = { student: Student; classId: string; className: string };
 type NameFix = { id: string; className: string; from: string; to: string };
@@ -93,22 +95,9 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
   return (
     <div className="mt-6">
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-[10px] border border-line bg-card p-4 text-center">
-          <p className="font-display text-2xl font-semibold text-ink">{rows.length}</p>
-          <p className="text-xs text-muted">
-            Total students
-          </p>
-        </div>
-        <div className="rounded-[10px] border border-line bg-card p-4 text-center">
-          <p className="font-display text-2xl font-semibold text-ink">
-            {classOptions.length}
-          </p>
-          <p className="text-xs text-muted">Classes</p>
-        </div>
-        <div className="rounded-[10px] border border-line bg-card p-4 text-center">
-          <p className="font-display text-2xl font-semibold text-ink">{filtered.length}</p>
-          <p className="text-xs text-muted">Showing</p>
-        </div>
+        <StatCard label="Total students" figure={{ kind: "number", value: rows.length, mono: true }} />
+        <StatCard label="Classes" figure={{ kind: "number", value: classOptions.length, mono: true }} />
+        <StatCard label="Showing" figure={{ kind: "number", value: filtered.length, mono: true }} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -173,47 +162,45 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-[10px] border border-line">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="bg-navy text-card font-display text-[13px] font-medium">
-              <th className="py-2 px-3">Name</th>
-              <th className="py-2 px-3">Class</th>
-              <th className="py-2 px-3">Code</th>
-              <th className="py-2 px-3" />
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mt-4">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell>Class</TableHeaderCell>
+              <TableHeaderCell>Code</TableHeaderCell>
+              <TableHeaderCell />
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {filtered.map((r) => (
-              <tr key={r.student.id} className="border-b border-line/50 bg-white">
-                <td className="py-2 px-3 font-semibold text-ink">
-                  {r.student.name}
-                </td>
-                <td className="py-2 px-3">
+              <TableRow key={r.student.id} striped>
+                <TableCell className="font-semibold">{r.student.name}</TableCell>
+                <TableCell>
                   <Link
                     href={`/dashboard/classes/${r.classId}`}
                     className="text-slate underline underline-offset-2"
                   >
                     {r.className}
                   </Link>
-                </td>
-                <td className="py-2 px-3 font-mono text-slate">{r.student.code}</td>
-                <td className="py-2 px-3 text-right">
+                </TableCell>
+                <TableCell tabular className="text-slate">{r.student.code}</TableCell>
+                <TableCell align="right">
                   <Button href={`/record-card/${r.classId}/${r.student.id}`} variant="secondary" size="sm">
                     Record Card
                   </Button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr>
-                <td colSpan={4} className="py-4 px-3 text-ink/60">
+              <TableRow>
+                <TableCell colSpan={4} className="py-4">
                   {rows.length === 0 ? "No students yet." : "No students match your filters."}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

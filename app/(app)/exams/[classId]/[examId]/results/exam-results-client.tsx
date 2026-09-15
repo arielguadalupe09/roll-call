@@ -7,6 +7,8 @@ import { syncExamAttemptToGradebook } from "@/lib/exam-gradebook-sync";
 import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
 import { Input } from "@/app/_components/input";
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { tierFor, TIER_TEXT } from "@/lib/chart-tiers";
 
 const SNAPSHOTS_BUCKET = "exam-snapshots";
 const SUBMISSIONS_BUCKET = "exam-submissions";
@@ -142,18 +144,18 @@ export default function ExamResultsClient({
   }
 
   return (
-    <div className="mt-6 overflow-x-auto rounded-[10px] border border-line">
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className="bg-navy text-card font-display text-[13px] font-medium">
-            <th className="py-2 px-3">Student</th>
-            <th className="py-2 px-3">Status</th>
-            <th className="py-2 px-3">Score</th>
-            <th className="py-2 px-3">Violations</th>
-            {essayQuestions.length > 0 && <th className="py-2 px-3">Grading</th>}
-          </tr>
-        </thead>
-        <tbody>
+    <div className="mt-6">
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableHeaderCell>Student</TableHeaderCell>
+            <TableHeaderCell>Status</TableHeaderCell>
+            <TableHeaderCell align="right">Score</TableHeaderCell>
+            <TableHeaderCell>Violations</TableHeaderCell>
+            {essayQuestions.length > 0 && <TableHeaderCell>Grading</TableHeaderCell>}
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {students.map((student) => {
             const attempt = attemptByStudent.get(student.id);
             const studentViolations = attempt ? (violationsByAttempt.get(attempt.id) ?? []) : [];
@@ -174,15 +176,24 @@ export default function ExamResultsClient({
             const isViolationsExpanded = expanded?.studentId === student.id && expanded.panel === "violations";
             const isGradingExpanded = expanded?.studentId === student.id && expanded.panel === "grading";
 
+            const scoreRate =
+              attempt?.submitted_at && attempt.score != null && attempt.total_points
+                ? attempt.score / attempt.total_points
+                : null;
+
             return (
               <Fragment key={student.id}>
-                <tr className="border-b border-line/50 bg-white">
-                  <td className="py-2 px-3 text-ink">{student.name}</td>
-                  <td className="py-2 px-3 text-ink/80">{statusFor(attempt)}</td>
-                  <td className="py-2 px-3 font-mono text-ink">
+                <TableRow striped>
+                  <TableCell>{student.name}</TableCell>
+                  <TableCell className="text-ink/80">{statusFor(attempt)}</TableCell>
+                  <TableCell
+                    align="right"
+                    tabular
+                    className={scoreRate != null ? TIER_TEXT[tierFor(scoreRate)] : undefined}
+                  >
                     {attempt?.submitted_at ? `${attempt.score} / ${attempt.total_points}` : "--"}
-                  </td>
-                  <td className="py-2 px-3">
+                  </TableCell>
+                  <TableCell>
                     {studentViolations.length === 0 ? (
                       <span className="text-ink/50">--</span>
                     ) : (
@@ -205,9 +216,9 @@ export default function ExamResultsClient({
                         {isViolationsExpanded ? "▲" : "▼"}
                       </button>
                     )}
-                  </td>
+                  </TableCell>
                   {essayQuestions.length > 0 && (
-                    <td className="py-2 px-3">
+                    <TableCell>
                       {essayEntries.length === 0 ? (
                         <span className="text-ink/50">--</span>
                       ) : (
@@ -222,12 +233,12 @@ export default function ExamResultsClient({
                           {attempt?.needs_grading ? "Needs grading" : "Graded"} {isGradingExpanded ? "▲" : "▼"}
                         </button>
                       )}
-                    </td>
+                    </TableCell>
                   )}
-                </tr>
+                </TableRow>
                 {isViolationsExpanded && (
-                  <tr className="border-b border-line/50 bg-danger/5">
-                    <td colSpan={columnCount} className="px-3 py-2">
+                  <TableRow className="bg-danger/5">
+                    <TableCell colSpan={columnCount} className="py-2">
                       <div className="flex items-start justify-between gap-3">
                         <ul className="flex flex-col gap-1.5">
                           {studentViolations.map((v) => (
@@ -274,12 +285,12 @@ export default function ExamResultsClient({
                           </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
                 {isGradingExpanded && attempt && (
-                  <tr className="border-b border-line/50 bg-gold/5">
-                    <td colSpan={columnCount} className="px-3 py-3">
+                  <TableRow className="bg-gold/5">
+                    <TableCell colSpan={columnCount} className="py-3">
                       <ul className="flex flex-col gap-3">
                         {essayEntries.map(({ question, answer }) => (
                           <li key={answer.id} className="rounded-sm border border-line/60 bg-white p-3">
@@ -326,21 +337,21 @@ export default function ExamResultsClient({
                           </li>
                         ))}
                       </ul>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
               </Fragment>
             );
           })}
           {students.length === 0 && (
-            <tr>
-              <td colSpan={columnCount} className="py-4 px-3 text-ink/60">
+            <TableRow>
+              <TableCell colSpan={columnCount} className="py-4">
                 No students in this class yet.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
