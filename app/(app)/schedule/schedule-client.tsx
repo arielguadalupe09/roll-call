@@ -559,7 +559,7 @@ export default function ScheduleClient({
                 value={section}
                 onChange={(e) => setSection(e.target.value)}
                 placeholder="e.g. INFO1A"
-                className="w-28"
+                className="!w-28"
               />
             </FormField>
             <FormField label="Room">
@@ -568,7 +568,7 @@ export default function ScheduleClient({
                 value={room}
                 onChange={(e) => setRoom(e.target.value)}
                 placeholder="e.g. A201(LAB1)"
-                className="w-32"
+                className="!w-32"
               />
             </FormField>
             <FormField label="Day">

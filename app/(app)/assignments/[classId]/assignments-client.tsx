@@ -357,7 +357,7 @@ export default function AssignmentsClient({
                     onChange={(e) =>
                       handlePeriodChange(a.id, e.target.value as Period)
                     }
-                    className="w-auto py-1 text-xs"
+                    className="!w-auto !py-1 text-xs"
                   >
                     {usePrelims && <option value="prelim">Prelim</option>}
                     <option value="midterm">Midterm</option>

@@ -170,7 +170,7 @@ export default function ManualAttendanceClient({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-auto"
+            className="!w-auto"
           />
         </label>
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted">

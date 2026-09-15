@@ -336,7 +336,7 @@ export default function ScanClient({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               disabled={running}
-              className="w-auto bg-paper py-1 font-mono"
+              className="!w-auto !bg-paper !py-1 font-mono"
             />
           </label>
           {mode === "activity" && (
@@ -348,7 +348,7 @@ export default function ScanClient({
                 onChange={(e) => setActivityLabel(e.target.value)}
                 disabled={running}
                 placeholder="e.g. Group presentation"
-                className="w-auto bg-paper py-1"
+                className="!w-auto !bg-paper !py-1"
               />
             </label>
           )}

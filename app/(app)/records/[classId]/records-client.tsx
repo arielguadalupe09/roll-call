@@ -270,7 +270,7 @@ export default function RecordsClient({
               value={activeDate ?? ""}
               onChange={(e) => setSelectedDate(e.target.value)}
               disabled={dates.length === 0}
-              className="w-auto"
+              className="!w-auto"
             >
               {dates.length === 0 && <option value="">No dates yet</option>}
               {dates.map((d) => (

@@ -462,7 +462,7 @@ export default function ExamBuilderClient({
                   placeholder={`Option ${i + 1}`}
                   value={option.label}
                   onChange={(e) => updateDraftOption(i, { label: e.target.value })}
-                  className="flex-1 py-1.5 text-sm"
+                  className="flex-1 !py-1.5 text-sm"
                 />
                 {draftOptions.length > 2 && (
                   <Button variant="danger" size="sm" onClick={() => removeDraftOption(i)}>

@@ -40,7 +40,7 @@ export default function ScoreEntryTable({
                   max={maxScore}
                   value={row.score}
                   onChange={(e) => onScoreChange(s.id, e.target.value)}
-                  className="w-20 font-mono"
+                  className="!w-20 font-mono"
                 />
               </TableCell>
               <TableCell>

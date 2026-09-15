@@ -327,7 +327,7 @@ export default function SetupTab({
                   setTitles((prev) => ({ ...prev, [key]: e.target.value }))
                 }
                 placeholder={DEFAULT_SECTION_TITLES[key]}
-                className="flex-1 py-1 text-sm"
+                className="flex-1 !py-1 text-sm"
               />
             </div>
           ))}

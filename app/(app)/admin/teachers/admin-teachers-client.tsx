@@ -248,7 +248,7 @@ export default function AdminTeachersClient({
                       onChange={(e) => setEditName(e.target.value)}
                       placeholder="e.g. Juan Dela Cruz"
                       autoFocus
-                      className="w-full border-gold py-1"
+                      className="w-full !border-gold !py-1"
                     />
                   ) : (
                     t.full_name || "—"
@@ -264,7 +264,7 @@ export default function AdminTeachersClient({
                       value={t.is_admin ? "admin" : "teacher"}
                       onChange={(e) => handleSetAdmin(t, e.target.value === "admin")}
                       disabled={settingAdminId === t.id}
-                      className="w-auto py-1 text-xs"
+                      className="!w-auto !py-1 text-xs"
                     >
                       <option value="teacher">Teacher</option>
                       <option value="admin">Admin</option>

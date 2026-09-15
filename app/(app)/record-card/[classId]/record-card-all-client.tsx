@@ -148,7 +148,7 @@ export default function RecordCardAllClient({
             <Select
               value={paperSize}
               onChange={(e) => setPaperSize(e.target.value as PaperSize)}
-              className="w-auto py-1.5"
+              className="!w-auto !py-1.5"
             >
               {Object.entries(PAPER_SIZES).map(([key, { label }]) => (
                 <option key={key} value={key}>

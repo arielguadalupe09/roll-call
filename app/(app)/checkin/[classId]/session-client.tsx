@@ -200,7 +200,7 @@ export default function SessionClient({
           value={date}
           onChange={(e) => setDate(e.target.value)}
           disabled={!!session}
-          className="w-auto py-1 font-mono"
+          className="!w-auto !py-1 font-mono"
         />
       </label>
 

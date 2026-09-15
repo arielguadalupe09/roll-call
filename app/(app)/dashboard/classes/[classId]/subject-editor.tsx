@@ -57,7 +57,7 @@ export default function SubjectEditor({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="e.g. Introduction to Programming"
-          className="py-1 text-sm"
+          className="!py-1 text-sm"
         />
         <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}

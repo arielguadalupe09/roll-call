@@ -119,7 +119,7 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
           onChange={(e) => setQuery(e.target.value)}
           className="min-w-0 flex-1"
         />
-        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-auto">
+        <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="!w-auto">
           <option value="all">All classes</option>
           {classOptions.map(([id, name]) => (
             <option key={id} value={id}>

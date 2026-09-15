@@ -64,7 +64,7 @@ export default function AllAttendanceClient({ rows }: { rows: Row[] }) {
             value={activeDate ?? ""}
             onChange={(e) => setSelectedDate(e.target.value)}
             disabled={dates.length === 0}
-            className="w-auto"
+            className="!w-auto"
           >
             {dates.length === 0 && <option value="">No dates yet</option>}
             {dates.map((d) => (
@@ -79,7 +79,7 @@ export default function AllAttendanceClient({ rows }: { rows: Row[] }) {
           <Select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            className="w-auto"
+            className="!w-auto"
           >
             <option value="all">All classes</option>
             {classOptions.map(([id, name]) => (

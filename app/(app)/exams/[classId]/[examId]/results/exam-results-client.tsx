@@ -312,7 +312,7 @@ export default function ExamResultsClient({
                                   setDrafts((prev) => ({ ...prev, [answer.id]: e.target.value }))
                                 }
                                 placeholder="Score"
-                                className="w-24 py-1 font-mono text-sm"
+                                className="!w-24 !py-1 font-mono text-sm"
                               />
                               <span className="text-xs text-ink/50">/ {question.points}</span>
                               <Button

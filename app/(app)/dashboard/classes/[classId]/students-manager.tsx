@@ -476,7 +476,7 @@ export default function StudentsManager({
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           autoFocus
-                          className="w-full border-gold py-1"
+                          className="w-full !border-gold !py-1"
                         />
                       ) : (
                         <span className="inline-flex items-center gap-1.5">

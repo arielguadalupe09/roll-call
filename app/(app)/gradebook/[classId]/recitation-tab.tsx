@@ -75,7 +75,7 @@ function SummaryTable({
                     value={logDate}
                     onChange={(e) => setLogDate(e.target.value)}
                     disabled={logDates.length === 0}
-                    className="w-auto py-1 text-xs"
+                    className="!w-auto !py-1 text-xs"
                   >
                     <option value="all">All recitations</option>
                     {logDates.map((d) => (

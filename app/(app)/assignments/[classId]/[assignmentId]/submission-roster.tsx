@@ -266,7 +266,7 @@ export default function SubmissionRoster({
                       onChange={(e) =>
                         updateRow(s.id, { status: e.target.value as SubmissionStatus })
                       }
-                      className="py-1 text-sm"
+                      className="!w-auto !py-1 text-sm"
                     >
                       <option value="missing">Missing</option>
                       <option value="submitted">Submitted</option>
@@ -283,7 +283,7 @@ export default function SubmissionRoster({
                       max={assignment.max_score}
                       value={row.score}
                       onChange={(e) => updateRow(s.id, { score: e.target.value })}
-                      className="w-20 py-1 font-mono text-sm"
+                      className="!w-20 !py-1 font-mono text-sm"
                     />
                   </td>
                   <td className="py-2 px-3">
@@ -291,7 +291,7 @@ export default function SubmissionRoster({
                       type="text"
                       value={row.feedback}
                       onChange={(e) => updateRow(s.id, { feedback: e.target.value })}
-                      className="w-full min-w-[10rem] py-1 text-sm"
+                      className="w-full min-w-[10rem] !py-1 text-sm"
                     />
                   </td>
                   <td className="py-2 px-3">
