@@ -160,7 +160,7 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="mt-6 rounded-lg border border-dashed border-gold/50 bg-gold/[0.04] p-5">
+        <div className="mt-6 rounded-lg border border-dashed border-gold/50 bg-gold-soft p-5">
           <p className="text-xs text-gold">+ New</p>
           <CreateClassForm
             teacherId={user.id}
