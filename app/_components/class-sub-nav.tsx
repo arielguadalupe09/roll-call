@@ -20,7 +20,7 @@ function getServerLastClassId() {
   return null;
 }
 
-export default function ClassSubNav() {
+export default function ClassSubNav({ defaultClassId = null }: { defaultClassId?: string | null }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -36,7 +36,10 @@ export default function ClassSubNav() {
   }, [routeClassId]);
 
   const lastClassId = useSyncExternalStore(subscribe, getLastClassId, getServerLastClassId);
-  const classId = routeClassId ?? lastClassId;
+  // Before any class page has ever been visited on this browser (fresh
+  // session, cleared storage, first login), fall back to the teacher's
+  // first class instead of hiding the bar entirely.
+  const classId = routeClassId ?? lastClassId ?? defaultClassId;
 
   if (!classId) return null;
 
