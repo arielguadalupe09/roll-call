@@ -15,22 +15,8 @@ import ArchivedClasses from "./archived-classes";
 import { AttendanceByClassChart, AttentionBreakdown } from "./dashboard-charts";
 import { StatCard } from "@/app/_components/stat-card";
 import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
+import { TileIcon } from "@/app/_components/tile-icon";
 import { tierFor } from "@/lib/chart-tiers";
-
-function TileIcon({ path, tone }: { path: string; tone: "gold" | "success" | "danger" }) {
-  const toneClass = {
-    gold: "bg-gold/10 text-gold",
-    success: "bg-success/10 text-success-text",
-    danger: "bg-danger/10 text-danger",
-  }[tone];
-  return (
-    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d={path} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
-  );
-}
 
 function classInitials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);

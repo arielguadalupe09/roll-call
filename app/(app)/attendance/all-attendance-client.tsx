@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import type { Attendance, AttendanceStatus } from "@/lib/types";
 import { Select } from "@/app/_components/input";
-import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
+import { GradebookTable } from "@/app/_components/gradebook-table";
 import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
+import { StatCard } from "@/app/_components/stat-card";
+import { TileIcon } from "@/app/_components/tile-icon";
 
 type Row = { attendance: Attendance; studentName: string; className: string };
 
@@ -20,6 +23,13 @@ const STATUS_TONE: Record<AttendanceStatus, StatusTone> = {
   absent: "danger",
   excused: "neutral",
   late: "warning",
+};
+
+const STATUS_ICON: Record<AttendanceStatus, string> = {
+  present: "M3 8.5 6.5 12 13 4.5",
+  late: "M8 4v4.3l2.8 1.7M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z",
+  excused: "M3.5 2.5h9v11l-4.5-2.3-4.5 2.3v-11z",
+  absent: "M4 4l8 8M12 4l-8 8",
 };
 
 const METHOD_LABEL: Record<Attendance["method"], string> = {
@@ -55,9 +65,26 @@ export default function AllAttendanceClient({ rows }: { rows: Row[] }) {
     [rows, activeDate, classFilter],
   );
 
+  const countByStatus = useMemo(() => {
+    const counts: Record<AttendanceStatus, number> = { present: 0, absent: 0, excused: 0, late: 0 };
+    for (const r of dayRows) counts[r.attendance.status] += 1;
+    return counts;
+  }, [dayRows]);
+
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(Object.keys(STATUS_LABEL) as AttendanceStatus[]).map((status) => (
+          <StatCard
+            key={status}
+            label={STATUS_LABEL[status]}
+            icon={<TileIcon path={STATUS_ICON[status]} tone={STATUS_TONE[status]} />}
+            figure={{ kind: "number", value: countByStatus[status], mono: true }}
+          />
+        ))}
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm text-muted">
           Date
           <Select
@@ -91,43 +118,45 @@ export default function AllAttendanceClient({ rows }: { rows: Row[] }) {
         </label>
       </div>
 
-      <Table className="mt-4">
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>Student</TableHeaderCell>
-            <TableHeaderCell>Class</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell>Time</TableHeaderCell>
-            <TableHeaderCell>Method</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {dayRows.map((r) => (
-            <TableRow key={r.attendance.id} striped>
-              <TableCell>{r.studentName}</TableCell>
-              <TableCell className="text-muted">{r.className}</TableCell>
-              <TableCell>
-                <StatusPill tone={STATUS_TONE[r.attendance.status]}>
-                  {STATUS_LABEL[r.attendance.status]}
-                </StatusPill>
-              </TableCell>
-              <TableCell tabular className="text-muted">
-                {new Date(r.attendance.recorded_at).toLocaleTimeString()}
-              </TableCell>
-              <TableCell>
-                <StatusPill tone="neutral">{METHOD_LABEL[r.attendance.method]}</StatusPill>
-              </TableCell>
-            </TableRow>
-          ))}
-          {dayRows.length === 0 && (
+      <div className="mt-4">
+        <GradebookTable title="Attendance log" description="Every scan and check-in for the selected date.">
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={5} className="py-4 text-muted">
-                {rows.length === 0 ? "No attendance recorded yet." : "No records match your filters."}
-              </TableCell>
+              <TableHeaderCell>Student</TableHeaderCell>
+              <TableHeaderCell>Class</TableHeaderCell>
+              <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell>Time</TableHeaderCell>
+              <TableHeaderCell>Method</TableHeaderCell>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {dayRows.map((r) => (
+              <TableRow key={r.attendance.id} striped>
+                <TableCell>{r.studentName}</TableCell>
+                <TableCell className="text-muted">{r.className}</TableCell>
+                <TableCell>
+                  <StatusPill tone={STATUS_TONE[r.attendance.status]}>
+                    {STATUS_LABEL[r.attendance.status]}
+                  </StatusPill>
+                </TableCell>
+                <TableCell tabular className="text-muted">
+                  {new Date(r.attendance.recorded_at).toLocaleTimeString()}
+                </TableCell>
+                <TableCell>
+                  <StatusPill tone="neutral">{METHOD_LABEL[r.attendance.method]}</StatusPill>
+                </TableCell>
+              </TableRow>
+            ))}
+            {dayRows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="py-4 text-muted">
+                  {rows.length === 0 ? "No attendance recorded yet." : "No records match your filters."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </GradebookTable>
+      </div>
     </div>
   );
 }
