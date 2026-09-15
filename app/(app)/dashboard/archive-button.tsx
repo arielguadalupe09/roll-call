@@ -11,10 +11,12 @@ export default function ArchiveButton({
   classId,
   name,
   archived,
+  className = "shrink-0 whitespace-nowrap",
 }: {
   classId: string;
   name: string;
   archived: boolean;
+  className?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -61,7 +63,7 @@ export default function ArchiveButton({
       size="sm"
       onClick={handleClick}
       disabled={loading}
-      className="shrink-0 whitespace-nowrap"
+      className={className}
     >
       {loading ? "..." : archived ? "Unarchive" : "Archive"}
     </Button>

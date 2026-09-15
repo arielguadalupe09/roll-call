@@ -16,19 +16,37 @@ const TONE_CLASSES = {
 
 export type StatusTone = keyof typeof TONE_CLASSES;
 
+const DOT_CLASSES: Record<StatusTone, string> = {
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
+  neutral: "bg-muted",
+  sage: "bg-sage",
+  dustyblue: "bg-dustyblue",
+  clay: "bg-clay",
+  violet: "bg-violet",
+};
+
 export function StatusPill({
   tone,
+  dot = false,
   className = "",
   children,
 }: {
   tone: StatusTone;
+  // A small leading color dot, for when the pill sits somewhere the tint
+  // alone might not read clearly as a status signal (e.g. next to other
+  // tinted chips) -- color is still never the *only* signal, since the
+  // label text stays.
+  dot?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]} ${className}`}
     >
+      {dot && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_CLASSES[tone]}`} />}
       {children}
     </span>
   );

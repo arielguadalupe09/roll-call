@@ -9,44 +9,16 @@ import {
   type ClassStats,
 } from "@/lib/dashboard-insights";
 import CollapsibleSection from "@/app/_components/collapsible-section";
-import Button from "@/app/_components/button";
 import CreateClassForm from "./create-class-form";
-import ArchiveButton from "./archive-button";
 import ArchivedClasses from "./archived-classes";
+import ClassList from "./class-list";
 import { AttendanceByClassChart, AttentionBreakdown } from "./dashboard-charts";
 import { StatCard } from "@/app/_components/stat-card";
-import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
 import { TileIcon } from "@/app/_components/tile-icon";
-import { tierFor } from "@/lib/chart-tiers";
-
-function classInitials(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
 
 const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14 5.8v5.7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z";
 const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
 const ICON_ALERT = "M8 2.5 14 13H2L8 2.5zM8 6.5v3M8 11.2v.1";
-
-const TIER_TONE: Record<ReturnType<typeof tierFor>, StatusTone> = {
-  good: "success",
-  warning: "warning",
-  critical: "danger",
-};
-
-function attendanceBadge(rate: number | null) {
-  if (rate == null) {
-    return <StatusPill tone="neutral">No data</StatusPill>;
-  }
-  const pct = Math.round(rate * 100);
-  return (
-    <StatusPill tone={TIER_TONE[tierFor(rate)]} className="font-mono font-semibold">
-      {pct}% attendance
-    </StatusPill>
-  );
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -228,42 +200,7 @@ export default async function DashboardPage() {
             subtitle={`${classList.length} class${classList.length === 1 ? "" : "es"}`}
             defaultOpen
           >
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {stats.map((s) => (
-                <li
-                  key={s.classRow.id}
-                  className="group flex flex-col gap-3 rounded-[10px] border border-line bg-card p-5 transition hover:border-gold/60"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold/10 font-display text-sm font-semibold text-gold">
-                      {classInitials(s.classRow.name)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-display text-lg font-semibold text-ink">
-                        {s.classRow.name}
-                      </p>
-                      <p className="truncate text-sm text-ink/60">
-                        {s.classRow.subject || "No subject set"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-ink/50">
-                      {s.studentCount} student{s.studentCount === 1 ? "" : "s"}
-                    </span>
-                    {attendanceBadge(s.attendanceRate)}
-                  </div>
-
-                  <div className="mt-auto flex items-center justify-between border-t border-line/40 pt-3">
-                    <Button href={`/dashboard/classes/${s.classRow.id}`} variant="secondary" size="sm">
-                      Open →
-                    </Button>
-                    <ArchiveButton classId={s.classRow.id} name={s.classRow.name} archived={false} />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <ClassList stats={stats} />
             {classList.length === 0 && (
               <p className="mt-3 text-ink/60">
                 No classes yet — add your first one above.

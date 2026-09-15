@@ -41,28 +41,30 @@ export default function CollapsibleSection({
           onClick={toggle}
           aria-expanded={open}
           aria-label={open ? "Collapse section" : "Expand section"}
-          className="flex flex-1 items-center justify-between gap-4 text-left"
+          className="group flex flex-1 items-center justify-between gap-4 text-left"
         >
           <div>
             <p className="font-display text-lg font-semibold text-ink">{title}</p>
             {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
           </div>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden="true"
-            className={`shrink-0 text-slate transition-transform ${open ? "rotate-180" : ""}`}
-          >
-            <path
-              d="M4 6l4 4 4-4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate transition group-hover:bg-slate-light group-hover:text-navy group-focus-visible:bg-slate-light group-focus-visible:text-navy">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+              className={`transition-transform ${open ? "rotate-180" : ""}`}
+            >
+              <path
+                d="M4 6l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
         </button>
         {actions}
       </div>

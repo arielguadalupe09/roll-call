@@ -28,3 +28,16 @@ export function tierFor(
   if (rate >= cutoffs.warning) return "warning";
   return "critical";
 }
+
+// Same bands as tierFor, relabeled for grouping a list of classes/students
+// by attendance health rather than coloring a single figure. "no-data"
+// covers a class with no sessions recorded yet, which isn't a tier at all.
+export type AttendanceGroup = "needs-attention" | "on-track" | "excellent" | "no-data";
+
+export function getAttendanceGroup(rate: number | null): AttendanceGroup {
+  if (rate == null) return "no-data";
+  const tier = tierFor(rate);
+  if (tier === "good") return "excellent";
+  if (tier === "warning") return "on-track";
+  return "needs-attention";
+}
