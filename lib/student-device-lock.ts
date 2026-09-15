@@ -9,22 +9,38 @@ export type DeviceLockResult = { ok: true } | { ok: false; error: string };
 // *they* don't have a device bound yet. Shared by every route that
 // resolves a student purely by code (self check-in, student profile view)
 // so the two checks never drift out of sync with each other.
+//
+// `students` rows are per-class enrollments -- the same real person taking
+// several subjects has one row (and one QR code) per class, per
+// students.class_id. Comparing by row id alone treated every one of those
+// rows as a different "student", so a phone that already bound to a
+// person's Subject A row got rejected the moment they tried to self
+// check-in on their own Subject B row. Comparing by name instead (already
+// normalized to "Lastname, Firstname M.I." everywhere by lib/name-format.ts)
+// tells "same person, different subject" apart from an actual classmate.
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 export async function checkDeviceLock(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any, any, any>,
-  student: { id: string; device_id: string | null },
+  student: { id: string; name: string; device_id: string | null },
   deviceId: string | null,
 ): Promise<DeviceLockResult> {
   if (!deviceId) return { ok: true };
 
-  const { data: deviceOwner } = await supabase
+  const { data: deviceOwners } = await supabase
     .from("students")
-    .select("id")
+    .select("id, name")
     .eq("device_id", deviceId)
-    .neq("id", student.id)
-    .maybeSingle();
+    .neq("id", student.id);
 
-  if (deviceOwner) {
+  const impersonatingSomeoneElse = (deviceOwners ?? []).some(
+    (owner: { name: string }) => normalizeName(owner.name) !== normalizeName(student.name),
+  );
+
+  if (impersonatingSomeoneElse) {
     return {
       ok: false,
       error: "This device has already been used to check in a different student.",
