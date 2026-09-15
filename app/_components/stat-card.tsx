@@ -64,7 +64,16 @@ export function StatCard({
             {figure.caption && <p className="text-xs text-ink/60">{figure.caption}</p>}
           </div>
         )}
-        {figure.kind === "breakdown" && <StackedBreakdownBar segments={figure.segments} />}
+        {figure.kind === "breakdown" && (
+          <>
+            <p className="font-display text-3xl font-semibold text-ink">
+              {figure.segments.reduce((sum, s) => sum + s.count, 0)}
+            </p>
+            <div className="mt-2">
+              <StackedBreakdownBar segments={figure.segments} />
+            </div>
+          </>
+        )}
         {figure.kind === "badge" && (
           <div
             className={`flex h-12 w-12 items-center justify-center rounded-full font-display text-xl font-semibold ${

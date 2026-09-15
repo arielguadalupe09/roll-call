@@ -4,6 +4,7 @@ import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
 import {
   computeClassStats,
   computeInsights,
+  computeStudentActivityCounts,
   TREND_DROP_THRESHOLD,
   type ClassStats,
 } from "@/lib/dashboard-insights";
@@ -101,7 +102,13 @@ export default async function DashboardPage() {
   );
   const insights = computeInsights(stats);
 
-  const totalStudents = stats.reduce((sum, s) => sum + s.studentCount, 0);
+  const studentActivity = computeStudentActivityCounts(
+    classList.map((c) => ({
+      id: c.id,
+      students: studentsByClass.get(c.id) ?? [],
+      attendance: attendanceByClass.get(c.id) ?? [],
+    })),
+  );
   const ratesWithData = stats.map((s) => s.attendanceRate).filter((r): r is number => r != null);
   const overallAttendanceRate =
     ratesWithData.length > 0 ? ratesWithData.reduce((a, b) => a + b, 0) / ratesWithData.length : null;
@@ -143,7 +150,14 @@ export default async function DashboardPage() {
             href="/students"
             label="Students"
             icon={<TileIcon path={ICON_STUDENTS} tone="success" />}
-            figure={{ kind: "number", value: totalStudents }}
+            figure={{
+              kind: "breakdown",
+              segments: [
+                { tone: "success", count: studentActivity.active, label: "Active" },
+                { tone: "warning", count: studentActivity.atRisk, label: "At-risk" },
+                { tone: "danger", count: studentActivity.inactive, label: "Inactive" },
+              ],
+            }}
           />
           <StatCard
             href="/attendance"

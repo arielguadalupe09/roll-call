@@ -29,6 +29,40 @@ function isAttended(a: Attendance): boolean {
   return a.status === "present" || a.status === "late";
 }
 
+/**
+ * Buckets every student enrollment (one row per class) into Active/At-risk/
+ * Inactive by that student's own attendance rate in that class, reusing the
+ * same 90%/75% bands as the rest of the app's tier coloring. A class with no
+ * sessions yet contributes no rows (nothing to categorize); a student with
+ * zero attended sessions in a class that HAS sessions counts as inactive.
+ */
+export function computeStudentActivityCounts(
+  classes: { id: string; students: Student[]; attendance: Attendance[] }[],
+): { active: number; atRisk: number; inactive: number } {
+  let active = 0;
+  let atRisk = 0;
+  let inactive = 0;
+
+  for (const c of classes) {
+    const sessionDates = Array.from(new Set(c.attendance.map((a) => a.date)));
+    if (sessionDates.length === 0) continue;
+
+    const countByStudent = new Map<string, number>();
+    for (const a of c.attendance.filter(isAttended)) {
+      countByStudent.set(a.student_id, (countByStudent.get(a.student_id) ?? 0) + 1);
+    }
+
+    for (const s of c.students) {
+      const rate = (countByStudent.get(s.id) ?? 0) / sessionDates.length;
+      if (rate >= 0.9) active += 1;
+      else if (rate >= LOW_ATTENDANCE_THRESHOLD) atRisk += 1;
+      else inactive += 1;
+    }
+  }
+
+  return { active, atRisk, inactive };
+}
+
 export function computeClassStats(
   classRow: ClassRow,
   students: Student[],

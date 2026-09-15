@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { computeClassStats, computeInsights, type ClassStats } from "./dashboard-insights";
+import {
+  computeClassStats,
+  computeInsights,
+  computeStudentActivityCounts,
+  type ClassStats,
+} from "./dashboard-insights";
 import type { Attendance, ClassRow, GradingConfig, Student } from "./types";
 
 function classRow(overrides: Partial<ClassRow> = {}): ClassRow {
@@ -138,6 +143,39 @@ describe("computeClassStats", () => {
       expect(stats.weekTrend).not.toBeNull();
       expect(stats.weekTrend!.previous).toBeGreaterThan(stats.weekTrend!.current);
     });
+  });
+});
+
+describe("computeStudentActivityCounts", () => {
+  it("buckets students by their own attendance rate at the 90%/75% bands", () => {
+    const students = [student("s1"), student("s2"), student("s3")];
+    const attendance = [
+      // s1: 2/2 sessions attended (100%, active).
+      attendanceRow({ id: "1", student_id: "s1", date: "2026-08-01", status: "present" }),
+      attendanceRow({ id: "2", student_id: "s1", date: "2026-08-02", status: "present" }),
+      // s2: 1/2 sessions attended (50%, inactive).
+      attendanceRow({ id: "3", student_id: "s2", date: "2026-08-01", status: "present" }),
+      // s3: 0/2 sessions attended (0%, inactive).
+    ];
+    const counts = computeStudentActivityCounts([{ id: "class-1", students, attendance }]);
+    expect(counts).toEqual({ active: 1, atRisk: 0, inactive: 2 });
+  });
+
+  it("skips a class with no sessions yet instead of miscounting its students", () => {
+    const counts = computeStudentActivityCounts([
+      { id: "class-1", students: [student("s1")], attendance: [] },
+    ]);
+    expect(counts).toEqual({ active: 0, atRisk: 0, inactive: 0 });
+  });
+
+  it("sums across multiple classes", () => {
+    const attendanceA = [attendanceRow({ id: "1", student_id: "s1", date: "2026-08-01", status: "present" })];
+    const attendanceB = [attendanceRow({ id: "2", student_id: "s2", date: "2026-08-01", status: "absent" })];
+    const counts = computeStudentActivityCounts([
+      { id: "class-1", students: [student("s1")], attendance: attendanceA },
+      { id: "class-2", students: [student("s2")], attendance: attendanceB },
+    ]);
+    expect(counts).toEqual({ active: 1, atRisk: 0, inactive: 1 });
   });
 });
 

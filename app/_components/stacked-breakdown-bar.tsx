@@ -54,7 +54,7 @@ export function StackedBreakdownBar({
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
         {segments.map((s) => (
           <span key={s.label} className="flex items-center gap-1.5">
-            <span className={`h-2 w-2 rounded-full ${SOLID_BG[s.tone]}`} />
+            <span className={`h-2 w-2 rounded-[2px] ${SOLID_BG[s.tone]}`} />
             {s.label}
             <span className="font-mono text-ink/60">{s.count}</span>
           </span>
