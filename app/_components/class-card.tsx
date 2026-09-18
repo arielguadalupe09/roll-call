@@ -31,7 +31,7 @@ function initials(name: string) {
 // the Dashboard's class-list grid; built generically enough to reuse
 // anywhere else a list of classes needs the same card.
 export function ClassCard({
-  id,
+  slug,
   name,
   subject,
   studentCount,
@@ -39,7 +39,7 @@ export function ClassCard({
   archiveSlot,
   warmBorder = false,
 }: {
-  id: string;
+  slug: string;
   name: string;
   subject: string | null;
   studentCount: number;
@@ -84,7 +84,7 @@ export function ClassCard({
       </div>
 
       <div className="mt-auto flex items-center gap-2 border-t border-line/40 pt-3">
-        <Button href={`/dashboard/classes/${id}`} variant="primary" size="sm" className="flex-1">
+        <Button href={`/dashboard/classes/${slug}`} variant="primary" size="sm" className="flex-1">
           Open
         </Button>
         <div className="flex-1">{archiveSlot}</div>

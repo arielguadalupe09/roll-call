@@ -7,6 +7,7 @@ const classRow: ClassRow = {
   id: "c1",
   teacher_id: "t1",
   name: "Web Development",
+  slug: "web-development",
   subject: "CS101",
   archived: false,
   program_type: null,

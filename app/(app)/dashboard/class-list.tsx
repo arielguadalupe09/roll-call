@@ -35,7 +35,7 @@ function CardGrid({ stats, warmBorder = false }: { stats: ClassStats[]; warmBord
       {stats.map((s) => (
         <ClassCard
           key={s.classRow.id}
-          id={s.classRow.id}
+          slug={s.classRow.slug}
           name={s.classRow.name}
           subject={s.classRow.subject}
           studentCount={s.studentCount}

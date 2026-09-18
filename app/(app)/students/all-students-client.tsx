@@ -16,7 +16,16 @@ import { CardRow } from "@/app/_components/card-row";
 import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
 import { getCategoryColor } from "@/lib/category-colors";
 
-type Row = { student: Student; classId: string; className: string; tier: StudentActivityTier | null };
+type Row = {
+  student: Student;
+  classId: string;
+  // Only used to build links into /dashboard/classes/[classSlug] and
+  // /record-card/[classSlug] -- classId (the real uuid) above is what
+  // filtering/grouping in this component uses.
+  classSlug: string;
+  className: string;
+  tier: StudentActivityTier | null;
+};
 type NameFix = { id: string; className: string; from: string; to: string };
 
 const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
@@ -227,7 +236,7 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
                 title={r.student.name}
                 meta={
                   <>
-                    <Link href={`/dashboard/classes/${r.classId}`} className="underline underline-offset-2 hover:text-ink">
+                    <Link href={`/dashboard/classes/${r.classSlug}`} className="underline underline-offset-2 hover:text-ink">
                       {r.className}
                     </Link>
                     {" · "}
@@ -237,7 +246,7 @@ export default function AllStudentsClient({ rows }: { rows: Row[] }) {
                 trailing={
                   <>
                     {r.tier && <StatusPill tone={TIER_TONE[r.tier]} dot>{TIER_LABEL[r.tier]}</StatusPill>}
-                    <Button href={`/record-card/${r.classId}/${r.student.id}`} variant="secondary" size="sm">
+                    <Button href={`/record-card/${r.classSlug}/${r.student.id}`} variant="secondary" size="sm">
                       Record Card
                     </Button>
                   </>

@@ -18,6 +18,7 @@ export type ClassRow = {
   id: string;
   teacher_id: string;
   name: string;
+  slug: string;
   subject: string | null;
   archived: boolean;
   program_type: string | null;

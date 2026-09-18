@@ -72,7 +72,7 @@ export default async function AllAttendancePage() {
                         <StatusPill tone={open ? "success" : "neutral"} dot>
                           {open ? "Open" : "Not started"}
                         </StatusPill>
-                        <Button href={`/checkin/${c.id}`} variant="secondary" size="sm">
+                        <Button href={`/checkin/${c.slug}`} variant="secondary" size="sm">
                           {open ? "View" : "Start session"}
                         </Button>
                       </>

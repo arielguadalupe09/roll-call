@@ -45,6 +45,7 @@ export default async function AllStudentsPage() {
     .map((s) => ({
       student: s,
       classId: s.class_id,
+      classSlug: classById.get(s.class_id)?.slug ?? s.class_id,
       className: classById.get(s.class_id)?.name ?? "Unknown class",
       tier: tierById.get(s.id) ?? null,
     }))

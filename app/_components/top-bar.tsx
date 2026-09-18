@@ -166,7 +166,7 @@ export default function TopBar({
   const notifPanelRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
-  const classById = useMemo(() => new Map(classes.map((c) => [c.id, c.name])), [classes]);
+  const classById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,7 +275,7 @@ export default function TopBar({
                 {matchedClasses.map((c) => (
                   <button
                     key={c.id}
-                    onClick={() => goTo(`/dashboard/classes/${c.id}`)}
+                    onClick={() => goTo(`/dashboard/classes/${c.slug}`)}
                     className="block w-full truncate rounded-lg px-2 py-1.5 text-left text-sm text-ink hover:bg-slate-light"
                   >
                     {c.name}
@@ -291,11 +291,11 @@ export default function TopBar({
                 {matchedStudents.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => goTo(`/record-card/${s.class_id}/${s.id}`)}
+                    onClick={() => goTo(`/record-card/${classById.get(s.class_id)?.slug ?? s.class_id}/${s.id}`)}
                     className="block w-full truncate rounded-lg px-2 py-1.5 text-left text-sm text-ink hover:bg-slate-light"
                   >
                     {s.name}
-                    <span className="ml-1.5 text-xs text-muted">{classById.get(s.class_id)}</span>
+                    <span className="ml-1.5 text-xs text-muted">{classById.get(s.class_id)?.name}</span>
                   </button>
                 ))}
               </div>

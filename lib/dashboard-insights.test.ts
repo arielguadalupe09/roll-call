@@ -12,6 +12,7 @@ function classRow(overrides: Partial<ClassRow> = {}): ClassRow {
     id: "class-1",
     teacher_id: "teacher-1",
     name: "BS Info Tech 1A",
+    slug: "bs-info-tech-1a",
     subject: "Intro to Programming",
     archived: false,
     program_type: null,

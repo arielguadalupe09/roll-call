@@ -84,8 +84,8 @@ export default function Sidebar({
   const [classesOpen, setClassesOpen] = useState(false);
   const classesRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const params = useParams<{ classId?: string }>();
-  const activeClassId = params?.classId;
+  const params = useParams<{ classSlug?: string }>();
+  const activeClassSlug = params?.classSlug;
   const { extraActiveClassIds } = useActiveClasses();
 
   const isDashboardActive = pathname === "/dashboard";
@@ -96,7 +96,7 @@ export default function Sidebar({
   const isMessagesActive = pathname === "/messages";
   const isAdminActive = pathname === "/admin/teachers";
   const isAnyClassActive =
-    extraActiveClassIds.size > 0 ? extraActiveClassIds.size > 0 : Boolean(activeClassId);
+    extraActiveClassIds.size > 0 ? extraActiveClassIds.size > 0 : Boolean(activeClassSlug);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -257,11 +257,11 @@ export default function Sidebar({
           <div className="mt-1 flex flex-col gap-0.5">
             {classes.map((c) => {
               const active =
-                extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassId === c.id;
+                extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassSlug === c.slug;
               return (
                 <Link
                   key={c.id}
-                  href={`/dashboard/classes/${c.id}`}
+                  href={`/dashboard/classes/${c.slug}`}
                   onClick={closeMenu}
                   className={mobileNavClass(active)}
                 >
@@ -309,11 +309,11 @@ export default function Sidebar({
               <div className="subtle-scroll flex max-h-80 flex-col gap-0.5 overflow-y-auto">
                 {classes.map((c) => {
                   const active =
-                    extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassId === c.id;
+                    extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassSlug === c.slug;
                   return (
                     <Link
                       key={c.id}
-                      href={`/dashboard/classes/${c.id}`}
+                      href={`/dashboard/classes/${c.slug}`}
                       onClick={() => setClassesOpen(false)}
                       className={navClass(active)}
                     >

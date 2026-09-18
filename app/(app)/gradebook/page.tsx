@@ -89,7 +89,7 @@ export default async function GradebookLandingPage() {
                     <StatusPill tone={ungraded > 0 ? "danger" : "success"} dot>
                       {ungraded > 0 ? `${ungraded} ungraded` : "All graded"}
                     </StatusPill>
-                    <Button href={`/gradebook/${c.id}`} variant="secondary" size="sm">
+                    <Button href={`/gradebook/${c.slug}`} variant="secondary" size="sm">
                       Open gradebook
                     </Button>
                   </>

@@ -35,7 +35,7 @@ export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Button href={`/dashboard/classes/${c.id}`} variant="secondary" size="sm">
+                <Button href={`/dashboard/classes/${c.slug}`} variant="secondary" size="sm">
                   Open →
                 </Button>
                 <ArchiveButton classId={c.id} name={c.name} archived />

@@ -27,8 +27,15 @@ const WELCOME_MESSAGE: ChatMessage = {
 
 export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
   const router = useRouter();
-  const params = useParams<{ classId?: string }>();
-  const currentClassId = params?.classId;
+  const params = useParams<{ classSlug?: string }>();
+  const currentClassSlug = params?.classSlug;
+  // The URL only carries the class's slug now -- resolve it back to the real
+  // uuid via the live class list, since analytics queries and voice-command
+  // matching both key on the real id.
+  const currentClassId = useMemo(
+    () => classes.find((c) => c.slug === currentClassSlug)?.id,
+    [classes, currentClassSlug],
+  );
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
@@ -45,7 +52,7 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
   }, [messages, pendingAmbiguous, open]);
 
   const classOptions: ClassOption[] = useMemo(
-    () => classes.map((c) => ({ id: c.id, name: c.name })),
+    () => classes.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
     [classes],
   );
 
@@ -151,7 +158,8 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
           if (command.resolvedFrom) {
             rememberClassAlias(command.resolvedFrom.spokenName, command.resolvedFrom.classId);
           }
-          router.push(`/checkin/${command.classId}?voice=start`);
+          const startSlug = classOptions.find((c) => c.id === command.classId)?.slug ?? command.classId;
+          router.push(`/checkin/${startSlug}?voice=start`);
           break;
         }
         case "end-session": {
@@ -159,7 +167,8 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
           if (command.resolvedFrom) {
             rememberClassAlias(command.resolvedFrom.spokenName, command.resolvedFrom.classId);
           }
-          router.push(`/checkin/${command.classId}?voice=end`);
+          const endSlug = classOptions.find((c) => c.id === command.classId)?.slug ?? command.classId;
+          router.push(`/checkin/${endSlug}?voice=end`);
           break;
         }
         case "analytics": {

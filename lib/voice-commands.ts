@@ -1,4 +1,6 @@
-export type ClassOption = { id: string; name: string };
+// slug is optional so existing test fixtures built without it still work --
+// pathFor below falls back to the real id when no slug is present.
+export type ClassOption = { id: string; name: string; slug?: string };
 
 export type AnalyticsQuestion = "overview" | "low-attendance" | "warnings";
 
@@ -70,11 +72,11 @@ export function matchClass(spokenName: string, classes: ClassOption[]): ClassOpt
   });
 }
 
-const INTENT_META: Record<ClassIntent, { label: string; pathFor?: (classId: string) => string }> = {
-  "open-class": { label: "Class", pathFor: (id) => `/dashboard/classes/${id}` },
-  scan: { label: "Scanner", pathFor: (id) => `/scan/${id}` },
-  gradebook: { label: "Gradebook", pathFor: (id) => `/gradebook/${id}` },
-  attendance: { label: "Attendance", pathFor: (id) => `/attendance/${id}` },
+const INTENT_META: Record<ClassIntent, { label: string; pathFor?: (slugOrId: string) => string }> = {
+  "open-class": { label: "Class", pathFor: (slugOrId) => `/dashboard/classes/${slugOrId}` },
+  scan: { label: "Scanner", pathFor: (slugOrId) => `/scan/${slugOrId}` },
+  gradebook: { label: "Gradebook", pathFor: (slugOrId) => `/gradebook/${slugOrId}` },
+  attendance: { label: "Attendance", pathFor: (slugOrId) => `/attendance/${slugOrId}` },
   "start-session": { label: "start a session" },
   "end-session": { label: "end the session" },
   "analytics-overview": { label: "check analytics for" },
@@ -84,18 +86,23 @@ const INTENT_META: Record<ClassIntent, { label: string; pathFor?: (classId: stri
 
 type ResolvableCommand = Extract<VoiceCommand, { type: "navigate" | "start-session" | "end-session" | "analytics" }>;
 
-function buildCommand(intent: ClassIntent, classId: string, className: string): ResolvableCommand {
+// Navigation paths use the class's slug (falling back to its id when no slug
+// is known, e.g. in unit tests) -- every route a "navigate" command can point
+// to now lives under /[classSlug], not /[classId]. The command's own classId
+// field always stays the real uuid, since that's what data queries and
+// learned-alias storage (lib/voice-memory.ts) key on.
+function buildCommand(intent: ClassIntent, cls: ClassOption): ResolvableCommand {
   if (intent === "start-session" || intent === "end-session") {
     return intent === "start-session"
-      ? { type: "start-session", classId, className }
-      : { type: "end-session", classId, className };
+      ? { type: "start-session", classId: cls.id, className: cls.name }
+      : { type: "end-session", classId: cls.id, className: cls.name };
   }
   if (intent.startsWith("analytics-")) {
     const question = intent.slice("analytics-".length) as AnalyticsQuestion;
-    return { type: "analytics", question, classId, className };
+    return { type: "analytics", question, classId: cls.id, className: cls.name };
   }
   const meta = INTENT_META[intent];
-  return { type: "navigate", path: meta.pathFor!(classId), label: `${meta.label} for ${className}` };
+  return { type: "navigate", path: meta.pathFor!(cls.slug ?? cls.id), label: `${meta.label} for ${cls.name}` };
 }
 
 /** Builds the command for a class the user (or a remembered alias) has already
@@ -106,8 +113,8 @@ export function resolveClassChoice(
   classId: string,
   classes: ClassOption[],
 ): VoiceCommand {
-  const className = classes.find((c) => c.id === classId)?.name ?? "this class";
-  return { ...buildCommand(intent, classId, className), resolvedFrom: { spokenName, classId } };
+  const cls = classes.find((c) => c.id === classId) ?? { id: classId, name: "this class" };
+  return { ...buildCommand(intent, cls), resolvedFrom: { spokenName, classId } };
 }
 
 function resolveClassIntent(spokenName: string | null, context: VoiceContext, intent: ClassIntent): VoiceCommand {
@@ -125,7 +132,7 @@ function resolveClassIntent(spokenName: string | null, context: VoiceContext, in
 
   if (context.currentClassId) {
     const current = context.classes.find((c) => c.id === context.currentClassId);
-    return buildCommand(intent, context.currentClassId, current?.name ?? "this class");
+    return buildCommand(intent, current ?? { id: context.currentClassId, name: "this class" });
   }
 
   return { type: "needs-class", label: INTENT_META[intent].label };

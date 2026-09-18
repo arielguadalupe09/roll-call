@@ -12,39 +12,39 @@ function subscribe(callback: () => void) {
   return () => window.removeEventListener("storage", callback);
 }
 
-function getLastClassId() {
+function getLastClassSlug() {
   return localStorage.getItem(LAST_CLASS_KEY);
 }
 
-function getServerLastClassId() {
+function getServerLastClassSlug() {
   return null;
 }
 
-export default function ClassSubNav({ defaultClassId = null }: { defaultClassId?: string | null }) {
+export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassSlug?: string | null }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const params = useParams<{ classId?: string }>();
-  const routeClassId = params?.classId;
+  const params = useParams<{ classSlug?: string }>();
+  const routeClassSlug = params?.classSlug;
   const { tab: sharedTab, setTab: setSharedTab } = useGradebookTab();
 
   // Persist the class whenever we're on one of its pages, so it can still
   // be shown as a fallback from global Sidebar pages (Dashboard, Schedule,
   // the global Students/Attendance lists) that aren't tied to any class.
   useEffect(() => {
-    if (routeClassId) localStorage.setItem(LAST_CLASS_KEY, routeClassId);
-  }, [routeClassId]);
+    if (routeClassSlug) localStorage.setItem(LAST_CLASS_KEY, routeClassSlug);
+  }, [routeClassSlug]);
 
-  const lastClassId = useSyncExternalStore(subscribe, getLastClassId, getServerLastClassId);
+  const lastClassSlug = useSyncExternalStore(subscribe, getLastClassSlug, getServerLastClassSlug);
   // Before any class page has ever been visited on this browser (fresh
   // session, cleared storage, first login), fall back to the teacher's
   // first class instead of hiding the bar entirely.
-  const classId = routeClassId ?? lastClassId ?? defaultClassId;
+  const classSlug = routeClassSlug ?? lastClassSlug ?? defaultClassSlug;
 
-  if (!classId) return null;
+  if (!classSlug) return null;
 
-  const studentsHref = `/dashboard/classes/${classId}`;
-  const gradebookHref = `/gradebook/${classId}`;
+  const studentsHref = `/dashboard/classes/${classSlug}`;
+  const gradebookHref = `/gradebook/${classSlug}`;
   const onGradebookPage = pathname === gradebookHref;
   // While already on this class's gradebook page, GradingHubClient already
   // holds every tab's data -- switching tabs just needs to flip its local
@@ -74,27 +74,27 @@ export default function ClassSubNav({ defaultClassId = null }: { defaultClassId?
       kind: "group",
       label: "Attendance",
       tools: [
-        { label: "Print QR", href: `/qr/${classId}`, active: pathname === `/qr/${classId}` },
-        { label: "Scan", href: `/scan/${classId}`, active: pathname === `/scan/${classId}` },
+        { label: "Print QR", href: `/qr/${classSlug}`, active: pathname === `/qr/${classSlug}` },
+        { label: "Scan", href: `/scan/${classSlug}`, active: pathname === `/scan/${classSlug}` },
         {
           label: "Self Check-in",
-          href: `/checkin/${classId}`,
-          active: pathname === `/checkin/${classId}`,
+          href: `/checkin/${classSlug}`,
+          active: pathname === `/checkin/${classSlug}`,
         },
         {
           label: "Attendance",
-          href: `/attendance/${classId}`,
-          active: pathname === `/attendance/${classId}`,
+          href: `/attendance/${classSlug}`,
+          active: pathname === `/attendance/${classSlug}`,
         },
         {
           label: "Records",
-          href: `/records/${classId}`,
-          active: pathname === `/records/${classId}`,
+          href: `/records/${classSlug}`,
+          active: pathname === `/records/${classSlug}`,
         },
         {
           label: "Participation",
-          href: `/participation/${classId}`,
-          active: pathname === `/participation/${classId}`,
+          href: `/participation/${classSlug}`,
+          active: pathname === `/participation/${classSlug}`,
         },
       ],
     },
@@ -104,18 +104,18 @@ export default function ClassSubNav({ defaultClassId = null }: { defaultClassId?
       tools: [
         {
           label: "Announcements",
-          href: `/announcements/${classId}`,
-          active: pathname === `/announcements/${classId}`,
+          href: `/announcements/${classSlug}`,
+          active: pathname === `/announcements/${classSlug}`,
         },
         {
           label: "Materials",
-          href: `/materials/${classId}`,
-          active: pathname === `/materials/${classId}`,
+          href: `/materials/${classSlug}`,
+          active: pathname === `/materials/${classSlug}`,
         },
         {
           label: "Lectures",
-          href: `/lectures/${classId}`,
-          active: pathname === `/lectures/${classId}`,
+          href: `/lectures/${classSlug}`,
+          active: pathname === `/lectures/${classSlug}`,
         },
       ],
     },
@@ -125,8 +125,8 @@ export default function ClassSubNav({ defaultClassId = null }: { defaultClassId?
       tools: [
         {
           label: "Assignments",
-          href: `/assignments/${classId}`,
-          active: pathname === `/assignments/${classId}`,
+          href: `/assignments/${classSlug}`,
+          active: pathname === `/assignments/${classSlug}`,
         },
         gradebookTabTool(
           "Grading",
@@ -144,8 +144,8 @@ export default function ClassSubNav({ defaultClassId = null }: { defaultClassId?
         },
         {
           label: "Record Cards",
-          href: `/record-card/${classId}`,
-          active: pathname.startsWith(`/record-card/${classId}`),
+          href: `/record-card/${classSlug}`,
+          active: pathname.startsWith(`/record-card/${classSlug}`),
         },
       ],
     },
