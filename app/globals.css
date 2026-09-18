@@ -114,6 +114,14 @@
   overflow: hidden;
 }
 
+.loupe video {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
 .loupe::after {
   content: "";
   position: absolute;
