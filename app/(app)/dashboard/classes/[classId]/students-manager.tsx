@@ -442,7 +442,8 @@ export default function StudentsManager({
             )}
           </div>
 
-          <table className="mt-3 w-full border-collapse text-left">
+          <div className="mt-3 overflow-x-auto">
+          <table className="w-full border-collapse text-left">
             <thead>
               <tr className="bg-navy text-card font-display text-[13px] font-medium">
                 <th className="w-8 py-2">
@@ -567,6 +568,7 @@ export default function StudentsManager({
               )}
             </tbody>
           </table>
+          </div>
         </CollapsibleSection>
       </div>
 

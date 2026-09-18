@@ -68,6 +68,7 @@ function AssessmentSection({ title, entries }: { title: string; entries: Assessm
 export default function StudentProfilePage() {
   const [step, setStep] = useState<Step>("code");
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [rememberedProfile, setRememberedProfile] = useState<Profile | null>(null);
   const [tab, setTab] = useState<PortalTab>("overview");
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
@@ -95,6 +96,13 @@ export default function StudentProfilePage() {
     if (res.ok) setProfile(data as Profile);
   }
 
+  // A remembered code is only ever a *suggestion* -- it's staged into
+  // rememberedProfile and requires an explicit "Continue" click before its
+  // grades/attendance are shown. This device's browser storage has no idea
+  // whether the person now holding it is still the same student who last
+  // used it (a shared classroom tablet, a borrowed phone), so auto-loading
+  // straight into the profile would leak the previous student's data to
+  // whoever opens the page next.
   useEffect(() => {
     const remembered = window.localStorage.getItem(STUDENT_CODE_KEY);
     if (!remembered) return;
@@ -115,15 +123,26 @@ export default function StudentProfilePage() {
         window.localStorage.removeItem(STUDENT_CODE_KEY);
         return;
       }
-      activeCodeRef.current = remembered;
-      setProfile(data as Profile);
-      setStep("profile");
+      setRememberedProfile(data as Profile);
     })();
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  function continueAsRemembered() {
+    const remembered = window.localStorage.getItem(STUDENT_CODE_KEY);
+    if (!rememberedProfile || !remembered) return;
+    activeCodeRef.current = remembered;
+    setProfile(rememberedProfile);
+    setStep("profile");
+  }
+
+  function notRemembered() {
+    window.localStorage.removeItem(STUDENT_CODE_KEY);
+    setRememberedProfile(null);
+  }
 
   async function turnInAssignment(assignmentId: string) {
     const file = pendingFiles[assignmentId];
@@ -158,6 +177,7 @@ export default function StudentProfilePage() {
   function switchCode() {
     window.localStorage.removeItem(STUDENT_CODE_KEY);
     setProfile(null);
+    setRememberedProfile(null);
     setStep("code");
   }
 
@@ -234,12 +254,28 @@ export default function StudentProfilePage() {
         <>
           <PortalTopBar eyebrow="GAINS" title="Student portal" />
           <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10 sm:px-8">
+            {rememberedProfile && (
+              <div className="ledger-page mb-4 flex flex-col gap-3 rounded-sm border border-line p-6 text-ink sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-ink/70">Welcome back,</p>
+                  <p className="font-display text-lg font-semibold">{rememberedProfile.studentName}</p>
+                  <p className="text-sm text-ink/70">{rememberedProfile.className}</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button onClick={continueAsRemembered}>Continue</Button>
+                  <Button variant="secondary" onClick={notRemembered}>
+                    Not me
+                  </Button>
+                </div>
+              </div>
+            )}
             <StudentCodeEntry
               prompt="Scan the QR code on your personal card, or type your code below, to view your attendance and grades."
               submitLabel="View my profile"
               onSuccess={(resolvedProfile, resolvedCode) => {
                 window.localStorage.setItem(STUDENT_CODE_KEY, resolvedCode);
                 activeCodeRef.current = resolvedCode;
+                setRememberedProfile(null);
                 setProfile(resolvedProfile);
                 setStep("profile");
               }}
