@@ -144,7 +144,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main ref={rootRef} className="flex min-h-full flex-1 flex-col md:flex-row">
+    <main ref={rootRef} className="flex min-h-full shrink-0 grow flex-col md:flex-row">
       <div className="relative flex flex-col justify-center overflow-hidden bg-navy px-8 py-16 sm:px-14 md:w-1/2 md:py-0">
         <div
           data-animate="left-decor"
