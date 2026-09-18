@@ -4,6 +4,15 @@ import type { AttendanceStatus, ExamKind, Period, SubmissionStatus } from "./typ
 // student by code agree on the response shape and where it's remembered.
 export const STUDENT_CODE_KEY = "gains_student_code";
 
+// sessionStorage (cleared when the browser/tab actually closes, unlike
+// localStorage) marking a code as freshly confirmed by whoever is holding
+// the device *right now* -- lets /student skip the "Welcome back, is this
+// you?" prompt when the code was just entered a moment ago (e.g. redirected
+// here straight from the login page's Student tab) while still requiring
+// it for a code merely left over in localStorage from a previous, closed
+// session on a shared device.
+export const STUDENT_CODE_CONFIRMED_KEY = "gains_student_code_confirmed";
+
 export type AttendanceEntry = { date: string; period: Period; status: AttendanceStatus };
 export type FinalGrade = {
   prelim: number | null;
@@ -52,9 +61,15 @@ export type ExamSummary = {
   totalPoints: number | null;
   isNew: boolean;
 };
+export type AnnouncementSummary = { id: string; title: string; body: string; created_at: string };
+
 export type StudentProfile = {
   studentName: string;
   className: string;
+  // True when this profile load also just marked the student present --
+  // the teacher had a self-checkin session open for their class right now.
+  justCheckedIn: boolean;
+  announcements: AnnouncementSummary[];
   usePrelims: boolean;
   attendancePercent: number | null;
   attendanceEntries: AttendanceEntry[];

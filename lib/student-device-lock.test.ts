@@ -44,7 +44,7 @@ describe("checkDeviceLock", () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it("blocks a device already bound to a different student", async () => {
+  it("blocks a device already bound to a different student, but flags it as confirmable", async () => {
     const supabase = fakeSupabase([{ id: "s2", name: "Dela Cruz, Maria", device_id: "device-a" }]);
     const result = await checkDeviceLock(
       supabase,
@@ -52,9 +52,10 @@ describe("checkDeviceLock", () => {
       "device-a",
     );
     expect(result.ok).toBe(false);
+    expect(result.ok === false && result.needsConfirmation).toBe(true);
   });
 
-  it("blocks when this exact row is already linked to a different device", async () => {
+  it("blocks when this exact row is already linked to a different device, but flags it as confirmable", async () => {
     const supabase = fakeSupabase([]);
     const result = await checkDeviceLock(
       supabase,
@@ -62,6 +63,18 @@ describe("checkDeviceLock", () => {
       "device-new",
     );
     expect(result.ok).toBe(false);
+    expect(result.ok === false && result.needsConfirmation).toBe(true);
+  });
+
+  it("skips every check once the student has actively confirmed the switch", async () => {
+    const supabase = fakeSupabase([{ id: "s2", name: "Dela Cruz, Maria", device_id: "device-a" }]);
+    const result = await checkDeviceLock(
+      supabase,
+      { id: "s1", name: "Cruz, Juan", device_id: "device-old" },
+      "device-a",
+      true,
+    );
+    expect(result).toEqual({ ok: true });
   });
 
   it("allows a request with no deviceId at all", async () => {

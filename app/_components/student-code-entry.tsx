@@ -27,12 +27,17 @@ export default function StudentCodeEntry({
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Set when the server flags a device mismatch as merely confirmable
+  // (most likely a student's own phone lost its remembered id) rather than
+  // an outright block -- holds the code so "Continue anyway" can retry the
+  // exact same request with confirmDeviceSwitch: true.
+  const [pendingConfirmCode, setPendingConfirmCode] = useState<string | null>(null);
 
   const codeScannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const codeHandledRef = useRef(false);
 
   const loadProfile = useCallback(
-    async (rawCode: string) => {
+    async (rawCode: string, confirmDeviceSwitch = false) => {
       if (!rawCode.trim()) return;
       setLoading(true);
       setError(null);
@@ -40,21 +45,28 @@ export default function StudentCodeEntry({
       const res = await fetch("/api/student/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: rawCode.trim(), deviceId: getDeviceId() }),
+        body: JSON.stringify({ code: rawCode.trim(), deviceId: getDeviceId(), confirmDeviceSwitch }),
       });
       const data = await res.json();
       setLoading(false);
 
       if (!res.ok) {
         setError(data.error ?? "Could not load your profile.");
+        setPendingConfirmCode(data.needsConfirmation ? rawCode.trim() : null);
         codeHandledRef.current = false;
         return;
       }
 
+      setPendingConfirmCode(null);
       onSuccess(data as StudentProfile, rawCode.trim().toUpperCase());
     },
     [onSuccess],
   );
+
+  function confirmDeviceAndRetry() {
+    if (!pendingConfirmCode) return;
+    loadProfile(pendingConfirmCode, true);
+  }
 
   const handleCodeDecoded = useCallback(
     (decodedText: string) => {
@@ -139,7 +151,11 @@ export default function StudentCodeEntry({
               <Input
                 autoFocus
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setCode(e.target.value.toUpperCase());
+                  setPendingConfirmCode(null);
+                  setError(null);
+                }}
                 placeholder="e.g. 7F3KQ9M"
                 className="font-mono uppercase tracking-widest"
               />
@@ -161,9 +177,14 @@ export default function StudentCodeEntry({
       </div>
 
       {error && (
-        <p className="mt-4 rounded-sm bg-danger/20 px-3 py-2 text-center text-sm text-danger">
-          {error}
-        </p>
+        <div className="mt-4 flex flex-col items-center gap-2 rounded-sm bg-danger/20 px-3 py-2 text-center text-sm text-danger">
+          <p>{error}</p>
+          {pendingConfirmCode && (
+            <Button size="sm" onClick={confirmDeviceAndRetry} disabled={loading}>
+              {loading ? "Continuing..." : "Continue anyway"}
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

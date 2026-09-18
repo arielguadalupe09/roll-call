@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getDeviceId } from "@/lib/device-id";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
@@ -10,6 +10,7 @@ import PortalTopBar, { type PortalTab } from "@/app/_components/portal-topbar";
 import { toSentenceCase } from "@/lib/text-format";
 import {
   STUDENT_CODE_KEY,
+  STUDENT_CODE_CONFIRMED_KEY,
   type AssessmentEntry,
   type StudentProfile as Profile,
 } from "@/lib/student-profile";
@@ -17,6 +18,24 @@ import { EXAM_KIND_LABEL, type AttendanceStatus, type SubmissionStatus } from "@
 import { StatusRing } from "@/app/_components/status-ring";
 
 type Step = "code" | "profile";
+
+// display-mode doesn't change mid-session, so this never needs to notify
+// subscribers -- useSyncExternalStore still gives the correct hydration-safe
+// answer: false on the server (and briefly on the client, matching it),
+// then the real value once mounted, without a manual effect+setState.
+function subscribeNoop() {
+  return () => {};
+}
+function getIsStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // iOS Safari's own flag -- there's no `display-mode` media query support there.
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+function getIsStandaloneServer() {
+  return false;
+}
 
 function formatPercent(value: number | null): string {
   return value == null ? "Not yet graded" : `${value.toFixed(1)}%`;
@@ -78,8 +97,39 @@ export default function StudentProfilePage() {
   // flags as an impure render read) -- exam availability windows don't
   // need second-by-second freshness, just roughly "now" for the session.
   const [nowMs, setNowMs] = useState(0);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const installed = useSyncExternalStore(subscribeNoop, getIsStandalone, getIsStandaloneServer);
 
   const activeCodeRef = useRef("");
+
+  // Chrome/Android only offers "Add to Home Screen" as a full install (not
+  // just a bookmark shortcut) once a service worker is registered for this
+  // scope -- see public/checkin-sw.js for why it does nothing beyond that.
+  // Carried over from the old standalone /checkin page now that this route
+  // covers both jobs.
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/checkin-sw.js").catch(() => {});
+    }
+
+    function onBeforeInstallPrompt(e: Event) {
+      e.preventDefault();
+      setInstallPrompt(e);
+    }
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+  }, []);
+
+  async function handleInstallClick() {
+    const promptEvent = installPrompt as Event & {
+      prompt: () => Promise<void>;
+      userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+    };
+    if (!promptEvent) return;
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+    setInstallPrompt(null);
+  }
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setNowMs(Date.now()));
@@ -96,16 +146,24 @@ export default function StudentProfilePage() {
     if (res.ok) setProfile(data as Profile);
   }
 
-  // A remembered code is only ever a *suggestion* -- it's staged into
-  // rememberedProfile and requires an explicit "Continue" click before its
-  // grades/attendance are shown. This device's browser storage has no idea
-  // whether the person now holding it is still the same student who last
-  // used it (a shared classroom tablet, a borrowed phone), so auto-loading
-  // straight into the profile would leak the previous student's data to
-  // whoever opens the page next.
+  // A remembered code from a *previous, closed* session is only ever a
+  // suggestion -- it's staged into rememberedProfile and requires an
+  // explicit "Continue" click before its grades/attendance are shown. This
+  // device's browser storage has no idea whether the person now holding it
+  // is still the same student who last used it (a shared classroom tablet,
+  // a borrowed phone), so auto-loading straight into the profile would leak
+  // the previous student's data to whoever opens the page next.
+  //
+  // A code confirmed *within this same still-open browser session* (e.g.
+  // redirected here straight from the login page's Student tab, or
+  // reloading right after confirming) skips the prompt -- sessionStorage
+  // doesn't survive the browser/tab actually closing, so it can't be used
+  // to trust a code across a full close-and-reopen the way localStorage's
+  // persistence would.
   useEffect(() => {
     const remembered = window.localStorage.getItem(STUDENT_CODE_KEY);
     if (!remembered) return;
+    const confirmedThisSession = window.sessionStorage.getItem(STUDENT_CODE_CONFIRMED_KEY) === remembered;
     let cancelled = false;
 
     (async () => {
@@ -123,7 +181,13 @@ export default function StudentProfilePage() {
         window.localStorage.removeItem(STUDENT_CODE_KEY);
         return;
       }
-      setRememberedProfile(data as Profile);
+      if (confirmedThisSession) {
+        activeCodeRef.current = remembered;
+        setProfile(data as Profile);
+        setStep("profile");
+      } else {
+        setRememberedProfile(data as Profile);
+      }
     })();
 
     return () => {
@@ -134,6 +198,7 @@ export default function StudentProfilePage() {
   function continueAsRemembered() {
     const remembered = window.localStorage.getItem(STUDENT_CODE_KEY);
     if (!rememberedProfile || !remembered) return;
+    window.sessionStorage.setItem(STUDENT_CODE_CONFIRMED_KEY, remembered);
     activeCodeRef.current = remembered;
     setProfile(rememberedProfile);
     setStep("profile");
@@ -141,6 +206,7 @@ export default function StudentProfilePage() {
 
   function notRemembered() {
     window.localStorage.removeItem(STUDENT_CODE_KEY);
+    window.sessionStorage.removeItem(STUDENT_CODE_CONFIRMED_KEY);
     setRememberedProfile(null);
   }
 
@@ -176,6 +242,7 @@ export default function StudentProfilePage() {
 
   function switchCode() {
     window.localStorage.removeItem(STUDENT_CODE_KEY);
+    window.sessionStorage.removeItem(STUDENT_CODE_CONFIRMED_KEY);
     setProfile(null);
     setRememberedProfile(null);
     setStep("code");
@@ -270,16 +337,31 @@ export default function StudentProfilePage() {
               </div>
             )}
             <StudentCodeEntry
-              prompt="Scan the QR code on your personal card, or type your code below, to view your attendance and grades."
-              submitLabel="View my profile"
+              prompt="Scan the QR code on your personal card, or type your code below. If your teacher has a session open, this also checks you in."
+              submitLabel="Continue"
               onSuccess={(resolvedProfile, resolvedCode) => {
                 window.localStorage.setItem(STUDENT_CODE_KEY, resolvedCode);
+                window.sessionStorage.setItem(STUDENT_CODE_CONFIRMED_KEY, resolvedCode);
                 activeCodeRef.current = resolvedCode;
                 setRememberedProfile(null);
                 setProfile(resolvedProfile);
                 setStep("profile");
               }}
             />
+            {!installed && (
+              <div className="mt-4 flex flex-col items-center gap-2 text-center">
+                {installPrompt ? (
+                  <Button size="sm" variant="secondary" onClick={handleInstallClick}>
+                    Install app
+                  </Button>
+                ) : (
+                  <p className="text-xs text-ink/60">
+                    On iPhone: tap Share, then &quot;Add to Home Screen&quot; for one-tap check-in
+                    next time.
+                  </p>
+                )}
+              </div>
+            )}
           </main>
         </>
       )}
@@ -295,8 +377,32 @@ export default function StudentProfilePage() {
             backLabel="Switch code"
           />
           <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 px-4 py-6 sm:px-8">
+            {profile.justCheckedIn && (
+              <div className="rounded-sm border border-success/40 bg-success/10 px-4 py-2.5 text-sm font-medium text-success-text">
+                You&apos;re marked present for today&apos;s session.
+              </div>
+            )}
             {tab === "overview" && (
               <>
+                {profile.announcements.length > 0 && (
+                  <CollapsibleSection
+                    title="Announcements"
+                    subtitle={`${profile.announcements.length} recent`}
+                  >
+                    <ul className="flex flex-col gap-3">
+                      {profile.announcements.map((a) => (
+                        <li key={a.id} className="text-ink">
+                          <p className="font-display text-base font-semibold">{a.title}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-ink/80">{a.body}</p>
+                          <p className="mt-1 font-mono text-xs text-ink/50">
+                            {new Date(a.created_at).toLocaleString()}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleSection>
+                )}
+
                 {attendanceCard}
 
                 <CollapsibleSection

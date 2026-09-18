@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bindDeviceIfUnset, checkDeviceLock } from "@/lib/student-device-lock";
+import { bindDeviceIfUnset, checkDeviceLock, rebindDevice } from "@/lib/student-device-lock";
 import { buildRecordCardData, fetchClassGradingData } from "@/lib/record-card-data";
 import { computeFinalGrade } from "@/lib/final-grade";
 import type {
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const code = body?.code;
   const deviceId = typeof body?.deviceId === "string" && body.deviceId ? body.deviceId : null;
+  const confirmDeviceSwitch = body?.confirmDeviceSwitch === true;
 
   if (!code || typeof code !== "string") {
     return NextResponse.json({ error: "Missing code." }, { status: 400 });
@@ -43,11 +44,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const lock = await checkDeviceLock(supabase, student, deviceId);
+  const lock = await checkDeviceLock(supabase, student, deviceId, confirmDeviceSwitch);
   if (!lock.ok) {
-    return NextResponse.json({ error: lock.error }, { status: 403 });
+    return NextResponse.json(
+      { error: lock.error, needsConfirmation: !!lock.needsConfirmation },
+      { status: 403 },
+    );
   }
-  await bindDeviceIfUnset(supabase, student, deviceId);
+  if (confirmDeviceSwitch) {
+    await rebindDevice(supabase, student, deviceId);
+  } else {
+    await bindDeviceIfUnset(supabase, student, deviceId);
+  }
 
   const { data: classRow } = await supabase
     .from("classes")
@@ -58,6 +66,46 @@ export async function POST(request: NextRequest) {
   if (!classRow) {
     return NextResponse.json({ error: "Class not found." }, { status: 404 });
   }
+
+  // Folds the old standalone /checkin flow into this one visit: if the
+  // teacher has a session open for this class right now, viewing this
+  // profile also marks the student present for it -- no separate check-in
+  // page needed. "No server-computed date" on purpose -- this route runs in
+  // UTC while the school is UTC+8, so matching against a server-computed
+  // "today" would misidentify the date for hours around midnight. Gate on
+  // session existence instead, and use the session's own teacher-set date.
+  // A duplicate insert (already checked in, or double-submitted) hits the
+  // attendance table's unique constraint and is treated as success, not an
+  // error.
+  const { data: openSession } = await supabase
+    .from("sessions")
+    .select("id, class_id, date")
+    .eq("class_id", student.class_id)
+    .is("closed_at", null)
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let justCheckedIn = false;
+  if (openSession) {
+    const { error: attendanceError } = await supabase.from("attendance").insert({
+      class_id: openSession.class_id,
+      student_id: student.id,
+      date: openSession.date,
+      method: "self",
+      status: "present",
+    });
+    justCheckedIn = !attendanceError || attendanceError.code === "23505";
+  }
+
+  // Carried over from the old standalone /checkin confirmation screen, now
+  // that this route covers both jobs.
+  const { data: announcementRows } = await supabase
+    .from("announcements")
+    .select("id, title, body, created_at")
+    .eq("class_id", student.class_id)
+    .order("created_at", { ascending: false })
+    .limit(5);
 
   const classData = await fetchClassGradingData(supabase, student.class_id);
   const recordData = buildRecordCardData(student as Student, classData);
@@ -219,6 +267,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     studentName: student.name,
     className: (classRow as ClassRow).name,
+    justCheckedIn,
+    announcements: announcementRows ?? [],
     usePrelims: (classData.config as GradingConfig | null)?.use_prelims ?? false,
     attendancePercent,
     attendanceEntries: recordData.attendanceEntries,

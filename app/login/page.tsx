@@ -7,7 +7,7 @@ import gsap from "gsap";
 import { createClient } from "@/lib/supabase/client";
 import SidebarIcon from "@/app/_components/sidebar-icons";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
-import { STUDENT_CODE_KEY } from "@/lib/student-profile";
+import { STUDENT_CODE_KEY, STUDENT_CODE_CONFIRMED_KEY } from "@/lib/student-profile";
 import Button from "@/app/_components/button";
 import { Input } from "@/app/_components/input";
 
@@ -235,6 +235,7 @@ export default function LoginPage() {
                 submitLabel="Sign in"
                 onSuccess={(_profile, code) => {
                   window.localStorage.setItem(STUDENT_CODE_KEY, code);
+                  window.sessionStorage.setItem(STUDENT_CODE_CONFIRMED_KEY, code);
                   router.push("/student");
                 }}
               />

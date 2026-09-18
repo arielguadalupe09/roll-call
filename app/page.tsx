@@ -16,7 +16,7 @@ export default function Home() {
         <Button href="/login" className="px-6 py-3">
           Teacher sign in
         </Button>
-        <Button href="/checkin" variant="secondary" className="px-6 py-3">
+        <Button href="/student" variant="secondary" className="px-6 py-3">
           Student check-in
         </Button>
       </div>

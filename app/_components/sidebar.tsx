@@ -120,6 +120,17 @@ export default function Sidebar({
     }`;
   }
 
+  // Mobile drawer only -- a solid gold pill for the active item instead of
+  // the thin left-border accent above, to match the icon rail/top bar's
+  // gold-fill "pill portal" treatment introduced when the desktop nav was
+  // redesigned (the mobile drawer itself was carried over unchanged at the
+  // time, per the comment below).
+  function mobileNavClass(active: boolean) {
+    return `mt-1 flex items-center gap-2.5 rounded-full px-3.5 py-2 text-sm transition ${
+      active ? "bg-gold font-semibold text-navy" : "text-card/70 hover:bg-navy-soft/60 hover:text-card"
+    }`;
+  }
+
   return (
     <>
       {/* Mobile top strip + slide-over drawer: kept text-labeled (unlike the
@@ -199,27 +210,27 @@ export default function Sidebar({
           <p className="px-2 text-xs font-semibold text-card/70">
             Main
           </p>
-          <Link href="/dashboard" onClick={closeMenu} className={navClass(isDashboardActive)}>
+          <Link href="/dashboard" onClick={closeMenu} className={mobileNavClass(isDashboardActive)}>
             <SidebarIcon name="dashboard" />
             Dashboard
           </Link>
-          <Link href="/schedule" onClick={closeMenu} className={navClass(isScheduleActive)}>
+          <Link href="/schedule" onClick={closeMenu} className={mobileNavClass(isScheduleActive)}>
             <SidebarIcon name="schedule" />
             Schedule
           </Link>
-          <Link href="/students" onClick={closeMenu} className={navClass(isStudentsActive)}>
+          <Link href="/students" onClick={closeMenu} className={mobileNavClass(isStudentsActive)}>
             <SidebarIcon name="students" />
             Students
           </Link>
-          <Link href="/attendance" onClick={closeMenu} className={navClass(isAttendanceActive)}>
+          <Link href="/attendance" onClick={closeMenu} className={mobileNavClass(isAttendanceActive)}>
             <SidebarIcon name="attendance" />
             Attendance
           </Link>
-          <Link href="/gradebook" onClick={closeMenu} className={navClass(isGradebookActive)}>
+          <Link href="/gradebook" onClick={closeMenu} className={mobileNavClass(isGradebookActive)}>
             <SidebarIcon name="gradebook" />
             Gradebook
           </Link>
-          <Link href="/messages" onClick={closeMenu} className={navClass(isMessagesActive)}>
+          <Link href="/messages" onClick={closeMenu} className={mobileNavClass(isMessagesActive)}>
             <SidebarIcon name="messages" />
             Messages
           </Link>
@@ -232,7 +243,7 @@ export default function Sidebar({
               <Link
                 href="/admin/teachers"
                 onClick={closeMenu}
-                className={navClass(isAdminActive)}
+                className={mobileNavClass(isAdminActive)}
               >
                 <SidebarIcon name="admin" />
                 Teacher accounts
@@ -252,7 +263,7 @@ export default function Sidebar({
                   key={c.id}
                   href={`/dashboard/classes/${c.id}`}
                   onClick={closeMenu}
-                  className={navClass(active)}
+                  className={mobileNavClass(active)}
                 >
                   <SidebarIcon name="class" />
                   <span className="truncate">{c.name}</span>

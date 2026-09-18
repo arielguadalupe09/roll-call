@@ -4,7 +4,7 @@ GAINS (Grading & Attendance Intelligent Network System) — QR-code attendance a
 
 ## Stack
 
-- Next.js (App Router) + TypeScript, Tailwind v4 (see `app/globals.css` for the theme tokens: `chalk`/`paper`/`ink`/`rule`/`brass`/`danger`/`teal`, plus `chart-good`/`chart-warning`/`chart-critical` for data viz)
+- Next.js (App Router) + TypeScript, Tailwind v4 (see `app/globals.css` for the theme tokens: `chalk`/`paper`/`ink`/`rule`/`brass`/`danger`/`success`, plus `chart-good`/`chart-warning`/`chart-critical` for data viz)
 - Supabase (Postgres + Auth + Realtime + Storage)
 - Deployed on Vercel
 
@@ -12,7 +12,7 @@ GAINS (Grading & Attendance Intelligent Network System) — QR-code attendance a
 
 Everything under `app/(app)/` is an authenticated teacher route, RLS-scoped via `class_id in (select id from classes where teacher_id = auth.uid())` (see `supabase/migrations/0001_init.sql`). Two routes are deliberately public/unauthenticated and bypass RLS via `lib/supabase/admin.ts`'s service-role client instead:
 
-- `app/checkin/page.tsx` + `app/api/checkin/confirm/route.ts` — student self check-in
+- `app/student/page.tsx` + `app/api/student/profile/route.ts` — the student portal, which also performs self check-in (marks the student present) as a side effect of loading their profile whenever their teacher has a session open. `app/checkin/page.tsx` is a bare redirect to `/student`, kept only so old bookmarks/home-screen installs/printed instructions still land somewhere real.
 - `app/(app)/scan/[classId]/scan-client.tsx` — teacher-facing QR scanner (authenticated, but scans student codes directly)
 
 `students.code` is **globally unique** (not per-class), so a scanned/typed code alone resolves both the student and their class without a class param.
@@ -42,7 +42,8 @@ Reconnecting the Git integration if the webhook seems stuck: `vercel git disconn
 
 - **Student names**: always `Lastname, Firstname M.I.` — a trailing middle name gets abbreviated to a single initial + period everywhere (manual add, edit, bulk import). Logic lives in `lib/name-format.ts` (`toLastNameFirst`, `namesFromImportRows`, `namesFromImportMatrix`). Bulk import auto-detects letterhead blocks above the real header row, and falls back to assuming bare Last/First/Middle column order when there's no header row at all.
 - **Print layouts need fixed-height slots.** Anything that gets printed in a grid (QR cards, record cards) needs subject/name text in a fixed-height container (`line-clamp` + explicit height), or row heights vary with text length and the print layout becomes inconsistent across classes/students.
-- **Self check-in device lock**: a student's code permanently binds to whichever device (`students.device_id`, a client-generated UUID in `localStorage`) first successfully checks them in — prevents a classmate checking someone in from their own phone. Checked in both directions in `app/api/checkin/confirm/route.ts` (code→device *and* device→code) — an earlier version only checked one direction and let one phone check in unlimited different (first-time) students.
+- **Self check-in device lock is confirm-based, not a hard block.** A student's code binds to whichever device (`students.device_id`, a client-generated UUID in `localStorage`) last confirmed using it. `lib/student-device-lock.ts`'s `checkDeviceLock` checks both directions (code→device *and* device→code — an early version only checked one direction and let one phone check in unlimited different first-time students) but returns `needsConfirmation: true` instead of an unrecoverable error on a mismatch; `app/_components/student-code-entry.tsx` surfaces this as a "Continue anyway" button that retries with `confirmDeviceSwitch: true`, which `rebindDevice` then honors unconditionally. Went this route after data showed most mismatches were students' own phones losing their remembered id (Safari/PWA storage partitioning, cache clears) rather than actual device sharing — the earlier hard block meant teachers had to manually reset a student's device before nearly every class.
+- **`/student` also handles self check-in.** Loading a profile there marks the student present as a side effect if their teacher has a session open (`app/api/student/profile/route.ts`) — `/checkin` used to be a separate standalone page/PWA for this and now just redirects to `/student`, which absorbed its announcements list and "Install app" prompt. A remembered code from `localStorage` is never auto-loaded into a full profile on mount (that page's own `STUDENT_CODE_CONFIRMED_KEY` `sessionStorage` marker decides whether to trust it silently or show a "Welcome back, is this you?" prompt first) — the /student page previously did trust it silently, which leaked one student's grades to the next person on a shared device.
 - **"Today" is never computed server-side for check-in gating** — this app runs in UTC on Vercel but the school is UTC+8; matching against a server-computed date would misidentify the date for hours around midnight. Gate on "is there a currently open session" instead, and use the session's own `date` field (set by the teacher, client-side, in their local time) for the actual attendance record.
 
 ## Commands
