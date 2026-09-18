@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Conversation, ConversationParticipant, Message, TeacherOption } from "@/lib/types";
+import type { Conversation, ConversationParticipant, Message, MessageReaction, TeacherOption } from "@/lib/types";
 import MessagesClient from "./messages-client";
 
 export default async function MessagesPage() {
@@ -37,6 +37,11 @@ export default async function MessagesPage() {
         { data: [] as Message[] },
       ];
 
+  const messageIds = ((messages as Message[] | null) ?? []).map((m) => m.id);
+  const { data: reactions } = messageIds.length
+    ? await supabase.from("message_reactions").select("*").in("message_id", messageIds)
+    : { data: [] as MessageReaction[] };
+
   // Teachers can only read their own row under RLS -- resolving names/
   // emails for the roster (both existing conversation partners and the
   // "New Message" picker) needs the service-role client, same pattern as
@@ -54,6 +59,7 @@ export default async function MessagesPage() {
       initialConversations={(conversations as Conversation[] | null) ?? []}
       initialParticipants={(participants as ConversationParticipant[] | null) ?? []}
       initialMessages={(messages as Message[] | null) ?? []}
+      initialReactions={(reactions as MessageReaction[] | null) ?? []}
       roster={(roster as TeacherOption[] | null) ?? []}
     />
   );

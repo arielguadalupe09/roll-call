@@ -86,6 +86,10 @@ export default function StudentsManager({
     );
   }
 
+  function resetSelected() {
+    setSelected(new Set());
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -430,6 +434,9 @@ export default function StudentsManager({
                 </Button>
                 <Button variant="danger" size="sm" onClick={handleRemoveSelected}>
                   Remove selected
+                </Button>
+                <Button variant="secondary" size="sm" onClick={resetSelected}>
+                  Reset selected
                 </Button>
               </div>
             )}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Conversation, ConversationParticipant, Message, TeacherOption } from "@/lib/types";
+import type { Conversation, ConversationParticipant, Message, MessageReaction, TeacherOption } from "@/lib/types";
 import { Input } from "@/app/_components/input";
 import Button from "@/app/_components/button";
 import { useToast } from "@/app/_components/toast";
@@ -13,6 +13,8 @@ const EMOJIS = [
   "🕒", "📌", "⚠️", "💡", "😅", "😢", "😴", "🤔",
   "👋", "🎓", "📅", "✨", "🚀", "❤️", "😎", "🤝",
 ];
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 function initials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -45,17 +47,20 @@ export default function MessagesClient({
   initialConversations,
   initialParticipants,
   initialMessages,
+  initialReactions,
   roster,
 }: {
   teacherId: string;
   initialConversations: Conversation[];
   initialParticipants: ConversationParticipant[];
   initialMessages: Message[];
+  initialReactions: MessageReaction[];
   roster: TeacherOption[];
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [participants, setParticipants] = useState(initialParticipants);
   const [messages, setMessages] = useState(initialMessages);
+  const [reactions, setReactions] = useState(initialReactions);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [composer, setComposer] = useState("");
@@ -113,6 +118,16 @@ export default function MessagesClient({
     }
     return map;
   }, [conversations, participantsByConversation, rosterById, teacherId]);
+
+  const reactionsByMessage = useMemo(() => {
+    const map = new Map<string, MessageReaction[]>();
+    for (const r of reactions) {
+      const list = map.get(r.message_id) ?? [];
+      list.push(r);
+      map.set(r.message_id, list);
+    }
+    return map;
+  }, [reactions]);
 
   const messagesByConversation = useMemo(() => {
     const map = new Map<string, Message[]>();
@@ -172,6 +187,7 @@ export default function MessagesClient({
       setConversations([]);
       setParticipants([]);
       setMessages([]);
+      setReactions([]);
       return;
     }
 
@@ -183,6 +199,14 @@ export default function MessagesClient({
     if (convs) setConversations(convs as Conversation[]);
     if (allParticipants) setParticipants(allParticipants as ConversationParticipant[]);
     if (msgs) setMessages(msgs as Message[]);
+
+    const messageIds = ((msgs as Message[] | null) ?? []).map((m) => m.id);
+    if (messageIds.length > 0) {
+      const { data: reacts } = await supabase.from("message_reactions").select("*").in("message_id", messageIds);
+      if (reacts) setReactions(reacts as MessageReaction[]);
+    } else {
+      setReactions([]);
+    }
   }, [teacherId]);
 
   useEffect(() => {
@@ -199,6 +223,19 @@ export default function MessagesClient({
         (payload) => {
           const row = payload.new as Message;
           setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "message_reactions" },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const old = payload.old as MessageReaction;
+            setReactions((prev) => prev.filter((r) => r.id !== old.id));
+            return;
+          }
+          const row = payload.new as MessageReaction;
+          setReactions((prev) => [...prev.filter((r) => r.id !== row.id), row]);
         },
       )
       .subscribe();
@@ -369,6 +406,63 @@ export default function MessagesClient({
     composerRef.current?.focus();
   }
 
+  // One reaction per teacher per message (mirrors the DB's unique
+  // constraint) -- clicking the emoji you already reacted with clears it,
+  // clicking a different one swaps it via upsert.
+  async function toggleReaction(messageId: string, emoji: string) {
+    const supabase = createClient();
+    const mine = reactions.find((r) => r.message_id === messageId && r.teacher_id === teacherId);
+
+    if (mine && mine.emoji === emoji) {
+      setReactions((prev) => prev.filter((r) => r.id !== mine.id));
+      const { error } = await supabase.from("message_reactions").delete().eq("id", mine.id);
+      if (error) {
+        setReactions((prev) => [...prev, mine]);
+        showToast(error.message);
+      }
+      return;
+    }
+
+    const optimisticId = mine?.id ?? crypto.randomUUID();
+    const optimistic: MessageReaction = {
+      id: optimisticId,
+      message_id: messageId,
+      teacher_id: teacherId,
+      emoji,
+      created_at: new Date().toISOString(),
+    };
+    setReactions((prev) => [...prev.filter((r) => r.id !== optimisticId), optimistic]);
+
+    const { data, error } = await supabase
+      .from("message_reactions")
+      .upsert({ message_id: messageId, teacher_id: teacherId, emoji }, { onConflict: "message_id,teacher_id" })
+      .select()
+      .single();
+
+    if (error || !data) {
+      setReactions((prev) => {
+        const withoutOptimistic = prev.filter((r) => r.id !== optimisticId);
+        return mine ? [...withoutOptimistic, mine] : withoutOptimistic;
+      });
+      showToast(error?.message ?? "Couldn't react to that message.");
+      return;
+    }
+    const saved = data as MessageReaction;
+    setReactions((prev) => [...prev.filter((r) => r.id !== optimisticId && r.id !== saved.id), saved]);
+  }
+
+  function reactionSummary(messageId: string) {
+    const list = reactionsByMessage.get(messageId) ?? [];
+    const byEmoji = new Map<string, { count: number; mine: boolean }>();
+    for (const r of list) {
+      const entry = byEmoji.get(r.emoji) ?? { count: 0, mine: false };
+      entry.count += 1;
+      if (r.teacher_id === teacherId) entry.mine = true;
+      byEmoji.set(r.emoji, entry);
+    }
+    return Array.from(byEmoji.entries());
+  }
+
   return (
     <div className="px-8 py-10">
       <div className="mx-auto flex max-w-6xl items-start justify-between gap-4">
@@ -535,16 +629,53 @@ export default function MessagesClient({
                       const outgoing = m.sender_id === teacherId;
                       const sender = rosterById.get(m.sender_id);
                       const senderName = outgoing ? "You" : sender?.full_name ?? sender?.email ?? "Unknown";
+                      const messageReactions = reactionSummary(m.id);
                       return (
                         <div key={m.id} className={`mb-3 flex flex-col ${outgoing ? "items-end" : "items-start"}`}>
-                          <span
-                            className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
-                              outgoing ? "bg-navy text-card" : "border border-line bg-card text-ink"
-                            }`}
-                          >
-                            {m.body}
-                          </span>
-                          <span className="mt-1 text-[11px] text-muted">
+                          <div className="group relative">
+                            <div
+                              className={`absolute -top-10 z-10 flex items-center gap-0.5 rounded-full border border-line bg-card px-1 py-1 opacity-0 shadow-md transition-opacity group-hover:opacity-100 ${
+                                outgoing ? "right-0" : "left-0"
+                              }`}
+                            >
+                              {QUICK_REACTIONS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => toggleReaction(m.id, emoji)}
+                                  aria-label={`React with ${emoji}`}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full text-base transition hover:scale-125 hover:bg-slate-light"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                            <span
+                              className={`block max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
+                                outgoing ? "bg-navy text-card" : "border border-line bg-card text-ink"
+                              }`}
+                            >
+                              {m.body}
+                            </span>
+                            {messageReactions.length > 0 && (
+                              <div className={`absolute -bottom-3 flex gap-1 ${outgoing ? "right-1" : "left-1"}`}>
+                                {messageReactions.map(([emoji, { count, mine }]) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => toggleReaction(m.id, emoji)}
+                                    className={`flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] shadow-sm ${
+                                      mine ? "border-gold bg-gold/10" : "border-line bg-card"
+                                    }`}
+                                  >
+                                    <span>{emoji}</span>
+                                    {count > 1 && <span className="text-muted">{count}</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <span className={`text-[11px] text-muted ${messageReactions.length > 0 ? "mt-4" : "mt-1"}`}>
                             {senderName} · {formatTime(m.created_at)}
                           </span>
                         </div>
@@ -556,30 +687,6 @@ export default function MessagesClient({
               </div>
 
               <div className="flex items-center gap-2 border-t border-line p-3">
-                <div ref={emojiRef} className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setEmojiOpen((v) => !v)}
-                    aria-label="Insert emoji"
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-slate-light"
-                  >
-                    🙂
-                  </button>
-                  {emojiOpen && (
-                    <div className="absolute bottom-full left-0 z-20 mb-2 grid w-64 grid-cols-8 gap-1 rounded-xl bg-card p-2 shadow-lg">
-                      {EMOJIS.map((e) => (
-                        <button
-                          key={e}
-                          type="button"
-                          onClick={() => insertEmoji(e)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-base hover:bg-slate-light"
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
                 <Input
                   ref={composerRef}
                   type="text"
@@ -594,6 +701,30 @@ export default function MessagesClient({
                   placeholder="Write message here..."
                   className="flex-1"
                 />
+                <div ref={emojiRef} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setEmojiOpen((v) => !v)}
+                    aria-label="Insert emoji"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-lg hover:bg-slate-light"
+                  >
+                    🙂
+                  </button>
+                  {emojiOpen && (
+                    <div className="absolute bottom-full right-0 z-20 mb-2 grid w-64 grid-cols-8 gap-1 rounded-xl bg-card p-2 shadow-lg">
+                      {EMOJIS.map((e) => (
+                        <button
+                          key={e}
+                          type="button"
+                          onClick={() => insertEmoji(e)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-base hover:bg-slate-light"
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Button onClick={sendMessage} disabled={!composer.trim() || sending}>
                   Send
                 </Button>

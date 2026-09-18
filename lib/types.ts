@@ -251,6 +251,14 @@ export type Message = {
   created_at: string;
 };
 
+export type MessageReaction = {
+  id: string;
+  message_id: string;
+  teacher_id: string;
+  emoji: string;
+  created_at: string;
+};
+
 export type TeacherOption = {
   id: string;
   full_name: string | null;
