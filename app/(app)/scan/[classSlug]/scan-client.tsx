@@ -124,7 +124,7 @@ export default function ScanClient({
     const startPromise = scanner
       .start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: 240 },
+        { fps: 10, qrbox: 240, aspectRatio: 1 },
         (decodedText) => handleDecoded(decodedText),
         () => {},
       )

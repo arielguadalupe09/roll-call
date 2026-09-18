@@ -98,7 +98,7 @@ export default function SubmissionRoster({
       startPromise = scanner
         .start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: 220 },
+          { fps: 10, qrbox: 220, aspectRatio: 1 },
           (decodedText) => handleScanDecoded(decodedText),
           () => {},
         )

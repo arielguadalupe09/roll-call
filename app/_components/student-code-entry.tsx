@@ -96,7 +96,7 @@ export default function StudentCodeEntry({
       startPromise = scanner
         .start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: 220 },
+          { fps: 10, qrbox: 220, aspectRatio: 1 },
           (decodedText) => handleCodeDecoded(decodedText),
           () => {},
         )

@@ -122,6 +122,15 @@
   object-fit: cover;
 }
 
+/* html5-qrcode draws its own rectangular scan-region indicator (a dark
+   border + white corner brackets) around the qrbox -- it's built for a
+   plain rectangular viewfinder and clashes inside our circular frame,
+   which already has its own gold sweep as the aiming affordance. Hide it;
+   the qrbox itself still scopes where the library decodes from. */
+.loupe #qr-shaded-region {
+  display: none !important;
+}
+
 .loupe::after {
   content: "";
   position: absolute;
