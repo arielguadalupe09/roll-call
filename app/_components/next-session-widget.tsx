@@ -55,7 +55,8 @@ export function NextSessionWidget({ scheduleEntries }: { scheduleEntries: Schedu
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
+    // 1s so the minute rolls over in step with the top bar's seconds clock.
+    const id = setInterval(() => setNow(new Date()), 1_000);
     return () => clearInterval(id);
   }, []);
 

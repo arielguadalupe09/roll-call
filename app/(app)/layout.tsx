@@ -50,7 +50,7 @@ export default async function AppShellLayout({
       <GradebookTabProvider>
         <div id="app-shell" className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
           <Sidebar classes={classRows} email={user?.email ?? ""} isAdmin={isAdmin} />
-          <main id="app-main" className="ledger-page min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <main id="app-main" className="ledger-page min-h-0 min-w-0 flex-1 overflow-y-auto pb-24">
             <div className="sticky top-0 z-10 bg-card">
               <TopBar
                 classes={classRows}
