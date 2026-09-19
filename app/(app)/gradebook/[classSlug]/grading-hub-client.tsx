@@ -19,7 +19,6 @@ import AssignmentsClient from "../../assignments/[classSlug]/assignments-client"
 import AssessmentRoster from "./assessment-roster";
 import SetupTab from "./setup-tab";
 import MajorExamTab from "./major-exam-tab";
-import RecitationTab from "./recitation-tab";
 import OverviewTab from "./overview-tab";
 import OnlineExamPanel from "./online-exam-panel";
 import GroupedNav, { type NavItem } from "@/app/_components/grouped-nav";
@@ -31,8 +30,7 @@ type Tab =
   | "quiz"
   | "written"
   | "laboratory"
-  | "major-exam"
-  | "recitation";
+  | "major-exam";
 
 const TABS: Tab[] = [
   "overview",
@@ -42,7 +40,6 @@ const TABS: Tab[] = [
   "written",
   "laboratory",
   "major-exam",
-  "recitation",
 ];
 
 export default function GradingHubClient({
@@ -157,14 +154,7 @@ export default function GradingHubClient({
         },
       ],
     },
-    {
-      kind: "group",
-      label: "Exams",
-      tools: [
-        { label: "Major Exam", active: tab === "major-exam", onClick: () => setTab("major-exam") },
-        { label: "Recitation", active: tab === "recitation", onClick: () => setTab("recitation") },
-      ],
-    },
+    { kind: "tool", label: "Major Exam", active: tab === "major-exam", onClick: () => setTab("major-exam") },
   ];
 
   return (
@@ -290,14 +280,6 @@ export default function GradingHubClient({
             />
           </div>
         </>
-      )}
-
-      {tab === "recitation" && (
-        <RecitationTab
-          students={students}
-          initialLogs={recitationLogs}
-          config={config}
-        />
       )}
     </div>
   );

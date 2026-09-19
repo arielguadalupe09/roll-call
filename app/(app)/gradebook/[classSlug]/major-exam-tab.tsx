@@ -173,6 +173,13 @@ export default function MajorExamTab({
 
   return (
     <div className="mt-6 flex flex-col gap-4">
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">In-Person Major Exam</h2>
+        <p className="text-xs text-muted">
+          Paper or in-class. Set the max score, then open Scores to type them in, paste them from a spreadsheet, or
+          upload an Excel or Word file.
+        </p>
+      </div>
       {usePrelims && (
         <ExamSection
           classId={classId}
