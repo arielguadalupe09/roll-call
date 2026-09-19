@@ -21,6 +21,8 @@ Everything under `app/(app)/` is an authenticated teacher route, RLS-scoped via 
 
 **Applied by hand in the Supabase SQL Editor — there is no working `supabase db push` pipeline yet.** Every migration in `supabase/migrations/` needs to be manually pasted and run in the dashboard's SQL Editor before deploying code that depends on it. Always confirm with the user that a new migration has actually been run before pushing/deploying code that reads/writes the new column — deploying first breaks production with "column does not exist" errors.
 
+**Guard:** `npm run build` runs `scripts/check-migrations.mjs` first (npm `prebuild`), and fails if any migration file is newer than `supabase/last-applied-migration.txt`. After running a new migration in the SQL Editor, set that file to its number and commit — this is what stops a deploy from shipping code ahead of its schema.
+
 Known issues if this ever gets wired up to the CLI properly:
 - Two files share the `0010` prefix (`0010_class_archive.sql`, `0010_class_record_metadata.sql`) — needs resolving before the CLI's migration tracking (which uses the prefix as a unique version) can work.
 - The CLI's expected format is a 14-digit timestamp prefix; this repo uses simple `0001`, `0002`, ... — would need a batch rename.
@@ -35,6 +37,8 @@ NODE_EXTRA_CA_CERTS="$PWD/certs/corporate-proxy-ca.pem" npx vercel --prod --yes
 ```
 
 (The `NODE_EXTRA_CA_CERTS` env var is needed in this dev environment specifically — it sits behind a corporate proxy that re-signs TLS certs; `certs/corporate-proxy-ca.pem` is that proxy's CA. Also required for `npm run dev` / `next build` locally, already wired into `package.json`'s `dev` script.)
+
+`.github/workflows/deploy-fallback.yml` automates that: 3 minutes after each push to `main` it checks Vercel for a deployment of that commit and deploys directly if none exists (needs `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` repo secrets).
 
 Reconnecting the Git integration if the webhook seems stuck: `vercel git disconnect --yes` then `vercel git connect`.
 
@@ -77,3 +81,7 @@ In their place, `app/(app)/dashboard/classes/[classId]/class-analytics.tsx` give
 - `app/api/jarvis/route.ts` — a server-side-only proxy to Groq's free-tier OpenAI-compatible chat completions API (`GROQ_API_KEY` env var, never exposed client-side). Requires the teacher to be signed in (checked via `createClient()` from `lib/supabase/server`, same pattern as `app/api/export/dhvsu-class-record/[classId]/route.ts`) — this route would otherwise be an open, unauthenticated proxy to a rate-limited third-party API.
 - `lib/jarvis-ai.ts` — `buildJarvisSystemPrompt` builds the system prompt, grounded in a live analytics snapshot (same `formatAnalyticsAnswer` output already used for rule-based answers) so replies reflect real numbers instead of guessing.
 - **Degrades silently with zero config**: if `GROQ_API_KEY` isn't set (or the call fails for any reason), `askJarvisAI` in `jarvis-assistant.tsx` falls back to the plain "I didn't understand ..." message — the app works identically to the fully rule-based version with no key present. `GROQ_API_KEY` needs to be set in both `.env.local` (local dev) and Vercel's project environment variables (production) to activate it; it isn't set anywhere by default.
+
+## Scheduled data audit
+
+`vercel.json` runs `app/api/cron/data-audit/route.ts` every Monday 00:00 UTC. It's read-only (service-role client, logic in `lib/data-audit.ts`): duplicate student names within a class, sessions open >24h, unsubmitted exam attempts >24h, and non-archived classes with no students. Requires `CRON_SECRET` in Vercel's environment variables (otherwise the route returns 401). Findings go to Vercel's runtime logs only — there's no notification channel yet.
