@@ -149,12 +149,47 @@ export default function AssessmentRoster({
         { onConflict: "assessment_id,student_id" },
       );
 
-    updateScore(assessmentId, studentId, { saving: false });
+    updateScore(assessmentId, studentId, { saving: false, ...(upsertError ? {} : { dirty: false }) });
     if (upsertError) showToast(upsertError.message);
+  }
+
+  // One request for every edited row, instead of a Save click per student.
+  async function handleSaveAll(assessmentId: string) {
+    const rows = scoresByAssessment[assessmentId] ?? {};
+    const dirtyIds = Object.keys(rows).filter((id) => rows[id].dirty);
+    if (dirtyIds.length === 0) return;
+    for (const id of dirtyIds) updateScore(assessmentId, id, { saving: true });
+
+    const supabase = createClient();
+    const now = new Date().toISOString();
+    const { error: upsertError } = await supabase.from("assessment_scores").upsert(
+      dirtyIds.map((id) => ({
+        assessment_id: assessmentId,
+        student_id: id,
+        score: rows[id].score.trim() === "" ? null : Number(rows[id].score),
+        updated_at: now,
+      })),
+      { onConflict: "assessment_id,student_id" },
+    );
+
+    for (const id of dirtyIds) {
+      updateScore(assessmentId, id, { saving: false, ...(upsertError ? {} : { dirty: false }) });
+    }
+    showToast(
+      upsertError
+        ? upsertError.message
+        : `Saved ${dirtyIds.length} score${dirtyIds.length === 1 ? "" : "s"}`,
+    );
   }
 
   return (
     <div className="mt-6">
+      <div className="mb-3">
+        <h2 className="font-display text-lg font-semibold text-ink">In-Person {categoryLabel}</h2>
+        <p className="text-xs text-muted">
+          Paper or in-class. Type in the scores, paste them from a spreadsheet, or upload an Excel or Word file.
+        </p>
+      </div>
       <form
         onSubmit={handleAdd}
         className="flex flex-col gap-3 rounded-[10px] border border-line bg-card p-4"
@@ -199,7 +234,12 @@ export default function AssessmentRoster({
         </div>
       </form>
 
-      <ul className="mt-6 flex flex-col gap-3">
+      {assessments.length > 0 && (
+        <p className="mt-6 text-sm text-muted">
+          Click a {categoryLabel.toLowerCase()} below to open it and enter scores.
+        </p>
+      )}
+      <ul className="mt-3 flex flex-col gap-3">
         {assessments.map((a) => {
           const isOpen = expandedId === a.id;
           const rows = scoresByAssessment[a.id] ?? {};
@@ -210,6 +250,8 @@ export default function AssessmentRoster({
                 subtitle={`${a.date ? `${a.date} · ` : ""}Max score ${a.max_score} · ${a.period} · ${students.length} students`}
                 open={isOpen}
                 onToggle={() => setExpandedId(isOpen ? null : a.id)}
+                closedLabel="Enter scores"
+                openLabel="Hide scores"
                 actions={
                   <Button
                     variant="danger"
@@ -228,9 +270,10 @@ export default function AssessmentRoster({
                   rows={rows}
                   maxScore={a.max_score}
                   onScoreChange={(studentId, value) =>
-                    updateScore(a.id, studentId, { score: value })
+                    updateScore(a.id, studentId, { score: value, dirty: true })
                   }
                   onSave={(studentId) => handleSaveScore(a.id, studentId)}
+                  onSaveAll={() => handleSaveAll(a.id)}
                 />
               </CollapsibleSection>
             </li>

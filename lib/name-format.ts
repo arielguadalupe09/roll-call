@@ -82,17 +82,17 @@ export function toLastNameFirst(rawName: string): string {
     : surname;
 }
 
-const normalizeHeader = (k: string) => k.trim().toLowerCase().replace(/[^a-z]/g, "");
+export const normalizeHeader = (k: string) => k.trim().toLowerCase().replace(/[^a-z]/g, "");
 
-const LAST_NAME_HEADERS = new Set(["lastname", "surname", "familyname"]);
-const FIRST_NAME_HEADERS = new Set(["firstname", "givenname"]);
-const MIDDLE_NAME_HEADERS = new Set([
+export const LAST_NAME_HEADERS = new Set(["lastname", "surname", "familyname"]);
+export const FIRST_NAME_HEADERS = new Set(["firstname", "givenname"]);
+export const MIDDLE_NAME_HEADERS = new Set([
   "middlename",
   "middleinitial",
   "mi",
   "middle",
 ]);
-const FULL_NAME_HEADERS = new Set(["name", "fullname", "studentname"]);
+export const FULL_NAME_HEADERS = new Set(["name", "fullname", "studentname"]);
 
 // Builds "Lastname, Firstname M.I." roster names from an imported
 // spreadsheet's rows. Many school class-list templates (including this

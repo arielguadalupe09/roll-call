@@ -37,7 +37,12 @@ export function CardHeader({
   // chevron instead of a static header -- the single collapsible-header
   // implementation shared by CollapsibleSection and any other card that
   // needs the same expand/collapse affordance.
-  chevron?: { open: boolean; onToggle: () => void };
+  //
+  // The whole title row is a button, so it gets a hover fill and a text label
+  // beside the chevron ("Show"/"Hide" by default) -- a bare chevron alone was
+  // easy to miss as clickable. Pass openLabel/closedLabel for a more specific
+  // call to action (e.g. "Enter scores").
+  chevron?: { open: boolean; onToggle: () => void; openLabel?: string; closedLabel?: string };
 }) {
   const titleBlock = (
     <div>
@@ -61,10 +66,14 @@ export function CardHeader({
         onClick={chevron.onToggle}
         aria-expanded={chevron.open}
         aria-label={chevron.open ? "Collapse section" : "Expand section"}
-        className="group flex flex-1 items-center justify-between gap-4 text-left"
+        className="group -m-2 flex flex-1 cursor-pointer items-center justify-between gap-4 rounded-[8px] p-2 text-left transition hover:bg-paper focus-visible:bg-paper"
       >
         {titleBlock}
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate transition group-hover:bg-slate-light group-hover:text-navy group-focus-visible:bg-slate-light group-focus-visible:text-navy">
+        <span className="flex shrink-0 items-center gap-2 text-slate transition group-hover:text-navy group-focus-visible:text-navy">
+          <span className="text-xs font-semibold">
+            {chevron.open ? (chevron.openLabel ?? "Hide") : (chevron.closedLabel ?? "Show")}
+          </span>
+          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-card transition group-hover:border-slate">
           <svg
             width="16"
             height="16"
@@ -81,6 +90,7 @@ export function CardHeader({
               strokeLinejoin="round"
             />
           </svg>
+          </span>
         </span>
       </button>
       {actions}

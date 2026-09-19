@@ -81,8 +81,31 @@ function ExamSection({
       { onConflict: "major_exam_id,student_id" },
     );
 
-    updateRow(studentId, { saving: false });
+    updateRow(studentId, { saving: false, ...(error ? {} : { dirty: false }) });
     if (error) showToast(error.message);
+  }
+
+  // One request for every edited row, instead of a Save click per student.
+  async function handleSaveAll() {
+    if (!exam) return;
+    const dirtyIds = Object.keys(rows).filter((id) => rows[id].dirty);
+    if (dirtyIds.length === 0) return;
+    for (const id of dirtyIds) updateRow(id, { saving: true });
+
+    const supabase = createClient();
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("major_exam_scores").upsert(
+      dirtyIds.map((id) => ({
+        major_exam_id: exam.id,
+        student_id: id,
+        score: rows[id].score.trim() === "" ? null : Number(rows[id].score),
+        updated_at: now,
+      })),
+      { onConflict: "major_exam_id,student_id" },
+    );
+
+    for (const id of dirtyIds) updateRow(id, { saving: false, ...(error ? {} : { dirty: false }) });
+    showToast(error ? error.message : `Saved ${dirtyIds.length} score${dirtyIds.length === 1 ? "" : "s"}`);
   }
 
   return (
@@ -106,13 +129,19 @@ function ExamSection({
 
       {exam ? (
         <div className="mt-4">
-          <CollapsibleSection title="Scores" subtitle={`${students.length} students`}>
+          <CollapsibleSection
+            title="Scores"
+            subtitle={`${students.length} students`}
+            closedLabel="Enter scores"
+            openLabel="Hide scores"
+          >
             <ScoreEntryTable
               students={students}
               rows={rows}
               maxScore={exam.max_score}
-              onScoreChange={(studentId, value) => updateRow(studentId, { score: value })}
+              onScoreChange={(studentId, value) => updateRow(studentId, { score: value, dirty: true })}
               onSave={handleSaveScore}
+              onSaveAll={handleSaveAll}
             />
           </CollapsibleSection>
         </div>

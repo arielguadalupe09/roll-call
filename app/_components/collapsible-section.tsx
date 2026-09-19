@@ -19,6 +19,8 @@ export default function CollapsibleSection({
   id,
   children,
   variant = "default",
+  openLabel,
+  closedLabel,
 }: {
   title: string;
   subtitle?: string;
@@ -29,6 +31,9 @@ export default function CollapsibleSection({
   id?: string;
   children: ReactNode;
   variant?: keyof typeof SHELL_CLASSES;
+  // Text shown beside the chevron; defaults to "Hide"/"Show".
+  openLabel?: string;
+  closedLabel?: string;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = openProp !== undefined;
@@ -51,7 +56,7 @@ export default function CollapsibleSection({
 
   return (
     <div id={id} className={`scroll-mt-6 rounded-[10px] ${SHELL_CLASSES[variant]}`}>
-      <CardHeader title={title} subtitle={subtitle} actions={actions} chevron={{ open, onToggle: toggle }} />
+      <CardHeader title={title} subtitle={subtitle} actions={actions} chevron={{ open, onToggle: toggle, openLabel, closedLabel }} />
       {open && <div className="mt-3">{children}</div>}
     </div>
   );

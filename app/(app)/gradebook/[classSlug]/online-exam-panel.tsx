@@ -174,8 +174,9 @@ export default function OnlineExamPanel({
 
   return (
     <div>
+      <h2 className="font-display text-lg font-semibold text-ink">Online {EXAM_KIND_LABEL[kind]}</h2>
       <p className="text-xs text-muted">
-        Online {EXAM_KIND_LABEL[kind]} · {exams.length} exam{exams.length === 1 ? "" : "s"}
+        Students take it in the app · {exams.length} exam{exams.length === 1 ? "" : "s"}
       </p>
       <form
         onSubmit={handleAdd}
