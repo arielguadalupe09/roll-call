@@ -1,0 +1,40 @@
+# Vercel's git-triggered deploy has been unreliable. After every push to main,
+# wait a few minutes, check whether Vercel deployed that commit, and if not,
+# deploy it directly.
+#
+# Needs repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+name: Deploy fallback
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-fallback
+  cancel-in-progress: true
+
+jobs:
+  ensure-deployed:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Vercel's own git deploy
+        run: sleep 180
+
+      - name: Check whether this commit was already deployed
+        id: check
+        run: |
+          found=$(curl -sf -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&limit=20" \
+            | jq --arg sha "$GITHUB_SHA" '[.deployments[] | select(.meta.githubCommitSha == $sha)] | length')
+          echo "matching deployments: $found"
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy directly
+        if: steps.check.outputs.found == '0'
+        run: npx vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
