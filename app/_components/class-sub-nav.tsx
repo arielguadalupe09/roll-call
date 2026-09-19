@@ -91,11 +91,6 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
           href: `/records/${classSlug}`,
           active: pathname === `/records/${classSlug}`,
         },
-        {
-          label: "Participation",
-          href: `/participation/${classSlug}`,
-          active: pathname === `/participation/${classSlug}`,
-        },
       ],
     },
     {

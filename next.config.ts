@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   devIndicators: false,
+  // The standalone Participation page was removed (Records shows the same
+  // recitation/activity logs per day) -- keep old bookmarks and links working.
+  async redirects() {
+    return [{ source: "/participation/:classSlug", destination: "/records/:classSlug", permanent: false }];
+  },
   allowedDevOrigins: ["192.168.100.131"],
   // pdf-parse pulls in pdfjs-dist, which resolves its worker script relative
   // to its own file layout on disk at runtime -- bundling it rewrites those

@@ -36,7 +36,6 @@ export async function proxy(request: NextRequest) {
     "/qr",
     "/scan",
     "/records",
-    "/participation",
     "/announcements",
     "/materials",
     "/assignments",
