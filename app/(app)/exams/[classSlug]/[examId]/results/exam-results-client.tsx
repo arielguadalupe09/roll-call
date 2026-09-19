@@ -9,6 +9,7 @@ import Button from "@/app/_components/button";
 import { Input } from "@/app/_components/input";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 import { tierFor, TIER_TEXT } from "@/lib/chart-tiers";
+import { formatTime12h } from "@/lib/time-format";
 
 const SNAPSHOTS_BUCKET = "exam-snapshots";
 const SUBMISSIONS_BUCKET = "exam-submissions";
@@ -244,7 +245,7 @@ export default function ExamResultsClient({
                           {studentViolations.map((v) => (
                             <li key={v.id} className="flex items-center gap-3 text-sm text-ink">
                               <span className="font-mono text-xs text-ink/50">
-                                {new Date(v.occurred_at).toLocaleTimeString()}
+                                {formatTime12h(v.occurred_at, { seconds: true })}
                               </span>
                               <span>{VIOLATION_LABEL[v.type]}</span>
                             </li>
@@ -276,7 +277,7 @@ export default function ExamResultsClient({
                                     >
                                       <span>{VIOLATION_LABEL[v.type]}</span>
                                       <span className="font-mono text-xs text-ink/50">
-                                        {new Date(v.occurred_at).toLocaleTimeString()}
+                                        {formatTime12h(v.occurred_at, { seconds: true })}
                                       </span>
                                     </button>
                                   ))}

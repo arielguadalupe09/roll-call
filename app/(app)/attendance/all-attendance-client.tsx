@@ -8,6 +8,7 @@ import { GradebookTable } from "@/app/_components/gradebook-table";
 import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
 import { StatCard } from "@/app/_components/stat-card";
 import { TileIcon } from "@/app/_components/tile-icon";
+import { formatTime12h } from "@/lib/time-format";
 
 type Row = { attendance: Attendance; studentName: string; className: string };
 
@@ -140,7 +141,7 @@ export default function AllAttendanceClient({ rows }: { rows: Row[] }) {
                   </StatusPill>
                 </TableCell>
                 <TableCell tabular className="text-muted">
-                  {new Date(r.attendance.recorded_at).toLocaleTimeString()}
+                  {formatTime12h(r.attendance.recorded_at, { seconds: true })}
                 </TableCell>
                 <TableCell>
                   <StatusPill tone="neutral">{METHOD_LABEL[r.attendance.method]}</StatusPill>

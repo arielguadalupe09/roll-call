@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DayOfWeek, ScheduleEntry } from "@/lib/types";
+import { formatTime12h } from "@/lib/time-format";
 
 const DAY_INDEX: Record<DayOfWeek, number> = {
   Monday: 1,
@@ -40,7 +41,7 @@ function relativeLabel(target: Date, now: Date): string {
   const diffMin = Math.round(diffMs / 60000);
   if (diffMin < 60) return `in ${diffMin} min`;
   const sameDay = target.toDateString() === now.toDateString();
-  const time = target.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const time = formatTime12h(target);
   if (sameDay) return `today, ${time}`;
   const isTomorrow = target.toDateString() === new Date(now.getTime() + 86400000).toDateString();
   if (isTomorrow) return `tomorrow, ${time}`;
@@ -60,7 +61,7 @@ export function NextSessionWidget({ scheduleEntries }: { scheduleEntries: Schedu
     return () => clearInterval(id);
   }, []);
 
-  const clock = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const clock = formatTime12h(now);
 
   let nextLabel = "No upcoming classes";
   let nextTime: string | null = null;

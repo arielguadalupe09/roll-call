@@ -6,6 +6,7 @@ import type { Conversation, ConversationParticipant, Message, MessageReaction, T
 import { Input } from "@/app/_components/input";
 import Button from "@/app/_components/button";
 import { useToast } from "@/app/_components/toast";
+import { formatTime12h } from "@/lib/time-format";
 
 const EMOJIS = [
   "😀", "😂", "😊", "😍", "🙌", "👍", "👏", "🙏",
@@ -24,7 +25,7 @@ function initials(name: string) {
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return formatTime12h(iso);
 }
 
 function formatDateDivider(iso: string) {

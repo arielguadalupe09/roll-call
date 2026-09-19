@@ -7,6 +7,7 @@ import { playBeep } from "@/lib/beep";
 import type { AttendanceStatus, ParticipationType } from "@/lib/types";
 import Button from "@/app/_components/button";
 import { Input } from "@/app/_components/input";
+import { formatTime12h } from "@/lib/time-format";
 
 const READER_ID = "scan-reader";
 
@@ -203,10 +204,7 @@ export default function ScanClient({
       setToast(null);
       setStamp({
         name: student.name,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: formatTime12h(new Date()),
         note:
           currentStatus === "present"
             ? undefined
@@ -266,10 +264,7 @@ export default function ScanClient({
     setPendingLog(null);
     setStamp({
       name,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      time: formatTime12h(new Date()),
       note: `${MODE_LABELS[currentMode]} #${count ?? 1} today — scored ${score}/5`,
     });
     hardwareInputRef.current?.focus();

@@ -8,6 +8,7 @@ import { Select } from "@/app/_components/input";
 import { TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 import { GradebookTable } from "@/app/_components/gradebook-table";
 import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
+import { formatTime12h } from "@/lib/time-format";
 
 const STATUS_LABEL: Record<AttendanceStatus, string> = {
   present: "P",
@@ -212,7 +213,7 @@ export default function RecordsClient({
         rows.push([
           i === 0 ? s.name : "",
           e.date,
-          new Date(e.recordedAt).toLocaleTimeString(),
+          formatTime12h(e.recordedAt, { seconds: true }),
           e.type,
           e.detail,
         ]);
@@ -314,7 +315,7 @@ export default function RecordsClient({
                                 : a.method === "self"
                                   ? "Self check-in"
                                   : "Manual entry"}{" "}
-                              at {new Date(a.recorded_at).toLocaleTimeString()}
+                              at {formatTime12h(a.recorded_at, { seconds: true })}
                             </span>
                           </span>
                         ) : (

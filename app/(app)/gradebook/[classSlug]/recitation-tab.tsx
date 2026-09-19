@@ -8,6 +8,7 @@ import CollapsibleSection from "@/app/_components/collapsible-section";
 import { Select } from "@/app/_components/input";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 import { tierFor, TIER_TEXT } from "@/lib/chart-tiers";
+import { formatTime12h } from "@/lib/time-format";
 
 function SummaryTable({
   title,
@@ -106,7 +107,7 @@ function SummaryTable({
                       <div className="flex flex-col gap-0.5">
                         {studentLogs.map((log) => (
                           <span key={log.id}>
-                            {log.date} · {new Date(log.recorded_at).toLocaleTimeString()} —{" "}
+                            {log.date} · {formatTime12h(log.recorded_at, { seconds: true })} —{" "}
                             {log.score != null ? `${log.score}/5` : "—"}
                           </span>
                         ))}

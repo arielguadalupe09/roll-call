@@ -7,6 +7,7 @@ import type { ClassRow } from "@/lib/types";
 import type { Insight } from "@/lib/dashboard-insights";
 import SidebarIcon from "./sidebar-icons";
 import SignOutButton from "./sign-out-button";
+import { formatTime12h } from "@/lib/time-format";
 
 type SearchStudent = { id: string; name: string; class_id: string };
 
@@ -97,7 +98,7 @@ function TopBarClock() {
   }, []);
 
   const dateLabel = now.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  const timeLabel = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" });
+  const timeLabel = formatTime12h(now, { seconds: true });
 
   return (
     <p className="hidden shrink-0 whitespace-nowrap text-sm text-ink/70 md:block" suppressHydrationWarning>
