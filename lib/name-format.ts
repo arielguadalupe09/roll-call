@@ -233,3 +233,31 @@ export function parseStudentName(name: string): {
   }
   return { lastName, firstName: rest, mi: "" };
 }
+
+// Case/spacing/punctuation-insensitive identity for a student name, used to
+// spot the same person being added to a class twice (only `code` is unique
+// in the schema, so nothing else prevents it).
+export function nameKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+// Splits `names` into ones safe to add and ones that duplicate either an
+// existing name or an earlier entry in the same list.
+export function splitDuplicateNames(
+  names: string[],
+  existing: string[],
+): { fresh: string[]; duplicates: string[] } {
+  const seen = new Set(existing.map(nameKey));
+  const fresh: string[] = [];
+  const duplicates: string[] = [];
+  for (const name of names) {
+    const key = nameKey(name);
+    if (seen.has(key)) {
+      duplicates.push(name);
+    } else {
+      seen.add(key);
+      fresh.push(name);
+    }
+  }
+  return { fresh, duplicates };
+}

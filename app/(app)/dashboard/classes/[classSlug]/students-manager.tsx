@@ -4,7 +4,11 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
-import { namesFromImportMatrix, toLastNameFirst } from "@/lib/name-format";
+import {
+  namesFromImportMatrix,
+  splitDuplicateNames,
+  toLastNameFirst,
+} from "@/lib/name-format";
 import type { ClassRow, Student } from "@/lib/types";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
@@ -102,6 +106,19 @@ export default function StudentsManager({
     setError(null);
 
     const formattedName = toLastNameFirst(name);
+    const { duplicates } = splitDuplicateNames(
+      [formattedName],
+      students.map((s) => s.name),
+    );
+    if (duplicates.length > 0) {
+      const proceed = await confirm(
+        `"${formattedName}" is already in this class. Add another entry anyway?`,
+      );
+      if (!proceed) {
+        setLoading(false);
+        return;
+      }
+    }
     const supabase = createClient();
     let lastError: string | null = null;
 
@@ -159,11 +176,27 @@ export default function StudentsManager({
       return;
     }
 
-    const names = namesFromImportMatrix(matrix);
+    const allNames = namesFromImportMatrix(matrix);
 
-    if (names.length === 0) {
+    if (allNames.length === 0) {
       setError("No student names found in that file.");
       setImporting(false);
+      return;
+    }
+
+    // Skip names already in the class (or repeated within the file) so a
+    // re-import doesn't create a second copy of every student.
+    const { fresh: names, duplicates } = splitDuplicateNames(
+      allNames,
+      students.map((s) => s.name),
+    );
+
+    if (names.length === 0) {
+      setError(
+        `All ${allNames.length} names in that file are already in this class.`,
+      );
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -185,7 +218,10 @@ export default function StudentsManager({
       if (!insertError && data) {
         setStudents((prev) => [...prev, ...(data as Student[])]);
         showToast(
-          `${data.length} student${data.length === 1 ? "" : "s"} imported`,
+          `${data.length} student${data.length === 1 ? "" : "s"} imported` +
+            (duplicates.length > 0
+              ? `, ${duplicates.length} duplicate${duplicates.length === 1 ? "" : "s"} skipped`
+              : ""),
         );
         setImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = "";

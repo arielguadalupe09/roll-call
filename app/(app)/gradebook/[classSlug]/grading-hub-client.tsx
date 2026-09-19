@@ -106,12 +106,15 @@ export default function GradingHubClient({
 
   // ClassSubNav flips this shared value directly instead of navigating when
   // the user is already on this page -- pick that up without a remount.
-  useEffect(() => {
+  // Adjusted during render (tracking the previous value) rather than in an
+  // effect, so it doesn't cost an extra render pass.
+  const [prevSharedTab, setPrevSharedTab] = useState(sharedTab);
+  if (sharedTab !== prevSharedTab) {
+    setPrevSharedTab(sharedTab);
     if (sharedTab && sharedTab !== tab && (TABS as string[]).includes(sharedTab)) {
       setTabState(sharedTab as Tab);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedTab]);
+  }
 
   const submissionCounts: Record<string, { submitted: number; total: number }> = {};
   const classStudentIds = new Set(students.map((s) => s.id));

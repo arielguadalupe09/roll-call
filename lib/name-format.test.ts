@@ -3,6 +3,7 @@ import {
   namesFromImportMatrix,
   namesFromImportRows,
   parseStudentName,
+  splitDuplicateNames,
   toLastNameFirst,
 } from "./name-format";
 
@@ -160,5 +161,16 @@ describe("parseStudentName", () => {
       firstName: "Juan Reyes",
       mi: "",
     });
+  });
+});
+
+describe("splitDuplicateNames", () => {
+  it("flags names matching existing ones or earlier entries, ignoring case and punctuation", () => {
+    const { fresh, duplicates } = splitDuplicateNames(
+      ["Cruz, Juan D.", "cruz juan d", "Reyes, Ana", "Reyes, Ana"],
+      ["CRUZ, JUAN D."],
+    );
+    expect(fresh).toEqual(["Reyes, Ana"]);
+    expect(duplicates).toEqual(["Cruz, Juan D.", "cruz juan d", "Reyes, Ana"]);
   });
 });
