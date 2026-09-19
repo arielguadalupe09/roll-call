@@ -76,6 +76,13 @@ export default function MessagesClient({
 
   const pickerRef = useRef<HTMLDivElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
+  // Which message's reaction picker is open via long-press (touch). Mouse
+  // users still get the hover bar; touch screens have no hover, so without
+  // this there was no way to react on a phone.
+  const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
+  const pressTimerRef = useRef<number | null>(null);
+  const pressOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const touchedRef = useRef(false);
   const composerRef = useRef<HTMLInputElement>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
@@ -270,12 +277,23 @@ export default function MessagesClient({
   }, []);
 
   useEffect(() => {
+    if (!reactionPickerFor) return;
+    function close(e: PointerEvent) {
+      if ((e.target as Element | null)?.closest?.("[data-reaction-picker]")) return;
+      setReactionPickerFor(null);
+    }
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [reactionPickerFor]);
+
+  useEffect(() => {
     threadEndRef.current?.scrollIntoView({ block: "end" });
   }, [threadMessages.length, selectedConversationId]);
 
   async function openConversation(conversationId: string) {
     setSelectedConversationId(conversationId);
     setPickerOpen(false);
+    setReactionPickerFor(null);
 
     const now = new Date().toISOString();
     setParticipants((prev) =>
@@ -405,6 +423,34 @@ export default function MessagesClient({
   function insertEmoji(emoji: string) {
     setComposer((prev) => prev + emoji);
     composerRef.current?.focus();
+  }
+
+  function cancelLongPress() {
+    if (pressTimerRef.current != null) {
+      window.clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  }
+
+  // Messenger-style: hold a message for ~0.45s to open its reaction picker.
+  // Moving the finger (i.e. scrolling the thread) cancels it.
+  function startLongPress(messageId: string, e: React.TouchEvent) {
+    touchedRef.current = true;
+    const t = e.touches[0];
+    pressOriginRef.current = { x: t.clientX, y: t.clientY };
+    cancelLongPress();
+    pressTimerRef.current = window.setTimeout(() => {
+      pressTimerRef.current = null;
+      setReactionPickerFor(messageId);
+      navigator.vibrate?.(15);
+    }, 450);
+  }
+
+  function moveLongPress(e: React.TouchEvent) {
+    const origin = pressOriginRef.current;
+    if (!origin || pressTimerRef.current == null) return;
+    const t = e.touches[0];
+    if (Math.hypot(t.clientX - origin.x, t.clientY - origin.y) > 10) cancelLongPress();
   }
 
   // One reaction per teacher per message (mirrors the DB's unique
@@ -631,28 +677,49 @@ export default function MessagesClient({
                       const sender = rosterById.get(m.sender_id);
                       const senderName = outgoing ? "You" : sender?.full_name ?? sender?.email ?? "Unknown";
                       const messageReactions = reactionSummary(m.id);
+                      const myEmoji = messageReactions.find(([, v]) => v.mine)?.[0];
+                      const pickerOpen = reactionPickerFor === m.id;
                       return (
                         <div key={m.id} className={`mb-3 flex flex-col ${outgoing ? "items-end" : "items-start"}`}>
                           <div className="group relative">
                             <div
-                              className={`absolute -top-10 z-10 flex items-center gap-0.5 rounded-full border border-line bg-card px-1 py-1 opacity-0 shadow-md transition-opacity group-hover:opacity-100 ${
-                                outgoing ? "right-0" : "left-0"
-                              }`}
+                              data-reaction-picker
+                              className={`absolute -top-12 z-10 flex items-center gap-0.5 rounded-full border border-line bg-card px-1 py-1 shadow-md transition-opacity sm:-top-10 ${
+                                pickerOpen
+                                  ? "opacity-100"
+                                  : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
+                              } ${outgoing ? "right-0" : "left-0"}`}
                             >
                               {QUICK_REACTIONS.map((emoji) => (
                                 <button
                                   key={emoji}
                                   type="button"
-                                  onClick={() => toggleReaction(m.id, emoji)}
+                                  onClick={() => {
+                                    void toggleReaction(m.id, emoji);
+                                    setReactionPickerFor(null);
+                                  }}
                                   aria-label={`React with ${emoji}`}
-                                  className="flex h-7 w-7 items-center justify-center rounded-full text-base transition hover:scale-125 hover:bg-slate-light"
+                                  className={`flex h-9 w-9 items-center justify-center rounded-full text-xl transition hover:scale-125 hover:bg-slate-light sm:h-7 sm:w-7 sm:text-base ${
+                                    myEmoji === emoji ? "bg-gold/20" : ""
+                                  }`}
                                 >
                                   {emoji}
                                 </button>
                               ))}
                             </div>
                             <span
-                              className={`block max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
+                              onTouchStart={(e) => startLongPress(m.id, e)}
+                              onTouchMove={moveLongPress}
+                              onTouchEnd={cancelLongPress}
+                              onTouchCancel={cancelLongPress}
+                              // A long-press on a phone also raises the browser's own
+                              // context menu / text-selection callout -- suppress it
+                              // for touch only, so mouse users can still right-click
+                              // and copy.
+                              onContextMenu={(e) => {
+                                if (touchedRef.current) e.preventDefault();
+                              }}
+                              className={`block max-w-[75%] rounded-2xl px-3.5 py-2 text-sm [@media(pointer:coarse)]:select-none [@media(pointer:coarse)]:[-webkit-touch-callout:none] ${
                                 outgoing ? "bg-navy text-card" : "border border-line bg-card text-ink"
                               }`}
                             >
