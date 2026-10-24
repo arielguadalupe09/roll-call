@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
   // despite `npm run build` succeeding locally.
   outputFileTracingIncludes: {
     "/api/export/dhvsu-class-record/[classId]": ["./lib/templates/**"],
+    // The weekly audit reads the migration files to check the live schema.
+    "/api/cron/data-audit": ["./supabase/migrations/**"],
     // Includes the *entire* pdfjs-dist/pdf-parse trees, not just the worker
     // file -- both packages resolve internal files (worker scripts, cmaps,
     // standard fonts) relative to their own layout on disk at runtime using

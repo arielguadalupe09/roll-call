@@ -18,7 +18,12 @@ export type AuditAttempt = {
 };
 
 export type AuditFinding = {
-  check: "duplicate_student" | "stale_open_session" | "stale_exam_attempt" | "empty_class";
+  check:
+    | "duplicate_student"
+    | "stale_open_session"
+    | "stale_exam_attempt"
+    | "empty_class"
+    | "missing_migration";
   message: string;
   ids: string[];
 };

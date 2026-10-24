@@ -1,6 +1,13 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { auditData } from "@/lib/data-audit";
+import { auditData, type AuditFinding } from "@/lib/data-audit";
+import {
+  describeMissingSchema,
+  expectedSchemaFromMigrations,
+  findMissingSchema,
+} from "@/lib/schema-check.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +25,27 @@ async function fetchAll<T>(
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) return rows;
   }
+}
+
+// Same live-database check the prebuild guard runs, so a migration skipped
+// in the SQL Editor also shows up here between deploys. The migration files
+// are bundled with this route via outputFileTracingIncludes (next.config.ts).
+async function migrationFindings(): Promise<AuditFinding[]> {
+  const dir = path.join(process.cwd(), "supabase/migrations");
+  const migrations = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((name) => ({ name, sql: readFileSync(path.join(dir, name), "utf8") }));
+  const { schema, origin } = expectedSchemaFromMigrations(migrations);
+  const missing = await findMissingSchema(schema, origin, {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  });
+  return describeMissingSchema(missing).map((message) => ({
+    check: "missing_migration",
+    message,
+    ids: [],
+  }));
 }
 
 // Weekly read-only audit (see vercel.json). Vercel Cron sends
@@ -42,7 +70,10 @@ export async function GET(request: Request) {
       ),
     ]);
 
-    const findings = auditData({ classes, students, sessions, attempts });
+    const findings = [
+      ...(await migrationFindings()),
+      ...auditData({ classes, students, sessions, attempts }),
+    ];
     if (findings.length > 0) {
       // Shows up in Vercel's runtime logs; this is the only report channel.
       console.warn(`[data-audit] ${findings.length} finding(s)`, JSON.stringify(findings));

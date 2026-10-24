@@ -3,7 +3,17 @@
 //
 // Migrations are applied by hand in the Supabase SQL Editor. After running
 // one, bump supabase/last-applied-migration.txt to its number and commit.
-import { readdirSync, readFileSync } from "node:fs";
+//
+// When Supabase credentials are available (Vercel's build env, or
+// .env.local locally) it also checks the live database for tables/columns
+// from *older* migrations that were skipped -- the marker file can't see
+// those (0013/0015/0023/0033 went unapplied for weeks that way).
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  describeMissingSchema,
+  expectedSchemaFromMigrations,
+  findMissingSchema,
+} from "../lib/schema-check.mjs";
 
 const dir = new URL("../supabase/migrations/", import.meta.url);
 const marker = new URL("../supabase/last-applied-migration.txt", import.meta.url);
@@ -32,6 +42,31 @@ if (pending.length > 0) {
       pending.map((f) => `    ${f}`).join("\n") +
       `\n  Run them in the Supabase SQL Editor, then set the file to ${prefixOf(pending[pending.length - 1])}.`,
   );
+}
+
+const envFile = new URL("../.env.local", import.meta.url);
+if (existsSync(envFile)) process.loadEnvFile(envFile);
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !serviceKey) {
+  console.warn("Migration check: no Supabase credentials, skipping the live-database check.");
+} else {
+  const migrations = files.map((name) => ({ name, sql: readFileSync(new URL(name, dir), "utf8") }));
+  const { schema, origin } = expectedSchemaFromMigrations(migrations);
+  try {
+    const missing = await findMissingSchema(schema, origin, { url, serviceKey });
+    if (missing.length > 0) {
+      problems.push(
+        "Live database is missing schema from these migrations:\n" +
+          describeMissingSchema(missing).map((line) => `    ${line}`).join("\n") +
+          "\n  Run them in the Supabase SQL Editor (they're safe to re-run).",
+      );
+    }
+  } catch (err) {
+    // A network/auth hiccup shouldn't block a deploy; only a confirmed
+    // missing table/column does.
+    console.warn(`Migration check: live-database check skipped (${err.message}).`);
+  }
 }
 
 if (problems.length > 0) {

@@ -23,6 +23,8 @@ Everything under `app/(app)/` is an authenticated teacher route, RLS-scoped via 
 
 **Guard:** `npm run build` runs `scripts/check-migrations.mjs` first (npm `prebuild`), and fails if any migration file is newer than `supabase/last-applied-migration.txt`. After running a new migration in the SQL Editor, set that file to its number and commit — this is what stops a deploy from shipping code ahead of its schema.
 
+The marker file only records the *newest* number, so it can't see an older migration that was skipped (0015/0023/0033 went unapplied in production for weeks while later ones ran). So the same script also checks the live database when Supabase credentials are available (Vercel's build env, or `.env.local`): `lib/schema-check.mjs` replays every migration's `create table` / `add column` / `drop column` / `drop table` and probes PostgREST for each expected table/column, failing the build with the migration names to run. Only tables/columns are verified, not constraints or policies. Network/auth errors only warn, so a Supabase hiccup doesn't block a deploy. The weekly data audit runs the same check (`missing_migration` findings).
+
 Known issues if this ever gets wired up to the CLI properly:
 - Two files share the `0010` prefix (`0010_class_archive.sql`, `0010_class_record_metadata.sql`) — needs resolving before the CLI's migration tracking (which uses the prefix as a unique version) can work.
 - The CLI's expected format is a 14-digit timestamp prefix; this repo uses simple `0001`, `0002`, ... — would need a batch rename.
@@ -84,4 +86,4 @@ In their place, `app/(app)/dashboard/classes/[classId]/class-analytics.tsx` give
 
 ## Scheduled data audit
 
-`vercel.json` runs `app/api/cron/data-audit/route.ts` every Monday 00:00 UTC. It's read-only (service-role client, logic in `lib/data-audit.ts`): duplicate student names within a class, sessions open >24h, unsubmitted exam attempts >24h, and non-archived classes with no students. Requires `CRON_SECRET` in Vercel's environment variables (otherwise the route returns 401). Findings go to Vercel's runtime logs only — there's no notification channel yet.
+`vercel.json` runs `app/api/cron/data-audit/route.ts` every Monday 00:00 UTC. It's read-only (service-role client, logic in `lib/data-audit.ts`): duplicate student names within a class, sessions open >24h, unsubmitted exam attempts >24h, non-archived classes with no students, and migrations whose tables/columns are missing from the live database. Requires `CRON_SECRET` in Vercel's environment variables (otherwise the route returns 401). Findings go to Vercel's runtime logs only — there's no notification channel yet.
