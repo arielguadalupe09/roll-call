@@ -51,7 +51,10 @@ export default async function AppShellLayout({
         <div id="app-shell" className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
           <Sidebar classes={classRows} email={user?.email ?? ""} isAdmin={isAdmin} />
           <main id="app-main" className="ledger-page min-h-0 min-w-0 flex-1 overflow-y-auto pb-24">
-            <div className="sticky top-0 z-10 bg-card">
+            {/* z-30: above page content that is itself positioned/sticky (e.g.
+                the gradebook Overview's pinned Student column), which would
+                otherwise paint over this bar while scrolling. */}
+            <div className="sticky top-0 z-30 bg-card">
               <TopBar
                 classes={classRows}
                 students={studentRows}

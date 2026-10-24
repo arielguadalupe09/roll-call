@@ -423,7 +423,7 @@ export default function OverviewTab({
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell className="sticky left-0 z-10 bg-navy align-bottom">Student</TableHeaderCell>
+              <TableHeaderCell className="sticky left-0 z-[1] bg-navy align-bottom">Student</TableHeaderCell>
               {quizzes.map((a) => (
                 <TableHeaderCell key={a.id} align="center" className={ITEM_HEADER}>
                   {a.title}
@@ -517,7 +517,7 @@ export default function OverviewTab({
               const shownEquivalent = view === "all" ? grade?.equivalent : grade?.termEquivalents[view];
               return (
                 <TableRow key={s.id} striped>
-                  <TableCell className="sticky left-0 z-10 whitespace-nowrap border-r border-line bg-card">{s.name}</TableCell>
+                  <TableCell className="sticky left-0 z-[1] whitespace-nowrap border-r border-line bg-card">{s.name}</TableCell>
                   {quizzes.map((a) => {
                     const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
                     return (
