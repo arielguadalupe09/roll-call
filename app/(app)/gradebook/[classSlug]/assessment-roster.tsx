@@ -16,6 +16,10 @@ import { useToast } from "@/app/_components/toast";
 import Button from "@/app/_components/button";
 import { Input, Select } from "@/app/_components/input";
 import { FormField } from "@/app/_components/form-field";
+import MenuSelect from "@/app/_components/menu-select";
+import { useConfirm } from "@/app/_components/confirm-provider";
+
+const PERIOD_NAME: Record<Period, string> = { prelim: "Prelim", midterm: "Midterm", finals: "Finals" };
 
 export default function AssessmentRoster({
   classId,
@@ -36,6 +40,7 @@ export default function AssessmentRoster({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const confirm = useConfirm();
   const [assessments, setAssessments] = useState(initialAssessments);
   const [scoresByAssessment, setScoresByAssessment] = useState<
     Record<string, Record<string, ScoreRow>>
@@ -105,6 +110,32 @@ export default function AssessmentRoster({
     setDate("");
     setMaxScore("100");
     setPeriod("midterm");
+    router.refresh();
+  }
+
+  // Move an item (with its scores) to another term -- e.g. an activity
+  // added under Midterm that belongs to Finals. Its scores then count
+  // toward that term's grade and export into that term's sheet.
+  async function handleMove(a: Assessment, next: Period) {
+    if (next === a.period) return;
+    const ok = await confirm(
+      `Its scores move with it and count toward the ${PERIOD_NAME[next]} grade instead of ${PERIOD_NAME[a.period]}.`,
+      { title: `Move "${a.title}" to ${PERIOD_NAME[next]}?`, confirmLabel: `Move to ${PERIOD_NAME[next]}` },
+    );
+    if (!ok) return;
+    const supabase = createClient();
+    const { error: moveError } = await supabase.from("assessments").update({ period: next }).eq("id", a.id);
+    // An item synced from an online exam takes its term from the exam on
+    // every submission -- move the exam too so it doesn't snap back.
+    const { error: examError } = a.source_exam_id
+      ? await supabase.from("exams").update({ period: next }).eq("id", a.source_exam_id)
+      : { error: null };
+    if (moveError || examError) {
+      showToast((moveError ?? examError)!.message);
+      return;
+    }
+    setAssessments((prev) => prev.map((x) => (x.id === a.id ? { ...x, period: next } : x)));
+    showToast(`Moved "${a.title}" to ${PERIOD_NAME[next]}.`);
     router.refresh();
   }
 
@@ -247,22 +278,29 @@ export default function AssessmentRoster({
             <li key={a.id}>
               <CollapsibleSection
                 title={a.title}
-                subtitle={`${a.date ? `${a.date} · ` : ""}Max score ${a.max_score} · ${a.period} · ${students.length} students`}
+                subtitle={`${a.date ? `${a.date} · ` : ""}Max score ${a.max_score} · ${PERIOD_NAME[a.period]} · ${students.length} students`}
                 open={isOpen}
                 onToggle={() => setExpandedId(isOpen ? null : a.id)}
                 closedLabel="Enter scores"
                 openLabel="Hide scores"
                 actions={
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(a.id);
-                    }}
-                  >
-                    Delete
-                  </Button>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <MenuSelect
+                      label="Term"
+                      value={a.period}
+                      onChange={(next) => handleMove(a, next)}
+                      options={[
+                        ...(usePrelims || a.period === "prelim"
+                          ? [{ value: "prelim" as Period, label: PERIOD_NAME.prelim }]
+                          : []),
+                        { value: "midterm", label: PERIOD_NAME.midterm },
+                        { value: "finals", label: PERIOD_NAME.finals },
+                      ]}
+                    />
+                    <Button variant="danger" size="sm" onClick={() => handleDelete(a.id)}>
+                      Delete
+                    </Button>
+                  </div>
                 }
               >
                 <ScoreEntryTable

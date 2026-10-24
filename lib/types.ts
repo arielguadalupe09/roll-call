@@ -184,6 +184,8 @@ export type Assessment = {
   created_at: string;
   // Set on recitation items created from scanner taps (one per class day).
   scan_date?: string | null;
+  // Set when the item mirrors an online exam (lib/exam-gradebook-sync.ts).
+  source_exam_id?: string | null;
 };
 
 export type AssessmentScore = {
