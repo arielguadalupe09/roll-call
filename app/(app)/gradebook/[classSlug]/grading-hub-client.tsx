@@ -30,7 +30,8 @@ type Tab =
   | "quiz"
   | "written"
   | "laboratory"
-  | "major-exam";
+  | "major-exam"
+  | "recitation";
 
 const TABS: Tab[] = [
   "overview",
@@ -40,6 +41,7 @@ const TABS: Tab[] = [
   "written",
   "laboratory",
   "major-exam",
+  "recitation",
 ];
 
 export default function GradingHubClient({
@@ -126,6 +128,7 @@ export default function GradingHubClient({
   const quizAssessments = assessments.filter((a) => a.category === "quiz");
   const writtenAssessments = assessments.filter((a) => a.category === "written");
   const labAssessments = assessments.filter((a) => a.category === "laboratory");
+  const recitationAssessments = assessments.filter((a) => a.category === "recitation");
 
   const quizExams = exams.filter((e) => e.kind === "quiz");
   const writtenExams = exams.filter((e) => e.kind === "written");
@@ -155,6 +158,7 @@ export default function GradingHubClient({
       ],
     },
     { kind: "tool", label: "Major Exam", active: tab === "major-exam", onClick: () => setTab("major-exam") },
+    { kind: "tool", label: "Recitation", active: tab === "recitation", onClick: () => setTab("recitation") },
   ];
 
   return (
@@ -280,6 +284,18 @@ export default function GradingHubClient({
             />
           </div>
         </>
+      )}
+
+      {tab === "recitation" && (
+        <AssessmentRoster
+          classId={classId}
+          category="recitation"
+          categoryLabel="Recitation"
+          students={students}
+          initialAssessments={recitationAssessments}
+          initialScores={scoresFor(recitationAssessments)}
+          usePrelims={config.use_prelims}
+        />
       )}
     </div>
   );

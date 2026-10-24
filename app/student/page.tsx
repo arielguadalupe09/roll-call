@@ -610,6 +610,7 @@ export default function StudentProfilePage() {
                 <AssessmentSection title="Quiz" entries={profile.quizzes} />
                 <AssessmentSection title="Written Activity" entries={profile.written} />
                 <AssessmentSection title="Laboratory Activity" entries={profile.laboratory} />
+                <AssessmentSection title="Recitation" entries={profile.recitation ?? []} />
               </>
             )}
 

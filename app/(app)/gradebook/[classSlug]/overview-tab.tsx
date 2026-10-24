@@ -74,6 +74,12 @@ export default function OverviewTab({
     () => assessments.filter((a) => a.category === "laboratory"),
     [assessments],
   );
+  const recitations = useMemo(
+    () => assessments.filter((a) => a.category === "recitation"),
+    [assessments],
+  );
+  // Scanner recitation taps (/5) only get their own column when there are any.
+  const hasScannedRecitation = recitationLogs.length > 0;
   const periods: Period[] = config.use_prelims
     ? ["prelim", "midterm", "finals"]
     : ["midterm", "finals"];
@@ -129,7 +135,12 @@ export default function OverviewTab({
   ]);
 
   const hasAnyColumns =
-    assignments.length > 0 || quizzes.length > 0 || written.length > 0 || labs.length > 0 || majorExams.length > 0;
+    assignments.length > 0 ||
+    quizzes.length > 0 ||
+    written.length > 0 ||
+    labs.length > 0 ||
+    recitations.length > 0 ||
+    majorExams.length > 0;
   const examPeriods = periods.filter((p) => examByPeriod.has(p));
 
   const gradedFinals = students
@@ -146,8 +157,9 @@ export default function OverviewTab({
     quizzes.length +
     written.length +
     labs.length +
+    recitations.length +
     examPeriods.length +
-    1 + // recitation
+    (hasScannedRecitation ? 1 : 0) +
     periods.length + // per-period grade
     1; // final grade
 
@@ -235,6 +247,14 @@ export default function OverviewTab({
                   </span>
                 </TableHeaderCell>
               ))}
+              {recitations.map((a) => (
+                <TableHeaderCell key={a.id} align="center">
+                  {a.title}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    Recitation / {a.max_score}
+                  </span>
+                </TableHeaderCell>
+              ))}
               {examPeriods.map((p) => {
                 const exam = examByPeriod.get(p)!;
                 return (
@@ -246,10 +266,12 @@ export default function OverviewTab({
                   </TableHeaderCell>
                 );
               })}
-              <TableHeaderCell align="center">
-                Recitation
-                <span className="block font-sans text-[11px] font-normal text-card/70">avg / 5</span>
-              </TableHeaderCell>
+              {hasScannedRecitation && (
+                <TableHeaderCell align="center">
+                  Scanned recitation
+                  <span className="block font-sans text-[11px] font-normal text-card/70">avg / 5</span>
+                </TableHeaderCell>
+              )}
               {periods.map((p) => (
                 <TableHeaderCell key={p} align="center">
                   {PERIOD_LABEL[p]}
@@ -294,6 +316,12 @@ export default function OverviewTab({
                       <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
                     );
                   })}
+                  {recitations.map((a) => {
+                    const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
+                    );
+                  })}
                   {examPeriods.map((p) => {
                     const exam = examByPeriod.get(p)!;
                     const score = majorExamScoreByKey.get(`${exam.id}_${s.id}`)?.score;
@@ -301,9 +329,11 @@ export default function OverviewTab({
                       <Cell key={p}>{score != null ? `${score}/${exam.max_score}` : null}</Cell>
                     );
                   })}
-                  <Cell>
-                    {recitation?.avg != null ? `${recitation.avg.toFixed(1)}/5` : null}
-                  </Cell>
+                  {hasScannedRecitation && (
+                    <Cell>
+                      {recitation?.avg != null ? `${recitation.avg.toFixed(1)}/5` : null}
+                    </Cell>
+                  )}
                   {periods.map((p) => (
                     <Cell key={p}>
                       {grade?.[p] != null ? `${(grade[p] as number).toFixed(1)}%` : null}
@@ -326,7 +356,7 @@ export default function OverviewTab({
         </Table>
         {!hasAnyColumns && (
           <p className="mt-3 text-ink/60">
-            No assignments, quizzes, activities, or major exams recorded yet.
+            No assignments, quizzes, activities, recitations, or major exams recorded yet.
           </p>
         )}
       </CollapsibleSection>

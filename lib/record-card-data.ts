@@ -163,7 +163,7 @@ export function buildRecordCardData(
     maxScore: a.max_score,
   }));
 
-  const recitationEntries: GridEntry[] = classData.recitationLogs
+  const scannedRecitationEntries: GridEntry[] = classData.recitationLogs
     .filter((log) => log.student_id === student.id)
     .map((log) => ({
       date: log.date,
@@ -228,6 +228,13 @@ export function buildRecordCardData(
     period: periodForDate(date, cutoffs),
     status: statusByDateForStudent.get(date) ?? "absent",
   }));
+
+  // Scanner taps (/5) and gradebook recitation items (own max score) both
+  // feed the one Recitation category; each counts as one entry.
+  const recitationEntries: GridEntry[] = [
+    ...scannedRecitationEntries,
+    ...entriesForCategory("recitation"),
+  ].sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     student,

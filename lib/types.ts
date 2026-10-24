@@ -165,7 +165,7 @@ export type GradingConfig = {
   updated_at: string;
 };
 
-export type AssessmentCategory = "quiz" | "written" | "laboratory";
+export type AssessmentCategory = "quiz" | "written" | "laboratory" | "recitation";
 
 export type Assessment = {
   id: string;

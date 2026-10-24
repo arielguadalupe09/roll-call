@@ -79,5 +79,6 @@ export type StudentProfile = {
   quizzes: AssessmentEntry[];
   written: AssessmentEntry[];
   laboratory: AssessmentEntry[];
+  recitation: AssessmentEntry[];
   exams: ExamSummary[];
 };

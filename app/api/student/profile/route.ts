@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
   const quizzes = assessmentEntries("quiz");
   const written = assessmentEntries("written");
   const laboratory = assessmentEntries("laboratory");
+  const recitation = assessmentEntries("recitation");
 
   const { data: lectures } = await supabase
     .from("video_lectures")
@@ -278,6 +279,7 @@ export async function POST(request: NextRequest) {
     quizzes,
     written,
     laboratory,
+    recitation,
     exams,
   });
 }

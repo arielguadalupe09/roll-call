@@ -53,7 +53,7 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
   // no new data. Only fall back to a real Link when arriving from elsewhere.
   const effectiveTab = onGradebookPage ? (sharedTab ?? tabParam) : tabParam;
 
-  function gradebookTabTool(label: string, tabValue: "quiz" | "written" | "laboratory" | "major-exam" | null, active: boolean) {
+  function gradebookTabTool(label: string, tabValue: "quiz" | "written" | "laboratory" | "major-exam" | "recitation" | null, active: boolean) {
     const href = tabValue ? `${gradebookHref}?tab=${tabValue}` : gradebookHref;
     if (onGradebookPage) {
       return {
@@ -130,7 +130,8 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
             effectiveTab !== "quiz" &&
             effectiveTab !== "written" &&
             effectiveTab !== "laboratory" &&
-            effectiveTab !== "major-exam",
+            effectiveTab !== "major-exam" &&
+            effectiveTab !== "recitation",
         ),
         gradebookTabTool("Quiz", "quiz", onGradebookPage && effectiveTab === "quiz"),
         {
@@ -142,6 +143,7 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
           ],
         },
         gradebookTabTool("Major Exam", "major-exam", onGradebookPage && effectiveTab === "major-exam"),
+        gradebookTabTool("Recitation", "recitation", onGradebookPage && effectiveTab === "recitation"),
         {
           label: "Record Cards",
           href: `/record-card/${classSlug}`,
