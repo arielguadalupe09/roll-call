@@ -9,6 +9,7 @@ import type {
   Attendance,
   ClassRow,
   GradeAdjustment,
+  GradeRelease,
   Exam,
   GradingConfig,
   MajorExam,
@@ -66,6 +67,7 @@ export default function GradingHubClient({
   recitationLogs,
   attendance,
   adjustments,
+  releases,
   programType,
   courseType,
   exams,
@@ -90,6 +92,7 @@ export default function GradingHubClient({
   recitationLogs: ParticipationLog[];
   attendance: Attendance[];
   adjustments: GradeAdjustment[];
+  releases: (GradeRelease & { seenCount: number })[];
   programType: string | null;
   courseType: string | null;
   exams: Exam[];
@@ -191,6 +194,7 @@ export default function GradingHubClient({
           recitationLogs={recitationLogs}
           attendance={attendance}
           adjustments={adjustments}
+          releases={releases}
           programType={programType}
         />
       )}

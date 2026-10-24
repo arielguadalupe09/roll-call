@@ -7,6 +7,7 @@ import type {
   Attendance,
   ClassRow,
   GradeAdjustment,
+  GradeRelease,
   Exam,
   GradingConfig,
   MajorExam,
@@ -62,6 +63,7 @@ export default async function GradebookPage({
     { data: exams },
     { data: attendance },
     { data: adjustments },
+    { data: releaseRows },
   ] = await Promise.all([
     supabase
       .from("students")
@@ -97,7 +99,12 @@ export default async function GradebookPage({
     // Attendance is a weighted category in the DHVSU grade (Overview).
     supabase.from("attendance").select("*").eq("class_id", classId),
     supabase.from("grade_adjustments").select("*").eq("class_id", classId),
+    supabase.from("grade_releases").select("*, grade_release_views(count)").eq("class_id", classId),
   ]);
+  // How many students have opened each released term's notice.
+  const releases = (
+    (releaseRows as (GradeRelease & { grade_release_views: { count: number }[] })[] | null) ?? []
+  ).map(({ grade_release_views, ...r }) => ({ ...r, seenCount: grade_release_views?.[0]?.count ?? 0 }));
 
   const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
   const assignmentIds = (assignments as Assignment[] | null)?.map((a) => a.id) ?? [];
@@ -157,6 +164,7 @@ export default async function GradebookPage({
             recitationLogs={(recitationLogs as ParticipationLog[] | null) ?? []}
             attendance={(attendance as Attendance[] | null) ?? []}
             adjustments={(adjustments as GradeAdjustment[] | null) ?? []}
+            releases={releases}
             programType={(classRow as ClassRow).program_type}
             courseType={(classRow as ClassRow).course_type}
             exams={(exams as Exam[] | null) ?? []}

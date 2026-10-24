@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bindDeviceIfUnset, checkDeviceLock, rebindDevice } from "@/lib/student-device-lock";
 import { buildRecordCardData, fetchClassGradingData } from "@/lib/record-card-data";
-import { computeDhvsuGrades } from "@/lib/dhvsu-grade";
+import { computeDhvsuGrades, gradeDescriptive } from "@/lib/dhvsu-grade";
+import { releasedGrade } from "@/lib/grade-release";
 import { CLASS_STANDING_SLOTS, criterionLabel, type CriterionKey } from "@/lib/grading-criteria";
 import type {
   Assessment,
@@ -15,6 +16,8 @@ import type {
   Student,
   Submission,
   VideoLecture,
+  GradeRelease,
+  Period,
 } from "@/lib/types";
 
 const SUBMISSIONS_BUCKET = "submissions";
@@ -110,8 +113,43 @@ export async function POST(request: NextRequest) {
 
   const classData = await fetchClassGradingData(supabase, student.class_id);
   const recordData = buildRecordCardData(student as Student, classData);
-  // Same DHVSU computation as the gradebook and the class record export.
-  const finalGrade = computeDhvsuGrades(classData, [student], classRow.program_type).get(student.id)!;
+  // Same DHVSU computation as the gradebook and the class record export --
+  // but a term's grade only reaches the student once the teacher has
+  // released it, and the final rating only once every term is released.
+  const computed = computeDhvsuGrades(classData, [student], classRow.program_type).get(student.id)!;
+  const { data: releaseRows } = await supabase
+    .from("grade_releases")
+    .select("*")
+    .eq("class_id", student.class_id);
+  const releases = (releaseRows as GradeRelease[] | null) ?? [];
+  const released = new Set(releases.map((r) => r.period));
+  const termPeriods: Period[] = classData.config?.use_prelims ? ["prelim", "midterm", "finals"] : ["midterm", "finals"];
+  const finalGrade = releasedGrade(computed, termPeriods, released);
+
+  // One-time "your grade is out" notice per released term.
+  const { data: viewRows } = releases.length
+    ? await supabase
+        .from("grade_release_views")
+        .select("release_id")
+        .eq("student_id", student.id)
+        .in("release_id", releases.map((r) => r.id))
+    : { data: [] as { release_id: string }[] };
+  const seenReleaseIds = new Set(((viewRows as { release_id: string }[] | null) ?? []).map((v) => v.release_id));
+  const gradeNotices = releases
+    .filter((r) => termPeriods.includes(r.period) && computed[r.period] != null)
+    .sort((a, b) => termPeriods.indexOf(a.period) - termPeriods.indexOf(b.period))
+    .map((r) => {
+      const equivalent = computed.termEquivalents[r.period] ?? null;
+      return {
+        period: r.period,
+        grade: computed[r.period] as number,
+        equivalent,
+        descriptive: equivalent != null ? gradeDescriptive(equivalent) : null,
+        releasedAt: r.released_at,
+        isNew: !seenReleaseIds.has(r.id),
+        releaseId: r.id,
+      };
+    });
 
   const attended = recordData.attendanceEntries.filter(
     (e) => e.status === "present" || e.status === "late",
@@ -271,6 +309,16 @@ export async function POST(request: NextRequest) {
       .in("id", newlySeenAttemptIds);
   }
 
+  const newlySeenReleases = gradeNotices.filter((n) => n.isNew).map((n) => n.releaseId);
+  if (newlySeenReleases.length) {
+    await supabase
+      .from("grade_release_views")
+      .upsert(
+        newlySeenReleases.map((release_id) => ({ release_id, student_id: student.id })),
+        { onConflict: "release_id,student_id", ignoreDuplicates: true },
+      );
+  }
+
   return NextResponse.json({
     studentName: student.name,
     className: (classRow as ClassRow).name,
@@ -280,6 +328,14 @@ export async function POST(request: NextRequest) {
     attendancePercent,
     attendanceEntries: recordData.attendanceEntries,
     finalGrade,
+    gradeNotices: gradeNotices.map((n) => ({
+      period: n.period,
+      grade: n.grade,
+      equivalent: n.equivalent,
+      descriptive: n.descriptive,
+      releasedAt: n.releasedAt,
+      isNew: n.isNew,
+    })),
     videoLectures,
     assignments,
     quizzes,

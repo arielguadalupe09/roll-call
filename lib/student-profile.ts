@@ -23,7 +23,20 @@ export type FinalGrade = {
   // profile from before this field existed still renders.
   equivalent?: number | "FA" | null;
   termEquivalents?: Partial<Record<Period, number | "FA">>;
+  // Terms the teacher has released; unreleased term grades come back null.
+  released?: Period[];
 };
+// "Your Midterm grade is out" -- one per released term; isNew until the
+// student has loaded the portal once after the release.
+export type GradeNotice = {
+  period: Period;
+  grade: number;
+  equivalent: number | "FA" | null;
+  descriptive: string | null;
+  releasedAt: string;
+  isNew: boolean;
+};
+
 export type VideoLecture = {
   id: string;
   title: string;
@@ -78,6 +91,7 @@ export type StudentProfile = {
   attendancePercent: number | null;
   attendanceEntries: AttendanceEntry[];
   finalGrade: FinalGrade;
+  gradeNotices?: GradeNotice[];
   videoLectures: VideoLecture[];
   assignments: AssignmentEntry[];
   quizzes: AssessmentEntry[];

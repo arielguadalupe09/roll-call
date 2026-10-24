@@ -5,6 +5,7 @@ import type {
   Assignment,
   Attendance,
   GradeAdjustment,
+  GradeRelease,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -18,6 +19,7 @@ import { computeDhvsuGrades, gradeDescriptive, type DhvsuEquivalent } from "@/li
 import { criterionLabel } from "@/lib/grading-criteria";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
+import { useConfirm } from "@/app/_components/confirm-provider";
 import { createClient } from "@/lib/supabase/client";
 import MenuSelect from "@/app/_components/menu-select";
 import Button from "@/app/_components/button";
@@ -76,6 +78,7 @@ export default function OverviewTab({
   recitationLogs,
   attendance,
   adjustments: initialAdjustments,
+  releases: initialReleases,
   programType,
 }: {
   // Used to build the DHVSU export link
@@ -92,10 +95,51 @@ export default function OverviewTab({
   recitationLogs: ParticipationLog[];
   attendance: Attendance[];
   adjustments: GradeAdjustment[];
+  releases: (GradeRelease & { seenCount: number })[];
   programType: string | null;
   classId: string;
 }) {
   const { showToast } = useToast();
+  const confirm = useConfirm();
+  // Term grades stay hidden in the student portal until released here;
+  // releasing gives each student a one-time "your grade is out" notice.
+  const [releases, setReleases] = useState(initialReleases);
+  const [releasing, setReleasing] = useState<Period | null>(null);
+
+  async function releaseTerm(period: Period) {
+    const ok = await confirm(
+      `Each of the ${students.length} students will see their ${PERIOD_LABEL[period]} grade, equivalent and remarks in the student portal, with a "New" notice the next time they open it.`,
+      { title: `Release ${PERIOD_LABEL[period]} grades?`, confirmLabel: "Release" },
+    );
+    if (!ok) return;
+    setReleasing(period);
+    const { data, error } = await createClient()
+      .from("grade_releases")
+      .insert({ class_id: classId, period })
+      .select()
+      .single();
+    setReleasing(null);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setReleases((prev) => [...prev, { ...(data as GradeRelease), seenCount: 0 }]);
+    showToast(`${PERIOD_LABEL[period]} grades released. Students will see them in the student portal.`);
+  }
+
+  async function unreleaseTerm(release: GradeRelease) {
+    const ok = await confirm(
+      `Students will no longer see their ${PERIOD_LABEL[release.period]} grade in the student portal. Releasing again later shows them a new notice.`,
+      { title: `Hide ${PERIOD_LABEL[release.period]} grades?`, confirmLabel: "Hide grades", danger: true },
+    );
+    if (!ok) return;
+    const { error } = await createClient().from("grade_releases").delete().eq("id", release.id);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setReleases((prev) => prev.filter((r) => r.id !== release.id));
+  }
   // The DHVSU "+" Adjustments column: points added onto a term grade.
   // Edited inline; the typed text is kept per student+term so a half-typed
   // "-" or "1." isn't lost, and the grade recomputes from the parsed value.
@@ -285,6 +329,43 @@ export default function OverviewTab({
             { value: "all", label: `${config.use_prelims ? "All terms" : "Both terms"} + final rating` },
           ]}
         />
+        <div className="flex flex-wrap items-center gap-2">
+          {periods.map((p) => {
+            const release = releases.find((r) => r.period === p);
+            return release ? (
+              <span
+                key={p}
+                className="flex h-8 items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-3 text-sm text-success-text"
+                title={`Released ${new Date(release.released_at).toLocaleString()}`}
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {PERIOD_LABEL[p]} released
+                <span className="text-xs text-success-text/80">
+                  · {release.seenCount}/{students.length} seen
+                </span>
+                <button
+                  type="button"
+                  onClick={() => unreleaseTerm(release)}
+                  className="text-xs text-muted underline underline-offset-2 hover:text-ink"
+                >
+                  Undo
+                </button>
+              </span>
+            ) : (
+              <Button
+                key={p}
+                variant="secondary"
+                size="sm"
+                className="h-8"
+                disabled={releasing !== null}
+                onClick={() => releaseTerm(p)}
+              >
+                {releasing === p ? "Releasing..." : `Release ${PERIOD_LABEL[p]} grades`}
+              </Button>
+            );
+          })}
         {config.use_prelims ? (
           <span
             title="DHVSU export only supports Midterm/Finals classes. Turn off Prelims in Setup to export."
@@ -303,6 +384,7 @@ export default function OverviewTab({
             Export Class Record (.xlsx)
           </Button>
         )}
+        </div>
       </div>
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>
         <Table>

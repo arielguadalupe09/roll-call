@@ -15,7 +15,7 @@ import {
   type AssessmentEntry,
   type StudentProfile as Profile,
 } from "@/lib/student-profile";
-import { EXAM_KIND_LABEL, type AttendanceStatus, type SubmissionStatus } from "@/lib/types";
+import { EXAM_KIND_LABEL, type AttendanceStatus, type Period, type SubmissionStatus } from "@/lib/types";
 import { StatusRing } from "@/app/_components/status-ring";
 
 type Step = "code" | "profile";
@@ -37,6 +37,8 @@ function getIsStandalone() {
 function getIsStandaloneServer() {
   return false;
 }
+
+const NOTICE_PERIOD: Record<Period, string> = { prelim: "Prelim", midterm: "Midterm", finals: "Finals" };
 
 function formatEquivalent(value: number | "FA"): string {
   return value === "FA" ? "FA" : value.toFixed(2);
@@ -281,6 +283,12 @@ export default function StudentProfilePage() {
     </Card>
   );
 
+  // A term the teacher hasn't released yet reads as such, not as ungraded.
+  const termGrade = (period: Period) =>
+    profile && profile.finalGrade.released && !profile.finalGrade.released.includes(period)
+      ? "Not yet released"
+      : formatGrade(profile?.finalGrade[period] ?? null);
+
   const gradesCard = profile && (
     <Card>
       <CardHeader title="Grades" />
@@ -289,7 +297,7 @@ export default function StudentProfilePage() {
           <div>
             <dt className="text-ink/60">Prelim</dt>
             <dd className="font-mono font-medium">
-              {formatGrade(profile.finalGrade.prelim)}
+              {termGrade("prelim")}
               <TermRemark equivalent={profile.finalGrade.termEquivalents?.prelim} />
             </dd>
           </div>
@@ -297,14 +305,14 @@ export default function StudentProfilePage() {
         <div>
           <dt className="text-ink/60">Midterm</dt>
           <dd className="font-mono font-medium">
-              {formatGrade(profile.finalGrade.midterm)}
+              {termGrade("midterm")}
               <TermRemark equivalent={profile.finalGrade.termEquivalents?.midterm} />
             </dd>
         </div>
         <div>
           <dt className="text-ink/60">Finals</dt>
           <dd className="font-mono font-medium">
-              {formatGrade(profile.finalGrade.finals)}
+              {termGrade("finals")}
               <TermRemark equivalent={profile.finalGrade.termEquivalents?.finals} />
             </dd>
         </div>
@@ -313,7 +321,9 @@ export default function StudentProfilePage() {
         <dt className="font-medium text-ink">Final grade</dt>
         <dd className="font-mono text-base font-semibold text-ink">
           {profile.finalGrade.final == null
-            ? "Not yet graded"
+            ? profile.finalGrade.released
+              ? "Not yet released"
+              : "Not yet graded"
             : `${profile.finalGrade.final}${profile.finalGrade.equivalent != null ? ` · ${formatEquivalent(profile.finalGrade.equivalent)} ${gradeDescriptive(profile.finalGrade.equivalent)}` : ""}`}
         </dd>
       </div>
@@ -408,6 +418,37 @@ export default function StudentProfilePage() {
                 You&apos;re marked present for today&apos;s session.
               </div>
             )}
+            {(profile.gradeNotices ?? [])
+              .filter((n) => n.isNew)
+              .map((n) => (
+                <div
+                  key={n.period}
+                  role="status"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-gold/50 bg-gold-soft px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-ink">
+                      Your {NOTICE_PERIOD[n.period]} grade is out
+                      <span className="ml-2 rounded-full bg-danger/15 px-2 py-0.5 align-middle text-[10px] font-semibold text-danger">
+                        New
+                      </span>
+                    </p>
+                    <p className="mt-0.5 font-mono text-sm text-ink">
+                      {n.grade.toFixed(2)}
+                      {n.equivalent != null && (
+                        <>
+                          {" · "}
+                          {formatEquivalent(n.equivalent)}
+                          <span className="font-sans"> · {n.descriptive}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={() => setTab("grades")}>
+                    View grades
+                  </Button>
+                </div>
+              ))}
             {tab === "overview" && (
               <>
                 {profile.announcements.length > 0 && (

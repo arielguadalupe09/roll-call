@@ -375,3 +375,11 @@ export type GradeAdjustment = {
   points: number;
   updated_at: string;
 };
+
+// A term's grades made visible in the student portal (migration 0042).
+export type GradeRelease = {
+  id: string;
+  class_id: string;
+  period: Period;
+  released_at: string;
+};
