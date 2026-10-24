@@ -16,7 +16,7 @@ import type {
 } from "@/lib/types";
 import type { ClassGradingData } from "@/lib/record-card-data";
 import { computeDhvsuGrades, gradeDescriptive, type DhvsuEquivalent } from "@/lib/dhvsu-grade";
-import { criterionLabel } from "@/lib/grading-criteria";
+import { CLASS_STANDING_SLOTS, criterionLabel } from "@/lib/grading-criteria";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
@@ -260,6 +260,24 @@ export default function OverviewTab({
   const attendanceWeight = Number(config.weight_attendance) || 0;
   const attendancePeriods = attendanceWeight > 0 ? shownPeriods : [];
 
+  // A criterion (or Major Exam) with weight but no items in a term counts
+  // as 0 under the DHVSU rule -- call it out so lower grades aren't a
+  // mystery.
+  const emptyCriteria = shownPeriods.flatMap((p) => {
+    const missing: { period: Period; label: string; weight: number }[] = [];
+    for (const slot of CLASS_STANDING_SLOTS) {
+      const weight = Number(config[slot.weightField]) || 0;
+      if (weight > 0 && !assessments.some((a) => a.category === slot.key && a.period === p)) {
+        missing.push({ period: p, label: criterionLabel(config, slot.key), weight });
+      }
+    }
+    const majorWeight = Number(config.weight_major_exam) || 0;
+    if (majorWeight > 0 && !majorExams.some((e) => e.period === p)) {
+      missing.push({ period: p, label: "Major Exam", weight: majorWeight });
+    }
+    return missing;
+  });
+
   // Stat cards follow the dropdown: the term grade, or the final rating.
   const gradedFinals = students
     .map((s) => {
@@ -386,6 +404,21 @@ export default function OverviewTab({
         )}
         </div>
       </div>
+      {emptyCriteria.length > 0 && (
+        <div className="mb-4 rounded-[10px] border border-gold/50 bg-gold-soft px-4 py-3 text-sm text-ink">
+          <p className="font-semibold">Some weighted criteria have no items yet</p>
+          <ul className="mt-1 list-disc pl-5">
+            {emptyCriteria.map((e) => (
+              <li key={`${e.period}-${e.label}`}>
+                <span className="font-medium">{e.label}</span> ({e.weight}%) has no {PERIOD_LABEL[e.period]} items, so it
+                counts as 0 — every student&apos;s {PERIOD_LABEL[e.period]} grade is up to {e.weight} points lower until
+                you add one or set its weight to 0% in Setup.
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-muted">This is the DHVSU class record&apos;s rule; the exported file computes the same.</p>
+        </div>
+      )}
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>
         <Table>
           <TableHead>

@@ -7,6 +7,10 @@ import type { GradingConfig } from "./types";
 // weight column never change) with an adjustable display name, so renaming
 // "Written Activity" to "Seatwork" for a subject never touches score data.
 
+// Fired after Setup saves, so client-fetched copies (the top Gradebook
+// menu's criteria names) re-read the new config.
+export const GRADING_CONFIG_SAVED_EVENT = "gains:grading-config-saved";
+
 export type CriterionKey = "quiz" | "recitation" | "written" | "laboratory" | "other";
 
 export type CriterionSlot = {

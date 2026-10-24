@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   CLASS_STANDING_SLOTS,
   criterionLabel,
+  GRADING_CONFIG_SAVED_EVENT,
   isCriterionActive,
   type CriterionKey,
 } from "@/lib/grading-criteria";
@@ -57,18 +58,22 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
   useEffect(() => {
     if (!classSlug) return;
     let cancelled = false;
-    createClient()
-      .from("classes")
-      .select("grading_configs(criteria_labels, weight_other)")
-      .eq("slug", classSlug)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        const raw = (data as { grading_configs: CriteriaConfig | CriteriaConfig[] | null } | null)?.grading_configs;
-        setCriteria({ slug: classSlug, config: (Array.isArray(raw) ? raw[0] : raw) ?? null });
-      });
+    const load = () =>
+      createClient()
+        .from("classes")
+        .select("grading_configs(criteria_labels, weight_other)")
+        .eq("slug", classSlug)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (cancelled) return;
+          const raw = (data as { grading_configs: CriteriaConfig | CriteriaConfig[] | null } | null)?.grading_configs;
+          setCriteria({ slug: classSlug, config: (Array.isArray(raw) ? raw[0] : raw) ?? null });
+        });
+    load();
+    window.addEventListener(GRADING_CONFIG_SAVED_EVENT, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(GRADING_CONFIG_SAVED_EVENT, load);
     };
   }, [classSlug]);
   const criteriaConfig = criteria?.slug === classSlug ? criteria.config : null;

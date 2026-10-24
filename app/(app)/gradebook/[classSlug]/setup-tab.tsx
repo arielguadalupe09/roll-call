@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { GradingConfig } from "@/lib/types";
 import {
@@ -20,6 +21,7 @@ import {
   DHVSU_CRITERIA_NAMES,
   PERCENTS,
   PROGRAM_TYPES,
+  GRADING_CONFIG_SAVED_EVENT,
   type CriterionKey,
   type CriterionSlot,
 } from "@/lib/grading-criteria";
@@ -121,6 +123,7 @@ export default function SetupTab({
     return initial;
   });
   const { showToast } = useToast();
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
 
   const setWeight = (field: WeightField, value: number) => setWeights((prev) => ({ ...prev, [field]: value }));
@@ -186,6 +189,11 @@ export default function SetupTab({
       return;
     }
     showToast("Your grading configuration has been saved successfully.");
+    // Overview, the other tabs and the top Gradebook menu were rendered with
+    // the old weights/names -- re-fetch so switching tabs shows the new
+    // grades without a manual page reload.
+    router.refresh();
+    window.dispatchEvent(new Event(GRADING_CONFIG_SAVED_EVENT));
   }
 
   return (
