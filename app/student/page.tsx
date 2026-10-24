@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { gradeDescriptive } from "@/lib/dhvsu-grade";
 import { getDeviceId } from "@/lib/device-id";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
@@ -37,8 +38,22 @@ function getIsStandaloneServer() {
   return false;
 }
 
-function formatPercent(value: number | null): string {
-  return value == null ? "Not yet graded" : `${value.toFixed(1)}%`;
+function formatEquivalent(value: number | "FA"): string {
+  return value === "FA" ? "FA" : value.toFixed(2);
+}
+
+// A term's own equivalent and descriptive, e.g. "2.75 · Pass".
+function TermRemark({ equivalent }: { equivalent: number | "FA" | null | undefined }) {
+  if (equivalent == null) return null;
+  return (
+    <span className="block font-sans text-xs font-normal text-ink/60">
+      {formatEquivalent(equivalent)} · {gradeDescriptive(equivalent)}
+    </span>
+  );
+}
+
+function formatGrade(value: number | null): string {
+  return value == null ? "Not yet graded" : value.toFixed(2);
 }
 
 const STATUS_LABEL: Record<AttendanceStatus, string> = {
@@ -273,22 +288,33 @@ export default function StudentProfilePage() {
         {profile.usePrelims && (
           <div>
             <dt className="text-ink/60">Prelim</dt>
-            <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.prelim)}</dd>
+            <dd className="font-mono font-medium">
+              {formatGrade(profile.finalGrade.prelim)}
+              <TermRemark equivalent={profile.finalGrade.termEquivalents?.prelim} />
+            </dd>
           </div>
         )}
         <div>
           <dt className="text-ink/60">Midterm</dt>
-          <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.midterm)}</dd>
+          <dd className="font-mono font-medium">
+              {formatGrade(profile.finalGrade.midterm)}
+              <TermRemark equivalent={profile.finalGrade.termEquivalents?.midterm} />
+            </dd>
         </div>
         <div>
           <dt className="text-ink/60">Finals</dt>
-          <dd className="font-mono font-medium">{formatPercent(profile.finalGrade.finals)}</dd>
+          <dd className="font-mono font-medium">
+              {formatGrade(profile.finalGrade.finals)}
+              <TermRemark equivalent={profile.finalGrade.termEquivalents?.finals} />
+            </dd>
         </div>
       </dl>
       <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
         <dt className="font-medium text-ink">Final grade</dt>
         <dd className="font-mono text-base font-semibold text-ink">
-          {formatPercent(profile.finalGrade.final)}
+          {profile.finalGrade.final == null
+            ? "Not yet graded"
+            : `${profile.finalGrade.final}${profile.finalGrade.equivalent != null ? ` · ${formatEquivalent(profile.finalGrade.equivalent)} ${gradeDescriptive(profile.finalGrade.equivalent)}` : ""}`}
         </dd>
       </div>
     </Card>
@@ -607,10 +633,16 @@ export default function StudentProfilePage() {
                   )}
                 </CollapsibleSection>
 
-                <AssessmentSection title="Quiz" entries={profile.quizzes} />
-                <AssessmentSection title="Written Activity" entries={profile.written} />
-                <AssessmentSection title="Laboratory Activity" entries={profile.laboratory} />
-                <AssessmentSection title="Recitation" entries={profile.recitation ?? []} />
+                <AssessmentSection title={profile.criteriaLabels?.quiz ?? "Quizzes"} entries={profile.quizzes} />
+                <AssessmentSection title={profile.criteriaLabels?.recitation ?? "Recitation"} entries={profile.recitation ?? []} />
+                <AssessmentSection title={profile.criteriaLabels?.written ?? "Written Activity"} entries={profile.written} />
+                <AssessmentSection
+                  title={profile.criteriaLabels?.laboratory ?? "Laboratory Activity"}
+                  entries={profile.laboratory}
+                />
+                {(profile.other?.length ?? 0) > 0 && (
+                  <AssessmentSection title={profile.criteriaLabels?.other ?? "Other"} entries={profile.other ?? []} />
+                )}
               </>
             )}
 

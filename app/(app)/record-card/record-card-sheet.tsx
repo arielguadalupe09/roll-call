@@ -1,4 +1,5 @@
 import type { AttendanceStatus, ClassRow, GradingConfig, Student, Teacher } from "@/lib/types";
+import { CLASS_STANDING_SLOTS, criterionLabel, isCriterionActive, type CriterionKey } from "@/lib/grading-criteria";
 import { parseStudentName } from "@/lib/name-format";
 import type {
   AttendanceEntry,
@@ -204,6 +205,11 @@ function MajorExamBox({
               <td className="border border-black px-2 py-1 font-semibold uppercase">Prelim</td>
               <td className="border border-black px-2 py-1 text-center">
                 {data.prelimScore != null ? `${data.prelimScore}/${data.prelimMax}` : ""}
+                {data.lab?.prelim && (
+                  <span className="block">
+                    Lab {data.lab.prelim.score != null ? `${data.lab.prelim.score}/${data.lab.prelim.max}` : ""}
+                  </span>
+                )}
               </td>
             </tr>
           )}
@@ -211,12 +217,22 @@ function MajorExamBox({
             <td className="border border-black px-2 py-1 font-semibold uppercase">Midterm</td>
             <td className="border border-black px-2 py-1 text-center">
               {data.midtermScore != null ? `${data.midtermScore}/${data.midtermMax}` : ""}
+                {data.lab?.midterm && (
+                  <span className="block">
+                    Lab {data.lab.midterm.score != null ? `${data.lab.midterm.score}/${data.lab.midterm.max}` : ""}
+                  </span>
+                )}
             </td>
           </tr>
           <tr>
             <td className="border border-black px-2 py-1 font-semibold uppercase">Finals</td>
             <td className="border border-black px-2 py-1 text-center">
               {data.finalsScore != null ? `${data.finalsScore}/${data.finalsMax}` : ""}
+                {data.lab?.finals && (
+                  <span className="block">
+                    Lab {data.lab.finals.score != null ? `${data.lab.finals.score}/${data.lab.finals.max}` : ""}
+                  </span>
+                )}
             </td>
           </tr>
           <tr>
@@ -352,16 +368,16 @@ export default function RecordCardSheet({
   logoUrl: string | null;
   breakBeforePage?: boolean;
 }) {
-  const { student, assignmentEntries, recitationEntries, quizEntries, writtenEntries, labEntries, majorExam, attendanceEntries } =
+  const { student, recitationEntries, quizEntries, writtenEntries, labEntries, otherEntries, majorExam, attendanceEntries } =
     data;
 
   const showBySection: Record<RecordCardSectionKey, boolean> = {
-    assignment: config.show_assignment,
     recitation: config.show_recitation,
     quiz: config.show_quiz,
     major_exam: config.show_major_exam,
     written: config.show_written,
     laboratory: config.show_laboratory,
+    other: (config.show_other ?? true) && isCriterionActive(config, "other"),
     attendance: config.show_attendance,
   };
 
@@ -393,10 +409,12 @@ export default function RecordCardSheet({
   if (currentRow.length > 0) rows.push(currentRow);
 
   function renderSectionContent(key: RecordCardSectionKey) {
-    const title = sectionTitle(config.record_card_layout, key);
+    // A criterion's default title is the name chosen for it in Setup.
+    const isCriterion = CLASS_STANDING_SLOTS.some((s) => s.key === key);
+    const title =
+      config.record_card_layout?.titles?.[key]?.trim() ||
+      (isCriterion ? criterionLabel(config, key as CriterionKey) : sectionTitle(config.record_card_layout, key));
     switch (key) {
-      case "assignment":
-        return <DateGridBox title={title} entries={assignmentEntries} usePrelims={config.use_prelims} />;
       case "recitation":
         return <DateGridBox title={title} entries={recitationEntries} usePrelims={config.use_prelims} />;
       case "quiz":
@@ -405,6 +423,8 @@ export default function RecordCardSheet({
         return <DateGridBox title={title} entries={writtenEntries} usePrelims={config.use_prelims} />;
       case "laboratory":
         return <DateGridBox title={title} entries={labEntries} usePrelims={config.use_prelims} />;
+      case "other":
+        return <DateGridBox title={title} entries={otherEntries} usePrelims={config.use_prelims} />;
       case "major_exam":
         return <MajorExamBox title={title} data={majorExam} usePrelims={config.use_prelims} />;
       case "attendance":

@@ -24,12 +24,15 @@ function student(id: string): Student {
 function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
   return {
     class_id: "class-1",
+    weight_attendance: 0,
     weight_assignment: 20,
     weight_recitation: 20,
     weight_quiz: 20,
     weight_written: 20,
     weight_laboratory: 10,
     weight_major_exam: 10,
+    weight_other: 0,
+    criteria_labels: {},
     use_prelims: false,
     prelim_weight: 0,
     midterm_weight: 50,
@@ -41,6 +44,7 @@ function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
     show_quiz: true,
     show_written: true,
     show_laboratory: true,
+    show_other: true,
     show_major_exam: true,
     show_attendance: true,
     record_card_layout: {},
@@ -60,6 +64,7 @@ function emptyClassData(overrides: Partial<ClassGradingData> = {}): ClassGrading
     majorExamScores: [],
     recitationLogs: [],
     attendance: [],
+    adjustments: [],
     ...overrides,
   };
 }
@@ -109,6 +114,7 @@ describe("buildRecordCardData", () => {
       finalsScore: null,
       finalsMax: null,
       average: null,
+      lab: {},
     });
   });
 
@@ -156,7 +162,7 @@ describe("buildRecordCardData", () => {
     ]);
   });
 
-  it("splits recitation entries into midterm/finals using the configured cutoff", () => {
+  it("leaves scanner recitation taps out of recitation entries (not graded)", () => {
     const logs: ParticipationLog[] = [
       {
         id: "l1",
@@ -180,16 +186,13 @@ describe("buildRecordCardData", () => {
       },
     ];
     const data = buildRecordCardData(student("s1"), emptyClassData({ recitationLogs: logs }));
-    expect(data.recitationEntries).toEqual([
-      { date: "2026-07-10", period: "midterm", score: 5, maxScore: 5 },
-      { date: "2026-07-20", period: "finals", score: 3, maxScore: 5 },
-    ]);
+    expect(data.recitationEntries).toEqual([]);
   });
 
   it("averages midterm and finals major exam scores", () => {
     const majorExams: MajorExam[] = [
-      { id: "e1", class_id: "class-1", period: "midterm", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
-      { id: "e2", class_id: "class-1", period: "finals", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e1", class_id: "class-1", period: "midterm", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e2", class_id: "class-1", period: "finals", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
     ];
     const majorExamScores: MajorExamScore[] = [
       { id: "s1", major_exam_id: "e1", student_id: "s1", score: 80, updated_at: "2026-07-10T00:00:00Z" },
@@ -204,7 +207,7 @@ describe("buildRecordCardData", () => {
 
   it("leaves the major exam average null until both periods are scored", () => {
     const majorExams: MajorExam[] = [
-      { id: "e1", class_id: "class-1", period: "midterm", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e1", class_id: "class-1", period: "midterm", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
     ];
     const majorExamScores: MajorExamScore[] = [
       { id: "s1", major_exam_id: "e1", student_id: "s1", score: 80, updated_at: "2026-07-10T00:00:00Z" },
@@ -219,9 +222,9 @@ describe("buildRecordCardData", () => {
 
   it("requires all three periods graded before averaging when Prelims is enabled", () => {
     const majorExams: MajorExam[] = [
-      { id: "e0", class_id: "class-1", period: "prelim", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
-      { id: "e1", class_id: "class-1", period: "midterm", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
-      { id: "e2", class_id: "class-1", period: "finals", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e0", class_id: "class-1", period: "prelim", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e1", class_id: "class-1", period: "midterm", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e2", class_id: "class-1", period: "finals", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
     ];
     const scoresMissingPrelim: MajorExamScore[] = [
       { id: "s1", major_exam_id: "e1", student_id: "s1", score: 80, updated_at: "2026-07-10T00:00:00Z" },
@@ -248,9 +251,9 @@ describe("buildRecordCardData", () => {
 
   it("ignores a graded prelim exam in the average when Prelims is off", () => {
     const majorExams: MajorExam[] = [
-      { id: "e0", class_id: "class-1", period: "prelim", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
-      { id: "e1", class_id: "class-1", period: "midterm", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
-      { id: "e2", class_id: "class-1", period: "finals", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e0", class_id: "class-1", period: "prelim", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e1", class_id: "class-1", period: "midterm", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
+      { id: "e2", class_id: "class-1", period: "finals", kind: "written", max_score: 100, created_at: "2026-01-01T00:00:00Z" },
     ];
     const allScores: MajorExamScore[] = [
       { id: "s0", major_exam_id: "e0", student_id: "s1", score: 70, updated_at: "2026-06-10T00:00:00Z" },

@@ -19,6 +19,10 @@ export type FinalGrade = {
   midterm: number | null;
   finals: number | null;
   final: number | null;
+  // DHVSU equivalent (1.0-5.0) of the final rating; optional so a cached
+  // profile from before this field existed still renders.
+  equivalent?: number | "FA" | null;
+  termEquivalents?: Partial<Record<Period, number | "FA">>;
 };
 export type VideoLecture = {
   id: string;
@@ -80,5 +84,9 @@ export type StudentProfile = {
   written: AssessmentEntry[];
   laboratory: AssessmentEntry[];
   recitation: AssessmentEntry[];
+  // Optional so a cached profile from before these existed still renders.
+  other?: AssessmentEntry[];
+  // Class Standing criterion names chosen in the teacher's Setup.
+  criteriaLabels?: Record<"quiz" | "recitation" | "written" | "laboratory" | "other", string>;
   exams: ExamSummary[];
 };

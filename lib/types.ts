@@ -142,12 +142,17 @@ export type ParticipationLog = {
 
 export type GradingConfig = {
   class_id: string;
+  weight_attendance: number;
   weight_assignment: number;
   weight_recitation: number;
   weight_quiz: number;
   weight_written: number;
   weight_laboratory: number;
   weight_major_exam: number;
+  // 5th Class Standing criterion (see lib/grading-criteria.ts).
+  weight_other: number;
+  // Per-class display names for the Class Standing criteria.
+  criteria_labels: Partial<Record<"quiz" | "recitation" | "written" | "laboratory" | "other", string>> | null;
   use_prelims: boolean;
   prelim_weight: number;
   midterm_weight: number;
@@ -159,13 +164,14 @@ export type GradingConfig = {
   show_quiz: boolean;
   show_written: boolean;
   show_laboratory: boolean;
+  show_other: boolean;
   show_major_exam: boolean;
   show_attendance: boolean;
   record_card_layout: RecordCardLayout;
   updated_at: string;
 };
 
-export type AssessmentCategory = "quiz" | "written" | "laboratory" | "recitation";
+export type AssessmentCategory = "quiz" | "written" | "laboratory" | "recitation" | "other";
 
 export type Assessment = {
   id: string;
@@ -176,6 +182,8 @@ export type Assessment = {
   max_score: number;
   period: Period;
   created_at: string;
+  // Set on recitation items created from scanner taps (one per class day).
+  scan_date?: string | null;
 };
 
 export type AssessmentScore = {
@@ -186,10 +194,14 @@ export type AssessmentScore = {
   updated_at: string;
 };
 
+export type MajorExamKind = "written" | "laboratory";
+
 export type MajorExam = {
   id: string;
   class_id: string;
   period: Period;
+  // Written (paper) or laboratory exam; a term can have one of each.
+  kind: MajorExamKind;
   max_score: number;
   created_at: string;
 };
@@ -351,4 +363,15 @@ export type ExamViolation = {
   type: ViolationType;
   occurred_at: string;
   snapshot_path: string | null;
+};
+
+// The DHVSU class record's "+" Adjustments column: points added straight
+// onto one term grade (migration 0041).
+export type GradeAdjustment = {
+  id: string;
+  class_id: string;
+  student_id: string;
+  period: Period;
+  points: number;
+  updated_at: string;
 };

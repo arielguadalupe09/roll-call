@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type {
   Assessment,
   AssessmentScore,
   Assignment,
+  Attendance,
+  GradeAdjustment,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -11,15 +13,18 @@ import type {
   Student,
   Submission,
 } from "@/lib/types";
-import { summarizeParticipation } from "@/lib/participation";
-import { buildRecordCardData, type ClassGradingData } from "@/lib/record-card-data";
-import { computeFinalGrade } from "@/lib/final-grade";
+import type { ClassGradingData } from "@/lib/record-card-data";
+import { computeDhvsuGrades, gradeDescriptive, type DhvsuEquivalent } from "@/lib/dhvsu-grade";
+import { criterionLabel } from "@/lib/grading-criteria";
 import CollapsibleSection from "@/app/_components/collapsible-section";
+import { useToast } from "@/app/_components/toast";
+import { createClient } from "@/lib/supabase/client";
+import MenuSelect from "@/app/_components/menu-select";
 import Button from "@/app/_components/button";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 import { StatCard } from "@/app/_components/stat-card";
 import { TileIcon } from "@/app/_components/tile-icon";
-import { tierFor, TIER_TEXT } from "@/lib/chart-tiers";
+import { tierFor, TIER_TEXT, type Tier } from "@/lib/chart-tiers";
 
 const PERIOD_LABEL: Record<Period, string> = {
   prelim: "Prelim",
@@ -32,15 +37,33 @@ const ICON_TREND = "M2 11l3.5-4 2.5 2.5L13 4.5M13 4.5H9.5M13 4.5V8";
 const ICON_BARS = "M4 13V7M8 13V3M12 13V9";
 const ICON_ALERT = "M8 2.5 14 13H2L8 2.5zM8 6.5v3M8 11.2v.1";
 
+// Long item titles wrap inside a narrow column instead of stretching the
+// table past the card, so the grade columns stay in view.
+// The `!` beats TableHeaderCell's own whitespace-nowrap, which otherwise
+// wins and lets long titles spill over the neighbouring columns.
+const ITEM_HEADER = "w-28 min-w-[5.5rem] max-w-[8rem] whitespace-normal! break-words align-bottom leading-tight";
+
+function formatEquivalent(eq: DhvsuEquivalent): string {
+  return typeof eq === "number" ? eq.toFixed(2) : eq;
+}
+
+// Remarks colour: Failed / FA red, Low Pass amber, Pass / High Pass green.
+function remarksTier(eq: DhvsuEquivalent): Tier {
+  if (eq === "FA" || eq === 5) return "critical";
+  if (eq === 3) return "warning";
+  return "good";
+}
+
 function Cell({ children }: { children: React.ReactNode }) {
   return (
-    <TableCell align="center" tabular>
+    <TableCell align="center" tabular className="whitespace-nowrap px-2">
       {children ?? <span className="text-ink/20">—</span>}
     </TableCell>
   );
 }
 
 export default function OverviewTab({
+  classId,
   classSlug,
   students,
   config,
@@ -51,6 +74,9 @@ export default function OverviewTab({
   majorExams,
   majorExamScores,
   recitationLogs,
+  attendance,
+  adjustments: initialAdjustments,
+  programType,
 }: {
   // Used to build the DHVSU export link
   // (/api/export/dhvsu-class-record/[classSlug]).
@@ -64,34 +90,71 @@ export default function OverviewTab({
   majorExams: MajorExam[];
   majorExamScores: MajorExamScore[];
   recitationLogs: ParticipationLog[];
+  attendance: Attendance[];
+  adjustments: GradeAdjustment[];
+  programType: string | null;
+  classId: string;
 }) {
-  const quizzes = useMemo(() => assessments.filter((a) => a.category === "quiz"), [assessments]);
-  const written = useMemo(
-    () => assessments.filter((a) => a.category === "written"),
-    [assessments],
+  const { showToast } = useToast();
+  // The DHVSU "+" Adjustments column: points added onto a term grade.
+  // Edited inline; the typed text is kept per student+term so a half-typed
+  // "-" or "1." isn't lost, and the grade recomputes from the parsed value.
+  const [adjText, setAdjText] = useState<Record<string, string>>(() =>
+    Object.fromEntries(initialAdjustments.map((a) => [`${a.student_id}_${a.period}`, String(a.points)])),
   );
-  const labs = useMemo(
-    () => assessments.filter((a) => a.category === "laboratory"),
-    [assessments],
+  const adjustments = useMemo<GradeAdjustment[]>(
+    () =>
+      Object.entries(adjText).flatMap(([key, text]) => {
+        const points = Number(text);
+        if (!text.trim() || !Number.isFinite(points) || points === 0) return [];
+        const [student_id, period] = key.split("_") as [string, Period];
+        return [{ id: key, class_id: classId, student_id, period, points, updated_at: "" }];
+      }),
+    [adjText, classId],
   );
-  const recitations = useMemo(
-    () => assessments.filter((a) => a.category === "recitation"),
-    [assessments],
-  );
-  // Scanner recitation taps (/5) only get their own column when there are any.
-  const hasScannedRecitation = recitationLogs.length > 0;
+
+  async function saveAdjustment(studentId: string, period: Period) {
+    const text = (adjText[`${studentId}_${period}`] ?? "").trim();
+    const points = Number(text);
+    if (text && !Number.isFinite(points)) {
+      showToast("Adjustment must be a number, e.g. 2 or -1.5.");
+      return;
+    }
+    const supabase = createClient();
+    const { error } =
+      !text || points === 0
+        ? await supabase
+            .from("grade_adjustments")
+            .delete()
+            .eq("class_id", classId)
+            .eq("student_id", studentId)
+            .eq("period", period)
+        : await supabase.from("grade_adjustments").upsert(
+            { class_id: classId, student_id: studentId, period, points, updated_at: new Date().toISOString() },
+            { onConflict: "class_id,student_id,period" },
+          );
+    if (error) showToast(error.message);
+  }
+
   const periods: Period[] = config.use_prelims
     ? ["prelim", "midterm", "finals"]
     : ["midterm", "finals"];
-  const examByPeriod = useMemo(
-    () => new Map(majorExams.map((e) => [e.period, e])),
-    [majorExams],
+  // Display-only term filter: one term's items, attendance and grade, or
+  // every term plus the final rating. Grades are always computed over all
+  // terms; this only picks which columns show (the export is unaffected).
+  const [view, setView] = useState<Period | "all">("all");
+  const shownPeriods = view === "all" ? periods : [view];
+  const inView = useCallback((a: Assessment) => view === "all" || a.period === view, [view]);
+  const byCategory = useCallback(
+    (category: Assessment["category"]) => assessments.filter((a) => a.category === category && inView(a)),
+    [assessments, inView],
   );
+  const quizzes = useMemo(() => byCategory("quiz"), [byCategory]);
+  const written = useMemo(() => byCategory("written"), [byCategory]);
+  const labs = useMemo(() => byCategory("laboratory"), [byCategory]);
+  const recitations = useMemo(() => byCategory("recitation"), [byCategory]);
+  const others = useMemo(() => byCategory("other"), [byCategory]);
 
-  const submissionByKey = useMemo(
-    () => new Map(submissions.map((s) => [`${s.assignment_id}_${s.student_id}`, s])),
-    [submissions],
-  );
   const assessmentScoreByKey = useMemo(
     () => new Map(assessmentScores.map((s) => [`${s.assessment_id}_${s.student_id}`, s])),
     [assessmentScores],
@@ -99,10 +162,6 @@ export default function OverviewTab({
   const majorExamScoreByKey = useMemo(
     () => new Map(majorExamScores.map((s) => [`${s.major_exam_id}_${s.student_id}`, s])),
     [majorExamScores],
-  );
-  const recitationByStudent = useMemo(
-    () => summarizeParticipation(recitationLogs),
-    [recitationLogs],
   );
 
   const finalGradeByStudent = useMemo(() => {
@@ -115,13 +174,11 @@ export default function OverviewTab({
       majorExams,
       majorExamScores,
       recitationLogs,
-      attendance: [],
+      attendance,
+      adjustments,
     };
-    const map = new Map<string, ReturnType<typeof computeFinalGrade>>();
-    for (const s of students) {
-      map.set(s.id, computeFinalGrade(buildRecordCardData(s, classData), config));
-    }
-    return map;
+    // Same DHVSU computation the class record export's formulas perform.
+    return computeDhvsuGrades(classData, students, programType);
   }, [
     students,
     config,
@@ -132,19 +189,39 @@ export default function OverviewTab({
     majorExams,
     majorExamScores,
     recitationLogs,
+    attendance,
+    adjustments,
+    programType,
   ]);
 
+  // Assignments don't count toward grades (Attendance replaced them), so
+  // they get no columns here.
   const hasAnyColumns =
-    assignments.length > 0 ||
     quizzes.length > 0 ||
     written.length > 0 ||
     labs.length > 0 ||
     recitations.length > 0 ||
+    others.length > 0 ||
     majorExams.length > 0;
-  const examPeriods = periods.filter((p) => examByPeriod.has(p));
+  // Each term can have a written and a laboratory exam; one column each.
+  const shownExams = majorExams
+    .filter((e) => shownPeriods.includes(e.period))
+    .sort(
+      (a, b) =>
+        shownPeriods.indexOf(a.period) - shownPeriods.indexOf(b.period) ||
+        (a.kind === "laboratory" ? 1 : 0) - (b.kind === "laboratory" ? 1 : 0),
+    );
+  // Attendance is a weighted category of each term grade (Setup), shown as
+  // the transmuted attendance grade with the raw P5/L3/E2 points under it.
+  const attendanceWeight = Number(config.weight_attendance) || 0;
+  const attendancePeriods = attendanceWeight > 0 ? shownPeriods : [];
 
+  // Stat cards follow the dropdown: the term grade, or the final rating.
   const gradedFinals = students
-    .map((s) => finalGradeByStudent.get(s.id)?.final)
+    .map((s) => {
+      const g = finalGradeByStudent.get(s.id);
+      return view === "all" ? g?.final : g?.[view];
+    })
     .filter((v): v is number => v != null);
   const averageFinal =
     gradedFinals.length > 0 ? gradedFinals.reduce((a, b) => a + b, 0) / gradedFinals.length : null;
@@ -153,15 +230,17 @@ export default function OverviewTab({
   const ungradedCount = students.length - gradedFinals.length;
   const totalCols =
     1 + // student
-    assignments.length +
     quizzes.length +
     written.length +
     labs.length +
     recitations.length +
-    examPeriods.length +
-    (hasScannedRecitation ? 1 : 0) +
-    periods.length + // per-period grade
-    1; // final grade
+    others.length +
+    shownExams.length +
+    attendancePeriods.length +
+    shownPeriods.length + // adjustments
+    shownPeriods.length + // per-period grade
+    (view === "all" ? 1 : 0) + // final rating
+    2; // equivalent + remarks
 
   return (
     <div className="mt-6">
@@ -196,16 +275,31 @@ export default function OverviewTab({
         />
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mb-4 mt-6 flex flex-wrap items-center justify-between gap-3">
+        <MenuSelect
+          label="Show"
+          value={view}
+          onChange={setView}
+          options={[
+            ...periods.map((p) => ({ value: p as Period | "all", label: PERIOD_LABEL[p] })),
+            { value: "all", label: `${config.use_prelims ? "All terms" : "Both terms"} + final rating` },
+          ]}
+        />
         {config.use_prelims ? (
           <span
             title="DHVSU export only supports Midterm/Finals classes. Turn off Prelims in Setup to export."
-            className="cursor-not-allowed rounded-sm bg-line/20 px-3 py-1.5 text-sm font-medium text-ink/40"
+            className="flex h-8 cursor-not-allowed items-center rounded-lg bg-line/20 px-3 text-sm font-medium text-ink/40"
           >
             Export Class Record (.xlsx)
           </span>
         ) : (
-          <Button href={`/api/export/dhvsu-class-record/${classSlug}`} external variant="highlight" size="sm">
+          <Button
+            href={`/api/export/dhvsu-class-record/${classSlug}`}
+            external
+            variant="highlight"
+            size="sm"
+            className="h-8"
+          >
             Export Class Record (.xlsx)
           </Button>
         )}
@@ -214,90 +308,101 @@ export default function OverviewTab({
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell className="sticky left-0 bg-navy">Student</TableHeaderCell>
-              {assignments.map((a) => (
-                <TableHeaderCell key={a.id} align="center">
-                  {a.title}
-                  <span className="block font-sans text-[11px] font-normal text-card/70">
-                    Assignment / {a.max_score}
-                  </span>
-                </TableHeaderCell>
-              ))}
+              <TableHeaderCell className="sticky left-0 z-10 bg-navy align-bottom">Student</TableHeaderCell>
               {quizzes.map((a) => (
-                <TableHeaderCell key={a.id} align="center">
+                <TableHeaderCell key={a.id} align="center" className={ITEM_HEADER}>
                   {a.title}
                   <span className="block font-sans text-[11px] font-normal text-card/70">
-                    Quiz / {a.max_score}
+                    {criterionLabel(config, "quiz")} / {a.max_score}
                   </span>
                 </TableHeaderCell>
               ))}
               {written.map((a) => (
-                <TableHeaderCell key={a.id} align="center">
+                <TableHeaderCell key={a.id} align="center" className={ITEM_HEADER}>
                   {a.title}
                   <span className="block font-sans text-[11px] font-normal text-card/70">
-                    Written / {a.max_score}
+                    {criterionLabel(config, "written")} / {a.max_score}
                   </span>
                 </TableHeaderCell>
               ))}
               {labs.map((a) => (
-                <TableHeaderCell key={a.id} align="center">
+                <TableHeaderCell key={a.id} align="center" className={ITEM_HEADER}>
                   {a.title}
                   <span className="block font-sans text-[11px] font-normal text-card/70">
-                    Lab / {a.max_score}
+                    {criterionLabel(config, "laboratory")} / {a.max_score}
                   </span>
                 </TableHeaderCell>
               ))}
               {recitations.map((a) => (
-                <TableHeaderCell key={a.id} align="center">
+                <TableHeaderCell key={a.id} align="center" className={ITEM_HEADER}>
                   {a.title}
                   <span className="block font-sans text-[11px] font-normal text-card/70">
-                    Recitation / {a.max_score}
+                    {criterionLabel(config, "recitation")} / {a.max_score}
                   </span>
                 </TableHeaderCell>
               ))}
-              {examPeriods.map((p) => {
-                const exam = examByPeriod.get(p)!;
-                return (
-                  <TableHeaderCell key={p} align="center">
-                    Major exam
-                    <span className="block font-sans text-[11px] font-normal text-card/70">
-                      {PERIOD_LABEL[p]} / {exam.max_score}
-                    </span>
-                  </TableHeaderCell>
-                );
-              })}
-              {hasScannedRecitation && (
-                <TableHeaderCell align="center">
-                  Scanned recitation
-                  <span className="block font-sans text-[11px] font-normal text-card/70">avg / 5</span>
-                </TableHeaderCell>
-              )}
-              {periods.map((p) => (
-                <TableHeaderCell key={p} align="center">
-                  {PERIOD_LABEL[p]}
-                  <span className="block font-sans text-[11px] font-normal text-card/70">grade</span>
+              {others.map((a) => (
+                <TableHeaderCell key={a.id} align="center" className={ITEM_HEADER}>
+                  {a.title}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    {criterionLabel(config, "other")} / {a.max_score}
+                  </span>
                 </TableHeaderCell>
               ))}
-              <TableHeaderCell align="center" className="font-semibold">
-                Final grade
-                <span className="block font-sans text-[11px] font-normal text-card/70">weighted</span>
+              {shownExams.map((exam) => (
+                <TableHeaderCell key={exam.id} align="center" className={ITEM_HEADER}>
+                  {exam.kind === "laboratory" ? "Lab exam" : "Major exam"}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    {PERIOD_LABEL[exam.period]} / {exam.max_score}
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {attendancePeriods.map((p) => (
+                <TableHeaderCell key={`att-${p}`} align="center" className={ITEM_HEADER}>
+                  Attendance
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    {PERIOD_LABEL[p]} · {attendanceWeight}%
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {shownPeriods.map((p) => (
+                <TableHeaderCell key={`adj-${p}`} align="center" className={ITEM_HEADER}>
+                  Adjustments
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    {PERIOD_LABEL[p]} · +
+                  </span>
+                </TableHeaderCell>
+              ))}
+              {shownPeriods.map((p) => (
+                <TableHeaderCell key={p} align="center" className={ITEM_HEADER}>
+                  {PERIOD_LABEL[p]}
+                  <span className="block font-sans text-[11px] font-normal text-card/70">grade / 100</span>
+                </TableHeaderCell>
+              ))}
+              {view === "all" && (
+                <TableHeaderCell align="center" className={`${ITEM_HEADER} font-semibold`}>
+                  Final rating
+                  <span className="block font-sans text-[11px] font-normal text-card/70">
+                    {periods.map((p) => `${PERIOD_LABEL[p]} ${Number(config[`${p}_weight`]) || 0}%`).join(" + ")}
+                  </span>
+                </TableHeaderCell>
+              )}
+              <TableHeaderCell align="center" className={ITEM_HEADER}>
+                Equivalent
+              </TableHeaderCell>
+              <TableHeaderCell align="center" className={ITEM_HEADER}>
+                Remarks
               </TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {students.map((s) => {
-              const recitation = recitationByStudent.get(s.id);
               const grade = finalGradeByStudent.get(s.id);
-              const finalTier = grade?.final != null ? tierFor(grade.final / 100) : null;
+              // The selected term's own equivalent, or the final one.
+              const shownEquivalent = view === "all" ? grade?.equivalent : grade?.termEquivalents[view];
               return (
                 <TableRow key={s.id} striped>
-                  <TableCell className="sticky left-0 bg-card">{s.name}</TableCell>
-                  {assignments.map((a) => {
-                    const score = submissionByKey.get(`${a.id}_${s.id}`)?.score;
-                    return (
-                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
-                    );
-                  })}
+                  <TableCell className="sticky left-0 z-10 whitespace-nowrap border-r border-line bg-card">{s.name}</TableCell>
                   {quizzes.map((a) => {
                     const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
                     return (
@@ -322,25 +427,84 @@ export default function OverviewTab({
                       <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
                     );
                   })}
-                  {examPeriods.map((p) => {
-                    const exam = examByPeriod.get(p)!;
-                    const score = majorExamScoreByKey.get(`${exam.id}_${s.id}`)?.score;
+                  {others.map((a) => {
+                    const score = assessmentScoreByKey.get(`${a.id}_${s.id}`)?.score;
                     return (
-                      <Cell key={p}>{score != null ? `${score}/${exam.max_score}` : null}</Cell>
+                      <Cell key={a.id}>{score != null ? `${score}/${a.max_score}` : null}</Cell>
                     );
                   })}
-                  {hasScannedRecitation && (
-                    <Cell>
-                      {recitation?.avg != null ? `${recitation.avg.toFixed(1)}/5` : null}
-                    </Cell>
+                  {shownExams.map((exam) => {
+                    const score = majorExamScoreByKey.get(`${exam.id}_${s.id}`)?.score;
+                    return (
+                      <Cell key={exam.id}>{score != null ? `${score}/${exam.max_score}` : null}</Cell>
+                    );
+                  })}
+                  {attendancePeriods.map((p) => {
+                    const term = grade?.terms[p];
+                    return (
+                      <Cell key={`att-${p}`}>
+                        {term ? (
+                          <>
+                            {term.attendance.toFixed(2)}
+                            <span className="block text-[11px] text-muted">
+                              {term.attendanceMax > 0 ? `${term.attendancePoints}/${term.attendanceMax} pts` : "no classes yet"}
+                            </span>
+                          </>
+                        ) : null}
+                      </Cell>
+                    );
+                  })}
+                  {shownPeriods.map((p) => {
+                    const key = `${s.id}_${p}`;
+                    return (
+                      <TableCell key={`adj-${p}`} align="center" className="px-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={adjText[key] ?? ""}
+                          onChange={(e) => setAdjText((prev) => ({ ...prev, [key]: e.target.value }))}
+                          onBlur={() => saveAdjustment(s.id, p)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                          }}
+                          placeholder="+"
+                          aria-label={`${PERIOD_LABEL[p]} adjustment for ${s.name}`}
+                          className="h-8 w-16 rounded-sm border border-line bg-card px-2 text-center font-mono text-sm text-ink placeholder:text-ink/25 focus:border-navy focus:outline-none"
+                        />
+                      </TableCell>
+                    );
+                  })}
+                  {shownPeriods.map((p) => {
+                    const termGrade = grade?.[p];
+                    const termEq = grade?.termEquivalents[p];
+                    return (
+                      <TableCell
+                        key={p}
+                        align="center"
+                        tabular
+                        className={`whitespace-nowrap px-2 ${view === "all" ? "" : "font-semibold"}`}
+                      >
+                        {termGrade != null ? termGrade.toFixed(2) : <span className="text-ink/20">—</span>}
+                        {/* In the all-terms view each term's own equivalent sits under its grade. */}
+                        {view === "all" && termEq != null && (
+                          <span className="block text-[11px] text-muted">{formatEquivalent(termEq)}</span>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                  {view === "all" && (
+                    <TableCell align="center" tabular className="whitespace-nowrap px-2 font-semibold text-ink">
+                      {grade?.final ?? <span className="font-normal text-ink/20">—</span>}
+                    </TableCell>
                   )}
-                  {periods.map((p) => (
-                    <Cell key={p}>
-                      {grade?.[p] != null ? `${(grade[p] as number).toFixed(1)}%` : null}
-                    </Cell>
-                  ))}
-                  <TableCell align="center" tabular className={`font-semibold ${finalTier ? TIER_TEXT[finalTier] : "text-ink/20 font-normal"}`}>
-                    {grade?.final != null ? `${grade.final.toFixed(1)}%` : "—"}
+                  <TableCell align="center" tabular className="whitespace-nowrap px-2 font-semibold text-ink">
+                    {shownEquivalent != null ? formatEquivalent(shownEquivalent) : <span className="font-normal text-ink/20">—</span>}
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    className={`whitespace-nowrap px-2 text-sm font-medium ${shownEquivalent != null ? TIER_TEXT[remarksTier(shownEquivalent)] : ""}`}
+                  >
+                    {shownEquivalent != null ? gradeDescriptive(shownEquivalent) : <span className="text-ink/20">—</span>}
                   </TableCell>
                 </TableRow>
               );
@@ -356,7 +520,7 @@ export default function OverviewTab({
         </Table>
         {!hasAnyColumns && (
           <p className="mt-3 text-ink/60">
-            No assignments, quizzes, activities, recitations, or major exams recorded yet.
+            No quizzes, activities, recitations, or major exams recorded yet.
           </p>
         )}
       </CollapsibleSection>

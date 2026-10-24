@@ -6,7 +6,9 @@ import type {
   Assessment,
   AssessmentScore,
   Assignment,
+  Attendance,
   ClassRow,
+  GradeAdjustment,
   Exam,
   GradingConfig,
   MajorExam,
@@ -22,6 +24,7 @@ import MajorExamTab from "./major-exam-tab";
 import OverviewTab from "./overview-tab";
 import OnlineExamPanel from "./online-exam-panel";
 import GroupedNav, { type NavItem } from "@/app/_components/grouped-nav";
+import { CLASS_STANDING_SLOTS, criterionLabel, isCriterionActive, type CriterionKey } from "@/lib/grading-criteria";
 
 type Tab =
   | "overview"
@@ -31,7 +34,8 @@ type Tab =
   | "written"
   | "laboratory"
   | "major-exam"
-  | "recitation";
+  | "recitation"
+  | "other";
 
 const TABS: Tab[] = [
   "overview",
@@ -42,6 +46,7 @@ const TABS: Tab[] = [
   "laboratory",
   "major-exam",
   "recitation",
+  "other",
 ];
 
 export default function GradingHubClient({
@@ -59,6 +64,10 @@ export default function GradingHubClient({
   majorExams,
   majorExamScores,
   recitationLogs,
+  attendance,
+  adjustments,
+  programType,
+  courseType,
   exams,
   initialTab,
 }: {
@@ -79,6 +88,10 @@ export default function GradingHubClient({
   majorExams: MajorExam[];
   majorExamScores: MajorExamScore[];
   recitationLogs: ParticipationLog[];
+  attendance: Attendance[];
+  adjustments: GradeAdjustment[];
+  programType: string | null;
+  courseType: string | null;
   exams: Exam[];
   // Lets the top nav's Gradebook dropdown deep-link straight to a tab (e.g.
   // Quiz/Written Activity/Laboratory Activity), which otherwise are only
@@ -129,6 +142,9 @@ export default function GradingHubClient({
   const writtenAssessments = assessments.filter((a) => a.category === "written");
   const labAssessments = assessments.filter((a) => a.category === "laboratory");
   const recitationAssessments = assessments.filter((a) => a.category === "recitation");
+  const otherAssessments = assessments.filter((a) => a.category === "other");
+  // Each Class Standing criterion's tab is named after it (Setup).
+  const label = (key: CriterionKey) => criterionLabel(config, key);
 
   const quizExams = exams.filter((e) => e.kind === "quiz");
   const writtenExams = exams.filter((e) => e.kind === "written");
@@ -145,20 +161,15 @@ export default function GradingHubClient({
     { kind: "tool", label: "Setup", active: tab === "setup", onClick: () => setTab("setup") },
     {
       kind: "group",
-      label: "Assessments",
-      tools: [
-        { label: "Assignments", active: tab === "assignments", onClick: () => setTab("assignments") },
-        { label: "Quiz", active: tab === "quiz", onClick: () => setTab("quiz") },
-        { label: "Written Activity", active: tab === "written", onClick: () => setTab("written") },
-        {
-          label: "Laboratory Activity",
-          active: tab === "laboratory",
-          onClick: () => setTab("laboratory"),
-        },
-      ],
+      label: "Class Standing",
+      tools: CLASS_STANDING_SLOTS.filter((s) => isCriterionActive(config, s.key)).map((s) => ({
+        label: label(s.key),
+        active: tab === s.key,
+        onClick: () => setTab(s.key),
+      })),
     },
     { kind: "tool", label: "Major Exam", active: tab === "major-exam", onClick: () => setTab("major-exam") },
-    { kind: "tool", label: "Recitation", active: tab === "recitation", onClick: () => setTab("recitation") },
+    { kind: "tool", label: "Assignments", active: tab === "assignments", onClick: () => setTab("assignments") },
   ];
 
   return (
@@ -167,6 +178,7 @@ export default function GradingHubClient({
 
       {tab === "overview" && (
         <OverviewTab
+          classId={classId}
           classSlug={classSlug}
           students={students}
           config={config}
@@ -177,10 +189,20 @@ export default function GradingHubClient({
           majorExams={majorExams}
           majorExamScores={majorExamScores}
           recitationLogs={recitationLogs}
+          attendance={attendance}
+          adjustments={adjustments}
+          programType={programType}
         />
       )}
 
-      {tab === "setup" && <SetupTab classId={classId} initialConfig={config} />}
+      {tab === "setup" && (
+        <SetupTab
+          classId={classId}
+          initialConfig={config}
+          initialProgramType={programType}
+          initialCourseType={courseType}
+        />
+      )}
 
       {tab === "assignments" && (
         <AssignmentsClient
@@ -201,7 +223,7 @@ export default function GradingHubClient({
           <AssessmentRoster
             classId={classId}
             category="quiz"
-            categoryLabel="Quiz"
+            categoryLabel={label("quiz")}
             students={students}
             initialAssessments={quizAssessments}
             initialScores={scoresFor(quizAssessments)}
@@ -224,7 +246,7 @@ export default function GradingHubClient({
           <AssessmentRoster
             classId={classId}
             category="written"
-            categoryLabel="Written Activity"
+            categoryLabel={label("written")}
             students={students}
             initialAssessments={writtenAssessments}
             initialScores={scoresFor(writtenAssessments)}
@@ -247,7 +269,7 @@ export default function GradingHubClient({
           <AssessmentRoster
             classId={classId}
             category="laboratory"
-            categoryLabel="Laboratory Activity"
+            categoryLabel={label("laboratory")}
             students={students}
             initialAssessments={labAssessments}
             initialScores={scoresFor(labAssessments)}
@@ -290,10 +312,22 @@ export default function GradingHubClient({
         <AssessmentRoster
           classId={classId}
           category="recitation"
-          categoryLabel="Recitation"
+          categoryLabel={label("recitation")}
           students={students}
           initialAssessments={recitationAssessments}
           initialScores={scoresFor(recitationAssessments)}
+          usePrelims={config.use_prelims}
+        />
+      )}
+
+      {tab === "other" && (
+        <AssessmentRoster
+          classId={classId}
+          category="other"
+          categoryLabel={label("other")}
+          students={students}
+          initialAssessments={otherAssessments}
+          initialScores={scoresFor(otherAssessments)}
           usePrelims={config.use_prelims}
         />
       )}

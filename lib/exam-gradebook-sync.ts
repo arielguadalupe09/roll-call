@@ -58,8 +58,10 @@ export async function syncExamAttemptToGradebook(
         period: exam.period,
         max_score: attempt.total_points,
         source_exam_id: exam.id,
+        // Online major exams are the written exam for their term.
+        kind: "written",
       },
-      { onConflict: "class_id,period" },
+      { onConflict: "class_id,period,kind" },
     )
     .select("id")
     .single();

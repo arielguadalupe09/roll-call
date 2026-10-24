@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { MajorExam, MajorExamScore, Period, Student } from "@/lib/types";
+import type { MajorExam, MajorExamKind, MajorExamScore, Period, Student } from "@/lib/types";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
@@ -10,9 +10,12 @@ import Button from "@/app/_components/button";
 import { Card } from "@/app/_components/card";
 import { Input } from "@/app/_components/input";
 
+const PERIOD_TITLE: Record<Period, string> = { prelim: "Prelim", midterm: "Midterm", finals: "Final" };
+
 function ExamSection({
   classId,
   period,
+  kind,
   label,
   initialExam,
   students,
@@ -20,6 +23,7 @@ function ExamSection({
 }: {
   classId: string;
   period: Period;
+  kind: MajorExamKind;
   label: string;
   initialExam: MajorExam | null;
   students: Student[];
@@ -51,8 +55,8 @@ function ExamSection({
     const { data, error } = await supabase
       .from("major_exams")
       .upsert(
-        { class_id: classId, period, max_score: Number(maxScore) || 100 },
-        { onConflict: "class_id,period" },
+        { class_id: classId, period, kind, max_score: Number(maxScore) || 100 },
+        { onConflict: "class_id,period,kind" },
       )
       .select()
       .single();
@@ -167,9 +171,9 @@ export default function MajorExamTab({
   initialScores: MajorExamScore[];
   usePrelims: boolean;
 }) {
-  const prelimExam = initialExams.find((e) => e.period === "prelim") ?? null;
-  const midtermExam = initialExams.find((e) => e.period === "midterm") ?? null;
-  const finalsExam = initialExams.find((e) => e.period === "finals") ?? null;
+  const periods: Period[] = usePrelims ? ["prelim", "midterm", "finals"] : ["midterm", "finals"];
+  const examFor = (period: Period, kind: MajorExamKind) =>
+    initialExams.find((e) => e.period === period && (e.kind ?? "written") === kind) ?? null;
 
   return (
     <div className="mt-6 flex flex-col gap-4">
@@ -177,47 +181,30 @@ export default function MajorExamTab({
         <h2 className="font-display text-lg font-semibold text-ink">In-Person Major Exam</h2>
         <p className="text-xs text-muted">
           Paper or in-class. Set the max score, then open Scores to type them in, paste them from a spreadsheet, or
-          upload an Excel or Word file.
+          upload an Excel or Word file. A term can have a written exam and a laboratory exam: with both, each counts
+          for half of the Major Exam weight (e.g. 15% + 15% of 30%); with only one, it counts for all of it.
         </p>
       </div>
-      {usePrelims && (
-        <ExamSection
-          classId={classId}
-          period="prelim"
-          label="Prelim exam"
-          initialExam={prelimExam}
-          students={students}
-          initialScores={
-            prelimExam
-              ? initialScores.filter((s) => s.major_exam_id === prelimExam.id)
-              : []
-          }
-        />
-      )}
-      <ExamSection
-        classId={classId}
-        period="midterm"
-        label="Midterm exam"
-        initialExam={midtermExam}
-        students={students}
-        initialScores={
-          midtermExam
-            ? initialScores.filter((s) => s.major_exam_id === midtermExam.id)
-            : []
-        }
-      />
-      <ExamSection
-        classId={classId}
-        period="finals"
-        label="Final exam"
-        initialExam={finalsExam}
-        students={students}
-        initialScores={
-          finalsExam
-            ? initialScores.filter((s) => s.major_exam_id === finalsExam.id)
-            : []
-        }
-      />
+      {periods.map((period) => (
+        <div key={period} className="flex flex-col gap-3">
+          <h3 className="font-display text-base font-semibold text-ink">{PERIOD_TITLE[period]}</h3>
+          {(["written", "laboratory"] as const).map((kind) => {
+            const exam = examFor(period, kind);
+            return (
+              <ExamSection
+                key={kind}
+                classId={classId}
+                period={period}
+                kind={kind}
+                label={`${PERIOD_TITLE[period]} ${kind === "written" ? "written exam" : "laboratory exam"}`}
+                initialExam={exam}
+                students={students}
+                initialScores={exam ? initialScores.filter((s) => s.major_exam_id === exam.id) : []}
+              />
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

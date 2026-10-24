@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bindDeviceIfUnset, checkDeviceLock, rebindDevice } from "@/lib/student-device-lock";
 import { buildRecordCardData, fetchClassGradingData } from "@/lib/record-card-data";
-import { computeFinalGrade } from "@/lib/final-grade";
+import { computeDhvsuGrades } from "@/lib/dhvsu-grade";
+import { CLASS_STANDING_SLOTS, criterionLabel, type CriterionKey } from "@/lib/grading-criteria";
 import type {
   Assessment,
   AssessmentCategory,
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
 
   const { data: classRow } = await supabase
     .from("classes")
-    .select("id, name")
+    .select("id, name, program_type")
     .eq("id", student.class_id)
     .maybeSingle();
 
@@ -109,7 +110,8 @@ export async function POST(request: NextRequest) {
 
   const classData = await fetchClassGradingData(supabase, student.class_id);
   const recordData = buildRecordCardData(student as Student, classData);
-  const finalGrade = computeFinalGrade(recordData, classData.config as GradingConfig);
+  // Same DHVSU computation as the gradebook and the class record export.
+  const finalGrade = computeDhvsuGrades(classData, [student], classRow.program_type).get(student.id)!;
 
   const attended = recordData.attendanceEntries.filter(
     (e) => e.status === "present" || e.status === "late",
@@ -140,6 +142,10 @@ export async function POST(request: NextRequest) {
   const written = assessmentEntries("written");
   const laboratory = assessmentEntries("laboratory");
   const recitation = assessmentEntries("recitation");
+  const other = assessmentEntries("other");
+  const criteriaLabels = Object.fromEntries(
+    CLASS_STANDING_SLOTS.map((s) => [s.key, criterionLabel(classData.config, s.key)]),
+  ) as Record<CriterionKey, string>;
 
   const { data: lectures } = await supabase
     .from("video_lectures")
@@ -280,6 +286,8 @@ export async function POST(request: NextRequest) {
     written,
     laboratory,
     recitation,
+    other,
+    criteriaLabels,
     exams,
   });
 }

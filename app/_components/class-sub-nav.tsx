@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
 import GroupedNav, { type NavItem } from "./grouped-nav";
 import { useGradebookTab } from "./gradebook-tab-context";
+import { createClient } from "@/lib/supabase/client";
+import {
+  CLASS_STANDING_SLOTS,
+  criterionLabel,
+  isCriterionActive,
+  type CriterionKey,
+} from "@/lib/grading-criteria";
+import type { GradingConfig } from "@/lib/types";
+
+type CriteriaConfig = Pick<GradingConfig, "criteria_labels" | "weight_other">;
 
 const LAST_CLASS_KEY = "rollcall:last-class-id";
 
@@ -41,6 +51,28 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
   // first class instead of hiding the bar entirely.
   const classSlug = routeClassSlug ?? lastClassSlug ?? defaultClassSlug;
 
+  // The Gradebook menu lists the class's Class Standing criteria by the
+  // names chosen in Setup; until this loads, the default names show.
+  const [criteria, setCriteria] = useState<{ slug: string; config: CriteriaConfig | null } | null>(null);
+  useEffect(() => {
+    if (!classSlug) return;
+    let cancelled = false;
+    createClient()
+      .from("classes")
+      .select("grading_configs(criteria_labels, weight_other)")
+      .eq("slug", classSlug)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const raw = (data as { grading_configs: CriteriaConfig | CriteriaConfig[] | null } | null)?.grading_configs;
+        setCriteria({ slug: classSlug, config: (Array.isArray(raw) ? raw[0] : raw) ?? null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [classSlug]);
+  const criteriaConfig = criteria?.slug === classSlug ? criteria.config : null;
+
   if (!classSlug) return null;
 
   const studentsHref = `/dashboard/classes/${classSlug}`;
@@ -53,7 +85,7 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
   // no new data. Only fall back to a real Link when arriving from elsewhere.
   const effectiveTab = onGradebookPage ? (sharedTab ?? tabParam) : tabParam;
 
-  function gradebookTabTool(label: string, tabValue: "quiz" | "written" | "laboratory" | "major-exam" | "recitation" | null, active: boolean) {
+  function gradebookTabTool(label: string, tabValue: CriterionKey | "major-exam" | null, active: boolean) {
     const href = tabValue ? `${gradebookHref}?tab=${tabValue}` : gradebookHref;
     if (onGradebookPage) {
       return {
@@ -127,23 +159,17 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
           "Grading",
           null,
           onGradebookPage &&
-            effectiveTab !== "quiz" &&
-            effectiveTab !== "written" &&
-            effectiveTab !== "laboratory" &&
             effectiveTab !== "major-exam" &&
-            effectiveTab !== "recitation",
+            !CLASS_STANDING_SLOTS.some((s) => s.key === effectiveTab),
         ),
-        gradebookTabTool("Quiz", "quiz", onGradebookPage && effectiveTab === "quiz"),
         {
           kind: "submenu",
-          label: "Activities",
-          tools: [
-            gradebookTabTool("Written Activity", "written", onGradebookPage && effectiveTab === "written"),
-            gradebookTabTool("Laboratory Activity", "laboratory", onGradebookPage && effectiveTab === "laboratory"),
-          ],
+          label: "Class Standing",
+          tools: CLASS_STANDING_SLOTS.filter((s) => isCriterionActive(criteriaConfig, s.key)).map((s) =>
+            gradebookTabTool(criterionLabel(criteriaConfig, s.key), s.key, onGradebookPage && effectiveTab === s.key),
+          ),
         },
         gradebookTabTool("Major Exam", "major-exam", onGradebookPage && effectiveTab === "major-exam"),
-        gradebookTabTool("Recitation", "recitation", onGradebookPage && effectiveTab === "recitation"),
         {
           label: "Record Cards",
           href: `/record-card/${classSlug}`,

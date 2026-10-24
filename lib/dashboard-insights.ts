@@ -109,11 +109,12 @@ export function computeClassStats(
       : null;
 
   const gradingConfigured = gradingConfig
-    ? gradingConfig.weight_assignment +
+    ? (gradingConfig.weight_attendance ?? 0) +
         gradingConfig.weight_recitation +
         gradingConfig.weight_quiz +
         gradingConfig.weight_written +
         gradingConfig.weight_laboratory +
+        (gradingConfig.weight_other ?? 0) +
         gradingConfig.weight_major_exam ===
       100
     : false;

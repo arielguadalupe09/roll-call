@@ -5,6 +5,7 @@ import type {
   Assignment,
   Attendance,
   AttendanceStatus,
+  GradeAdjustment,
   GradingConfig,
   MajorExam,
   MajorExamScore,
@@ -29,6 +30,9 @@ export type MajorExamData = {
   finalsScore: number | null;
   finalsMax: number | null;
   average: number | null;
+  // The term's laboratory exam, when it has one (the fields above are the
+  // written exam).
+  lab: Partial<Record<Period, { score: number | null; max: number }>>;
 };
 
 export type AttendanceEntry = {
@@ -44,6 +48,7 @@ export type RecordCardStudentData = {
   quizEntries: GridEntry[];
   writtenEntries: GridEntry[];
   labEntries: GridEntry[];
+  otherEntries: GridEntry[];
   majorExam: MajorExamData;
   attendanceEntries: AttendanceEntry[];
 };
@@ -73,6 +78,7 @@ export async function fetchClassGradingData(
     { data: majorExams },
     { data: recitationLogs },
     { data: attendance },
+    { data: adjustments },
   ] = await Promise.all([
     supabase.from("grading_configs").select("*").eq("class_id", classId).single(),
     supabase.from("assignment_classes").select("assignment_id").eq("class_id", classId),
@@ -89,6 +95,7 @@ export async function fetchClassGradingData(
       .eq("type", "recitation")
       .order("date", { ascending: true }),
     supabase.from("attendance").select("*").eq("class_id", classId),
+    supabase.from("grade_adjustments").select("*").eq("class_id", classId),
   ]);
 
   // Assignments can now be shared across multiple classes (assignment_classes
@@ -133,6 +140,7 @@ export async function fetchClassGradingData(
     majorExamScores: (majorExamScores as MajorExamScore[] | null) ?? [],
     recitationLogs: (recitationLogs as ParticipationLog[] | null) ?? [],
     attendance: (attendance as Attendance[] | null) ?? [],
+    adjustments: (adjustments as GradeAdjustment[] | null) ?? [],
   };
 }
 
@@ -163,15 +171,6 @@ export function buildRecordCardData(
     maxScore: a.max_score,
   }));
 
-  const scannedRecitationEntries: GridEntry[] = classData.recitationLogs
-    .filter((log) => log.student_id === student.id)
-    .map((log) => ({
-      date: log.date,
-      period: periodForDate(log.date, cutoffs),
-      score: log.score,
-      maxScore: 5,
-    }));
-
   const scoreByAssessment = new Map(
     classData.assessmentScores
       .filter((s) => s.student_id === student.id)
@@ -193,9 +192,15 @@ export function buildRecordCardData(
       .filter((s) => s.student_id === student.id)
       .map((s) => [s.major_exam_id, s]),
   );
-  const prelimExam = classData.majorExams.find((e) => e.period === "prelim") ?? null;
-  const midtermExam = classData.majorExams.find((e) => e.period === "midterm") ?? null;
-  const finalsExam = classData.majorExams.find((e) => e.period === "finals") ?? null;
+  const writtenExams = classData.majorExams.filter((e) => (e.kind ?? "written") === "written");
+  const prelimExam = writtenExams.find((e) => e.period === "prelim") ?? null;
+  const midtermExam = writtenExams.find((e) => e.period === "midterm") ?? null;
+  const finalsExam = writtenExams.find((e) => e.period === "finals") ?? null;
+  const lab: MajorExamData["lab"] = {};
+  for (const e of classData.majorExams) {
+    if (e.kind !== "laboratory") continue;
+    lab[e.period] = { score: scoreByMajorExam.get(e.id)?.score ?? null, max: e.max_score };
+  }
   const prelimExamScore = prelimExam
     ? (scoreByMajorExam.get(prelimExam.id)?.score ?? null)
     : null;
@@ -229,12 +234,9 @@ export function buildRecordCardData(
     status: statusByDateForStudent.get(date) ?? "absent",
   }));
 
-  // Scanner taps (/5) and gradebook recitation items (own max score) both
-  // feed the one Recitation category; each counts as one entry.
-  const recitationEntries: GridEntry[] = [
-    ...scannedRecitationEntries,
-    ...entriesForCategory("recitation"),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  // Gradebook recitation items only -- scanner taps aren't graded
+  // (lib/dhvsu-grade.ts).
+  const recitationEntries: GridEntry[] = entriesForCategory("recitation");
 
   return {
     student,
@@ -243,6 +245,7 @@ export function buildRecordCardData(
     quizEntries: entriesForCategory("quiz"),
     writtenEntries: entriesForCategory("written"),
     labEntries: entriesForCategory("laboratory"),
+    otherEntries: entriesForCategory("other"),
     majorExam: {
       prelimScore: prelimExamScore,
       prelimMax: prelimExam?.max_score ?? null,
@@ -251,6 +254,7 @@ export function buildRecordCardData(
       finalsScore: finalsExamScore,
       finalsMax: finalsExam?.max_score ?? null,
       average: majorExamAverage,
+      lab,
     },
     attendanceEntries,
   };

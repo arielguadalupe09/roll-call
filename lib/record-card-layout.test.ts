@@ -31,6 +31,8 @@ describe("resolveSectionOrder", () => {
       order: ["assignment", "not-a-real-section"] as never,
     });
     expect(withJunk).not.toContain("not-a-real-section");
+    // A layout saved before Assignment was removed.
+    expect(withJunk).not.toContain("assignment");
     expect(withJunk).toHaveLength(DEFAULT_SECTION_ORDER.length);
   });
 });
@@ -57,31 +59,31 @@ describe("sectionTitle", () => {
 
 describe("moveSection", () => {
   it("swaps a section with its predecessor when moving up", () => {
-    const order = ["assignment", "recitation", "quiz"] as const;
+    const order = ["written", "recitation", "quiz"] as const;
     expect(moveSection([...order], "recitation", "up")).toEqual([
       "recitation",
-      "assignment",
+      "written",
       "quiz",
     ]);
   });
 
   it("swaps a section with its successor when moving down", () => {
-    const order = ["assignment", "recitation", "quiz"] as const;
+    const order = ["written", "recitation", "quiz"] as const;
     expect(moveSection([...order], "recitation", "down")).toEqual([
-      "assignment",
+      "written",
       "quiz",
       "recitation",
     ]);
   });
 
   it("is a no-op at the boundaries", () => {
-    const order = ["assignment", "recitation", "quiz"] as const;
-    expect(moveSection([...order], "assignment", "up")).toEqual([...order]);
+    const order = ["written", "recitation", "quiz"] as const;
+    expect(moveSection([...order], "written", "up")).toEqual([...order]);
     expect(moveSection([...order], "quiz", "down")).toEqual([...order]);
   });
 
   it("is a no-op for a key not present in the order", () => {
-    const order = ["assignment", "recitation"] as const;
+    const order = ["written", "recitation"] as const;
     expect(moveSection([...order], "attendance", "up")).toEqual([...order]);
   });
 });

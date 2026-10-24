@@ -1,10 +1,12 @@
+// No "assignment" section: assignments don't count toward grades (Attendance
+// replaced them). Layouts saved with it drop it via resolveSectionOrder.
 export type RecordCardSectionKey =
-  | "assignment"
   | "recitation"
   | "quiz"
   | "major_exam"
   | "written"
   | "laboratory"
+  | "other"
   | "attendance";
 
 export type RecordCardLayout = {
@@ -13,22 +15,22 @@ export type RecordCardLayout = {
 };
 
 export const DEFAULT_SECTION_ORDER: RecordCardSectionKey[] = [
-  "assignment",
   "recitation",
   "quiz",
   "major_exam",
   "written",
   "laboratory",
+  "other",
   "attendance",
 ];
 
 export const DEFAULT_SECTION_TITLES: Record<RecordCardSectionKey, string> = {
-  assignment: "Assignment",
   recitation: "Recitation",
   quiz: "Quizzes",
   major_exam: "Major exam",
   written: "Written activities",
   laboratory: "Lab activities",
+  other: "Other",
   attendance: "Attendance",
 };
 

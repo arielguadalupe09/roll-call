@@ -4,7 +4,9 @@ import type {
   Assessment,
   AssessmentScore,
   Assignment,
+  Attendance,
   ClassRow,
+  GradeAdjustment,
   Exam,
   GradingConfig,
   MajorExam,
@@ -58,6 +60,8 @@ export default async function GradebookPage({
     { data: recitationLogs },
     { data: teacherClasses },
     { data: exams },
+    { data: attendance },
+    { data: adjustments },
   ] = await Promise.all([
     supabase
       .from("students")
@@ -90,6 +94,9 @@ export default async function GradebookPage({
       .select("*")
       .eq("class_id", classId)
       .order("created_at", { ascending: false }),
+    // Attendance is a weighted category in the DHVSU grade (Overview).
+    supabase.from("attendance").select("*").eq("class_id", classId),
+    supabase.from("grade_adjustments").select("*").eq("class_id", classId),
   ]);
 
   const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
@@ -148,6 +155,10 @@ export default async function GradebookPage({
             majorExams={(majorExams as MajorExam[] | null) ?? []}
             majorExamScores={(majorExamScores as MajorExamScore[] | null) ?? []}
             recitationLogs={(recitationLogs as ParticipationLog[] | null) ?? []}
+            attendance={(attendance as Attendance[] | null) ?? []}
+            adjustments={(adjustments as GradeAdjustment[] | null) ?? []}
+            programType={(classRow as ClassRow).program_type}
+            courseType={(classRow as ClassRow).course_type}
             exams={(exams as Exam[] | null) ?? []}
           />
         </div>

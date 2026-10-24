@@ -55,12 +55,15 @@ function attendanceRow(overrides: Partial<Attendance> & { id: string; student_id
 function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
   return {
     class_id: "class-1",
+    weight_attendance: 0,
     weight_assignment: 0,
     weight_recitation: 0,
     weight_quiz: 0,
     weight_written: 0,
     weight_laboratory: 0,
     weight_major_exam: 0,
+    weight_other: 0,
+    criteria_labels: {},
     use_prelims: false,
     prelim_weight: 0,
     midterm_weight: 50,
@@ -72,6 +75,7 @@ function config(overrides: Partial<GradingConfig> = {}): GradingConfig {
     show_quiz: true,
     show_written: true,
     show_laboratory: true,
+    show_other: true,
     show_major_exam: true,
     show_attendance: true,
     record_card_layout: {},
@@ -106,10 +110,14 @@ describe("computeClassStats", () => {
   it("flags gradingConfigured only when weights sum to exactly 100", () => {
     expect(computeClassStats(classRow(), [], [], null).gradingConfigured).toBe(false);
     expect(
-      computeClassStats(classRow(), [], [], config({ weight_assignment: 100 })).gradingConfigured,
+      computeClassStats(classRow(), [], [], config({ weight_attendance: 100 })).gradingConfigured,
     ).toBe(true);
     expect(
-      computeClassStats(classRow(), [], [], config({ weight_assignment: 50 })).gradingConfigured,
+      computeClassStats(classRow(), [], [], config({ weight_attendance: 50 })).gradingConfigured,
+    ).toBe(false);
+    // Assignments no longer count toward grades.
+    expect(
+      computeClassStats(classRow(), [], [], config({ weight_assignment: 100 })).gradingConfigured,
     ).toBe(false);
   });
 

@@ -119,12 +119,15 @@ describe("formatAnalyticsAnswer — aggregate", () => {
     const attendance = [attendanceRow({ id: "a1", student_id: "s1", date: "2026-01-01", status: "present" })];
     const gradingConfig: GradingConfig = {
       class_id: "c1",
+      weight_attendance: 0,
       weight_assignment: 100,
       weight_recitation: 0,
       weight_quiz: 0,
       weight_written: 0,
       weight_laboratory: 0,
       weight_major_exam: 0,
+      weight_other: 0,
+      criteria_labels: {},
       use_prelims: false,
       prelim_weight: 0,
       midterm_weight: 0,
@@ -136,6 +139,7 @@ describe("formatAnalyticsAnswer — aggregate", () => {
       show_quiz: false,
       show_written: false,
       show_laboratory: false,
+      show_other: true,
       show_major_exam: false,
       show_attendance: false,
       record_card_layout: {} as GradingConfig["record_card_layout"],

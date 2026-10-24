@@ -250,6 +250,7 @@ export default function ScanClient({
       return;
     }
 
+
     let countQuery = supabase
       .from("participation_logs")
       .select("*", { count: "exact", head: true })
@@ -286,7 +287,9 @@ export default function ScanClient({
         </h1>
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-1 rounded-sm border border-line/40 p-1">
-          {(["attendance", "recitation", "activity"] as ScanMode[]).map(
+          {/* No Recitation mode: recitation is graded only from the
+              gradebook's Recitation items, never from scans. */}
+          {(["attendance", "activity"] as ScanMode[]).map(
             (m) => (
               <button
                 key={m}
