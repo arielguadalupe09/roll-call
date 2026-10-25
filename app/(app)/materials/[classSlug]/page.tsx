@@ -22,7 +22,7 @@ export default async function MaterialsPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-3xl font-semibold text-ink">
           {classRow.name} — materials

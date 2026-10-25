@@ -42,7 +42,7 @@ export default function DashboardLoading() {
   return (
     <div
       ref={rootRef}
-      className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-8 py-10"
+      className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-4 py-6 sm:px-8 sm:py-10"
     >
       <div className="relative flex h-20 w-20 items-center justify-center">
         <svg

@@ -85,7 +85,7 @@ export function SessionTrendChart({ series }: { series: { date: string; rate: nu
             className="pointer-events-none absolute inset-x-0 z-[1] border-t border-dashed border-gold"
             style={{ bottom: `${thresholdPct}%` }}
           />
-          <div className="group/plot relative flex h-28 items-end gap-1.5" role="img" aria-label="Attendance rate per session">
+          <div className="group/plot relative flex h-28 items-end gap-1 sm:gap-1.5" role="img" aria-label="Attendance rate per session">
             {series.map((point) => {
               const pct = Math.round(point.rate * 100);
               return (

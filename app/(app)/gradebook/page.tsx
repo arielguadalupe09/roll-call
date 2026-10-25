@@ -60,7 +60,7 @@ export default async function GradebookLandingPage() {
   }
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <h1 className="font-display text-3xl font-semibold text-ink">Gradebook</h1>
         <p className="mt-1 text-ink/70">

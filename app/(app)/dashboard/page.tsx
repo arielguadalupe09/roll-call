@@ -137,7 +137,7 @@ export default async function DashboardPage() {
   const sessionDates = ((monthSessions as { date: string }[] | null) ?? []).map((s) => s.date);
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-6xl">
         <p className="text-sm text-gold">Dashboard</p>
         <h1 className="mt-1 font-display text-3xl font-semibold text-ink">

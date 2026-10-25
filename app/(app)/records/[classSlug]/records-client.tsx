@@ -234,7 +234,7 @@ export default function RecordsClient({
   }
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

@@ -468,17 +468,19 @@ export default function StudentsManager({
             if (file) handleImport(file);
           }}
           disabled={importing}
-          className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+          className="min-w-0 max-w-full text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
         />
         {importing && (
           <span className="text-sm text-ink/60">Importing...</span>
         )}
-        <Button href={`/record-card/${classSlug}`} variant="highlight" className="ml-auto">
-          Record Cards (all students)
-        </Button>
-        <Button href={`/qr/${classSlug}`} variant="highlight">
-          Print QR codes
-        </Button>
+        <div className="flex w-full gap-3 sm:ml-auto sm:w-auto">
+          <Button href={`/record-card/${classSlug}`} variant="highlight" className="flex-1 text-center sm:flex-none">
+            Record Cards (all students)
+          </Button>
+          <Button href={`/qr/${classSlug}`} variant="highlight" className="flex-1 text-center sm:flex-none">
+            Print QR codes
+          </Button>
+        </div>
       </div>
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
@@ -510,7 +512,7 @@ export default function StudentsManager({
                 className="w-full !py-1.5 pr-8 text-sm"
               />
               {!query && (
-                <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 font-mono text-[10px] text-muted">
+                <kbd className="pointer-events-none absolute right-2 hidden sm:block top-1/2 -translate-y-1/2 rounded border border-line px-1.5 font-mono text-[10px] text-muted">
                   /
                 </kbd>
               )}
@@ -555,9 +557,9 @@ export default function StudentsManager({
                     aria-label="Select all students"
                   />
                 </th>
-                <th className="w-10 py-2">#</th>
+                <th className="hidden w-10 py-2 sm:table-cell">#</th>
                 <th className="py-2">Name</th>
-                <th className="w-40 py-2">Code</th>
+                <th className="hidden w-40 py-2 sm:table-cell">Code</th>
                 <th className="py-2 pr-3" />
               </tr>
             </thead>
@@ -574,8 +576,8 @@ export default function StudentsManager({
                         aria-label={`Select ${s.name}`}
                       />
                     </td>
-                    <td className="py-1.5 font-mono text-xs text-muted">{n}.</td>
-                    <td className="py-1.5 text-ink">
+                    <td className="hidden py-1.5 font-mono text-xs text-muted sm:table-cell">{n}.</td>
+                    <td className="py-1.5 pr-2 text-ink">
                       {isEditing ? (
                         <Input
                           type="text"
@@ -605,8 +607,13 @@ export default function StudentsManager({
                           )}
                         </span>
                       )}
+                      {!isEditing && (
+                        <span className="mt-0.5 block font-mono text-xs text-slate sm:hidden">
+                          <span className="text-muted">{n}.</span> {s.code}
+                        </span>
+                      )}
                     </td>
-                    <td className="py-1.5 font-mono text-slate">{s.code}</td>
+                    <td className="hidden py-1.5 font-mono text-slate sm:table-cell">{s.code}</td>
                     <td className="py-1.5 pr-3 text-right">
                       {isEditing ? (
                         <div className="flex justify-end gap-2">
@@ -618,7 +625,7 @@ export default function StudentsManager({
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex justify-end gap-2">
+                        <div className="ml-auto grid w-fit grid-cols-3 gap-1.5 sm:flex sm:justify-end sm:gap-2">
                           <IconButton
                             icon="record"
                             color="gold"

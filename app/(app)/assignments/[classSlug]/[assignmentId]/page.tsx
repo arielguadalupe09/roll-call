@@ -62,7 +62,7 @@ export default async function AssignmentRosterPage({
   const rosterSubmissions = submissionsList.filter((s) => classStudentIds.has(s.student_id));
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <Button href={`/assignments/${classSlug}`} variant="secondary" size="sm">
           ← Back to assignments

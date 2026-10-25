@@ -77,7 +77,7 @@ export default function IconButton({
   href?: string;
   disabled?: boolean;
 }) {
-  const className = `flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40 ${COLOR_CLASSES[color]}`;
+  const className = `flex h-9 w-9 shrink-0 sm:h-7 sm:w-7 items-center justify-center rounded-full transition disabled:opacity-40 ${COLOR_CLASSES[color]}`;
   const svg = (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       {ICON_PATHS[icon]}

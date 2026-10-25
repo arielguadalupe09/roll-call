@@ -130,7 +130,7 @@ export default function RecordCardAllClient({
   }
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <style>{`@page { size: ${PAPER_SIZES[paperSize].css}; margin: 0.4in; }`}</style>
 
       <div className="no-print mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 pb-6">

@@ -46,7 +46,7 @@ export default async function ExamBuilderPage({
     : { data: [] as ExamOption[] };
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center justify-between">
           <Button

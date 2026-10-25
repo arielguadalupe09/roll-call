@@ -73,7 +73,7 @@ export default async function ExamPreviewPage({
   ]);
 
   return (
-    <div className="px-8 py-10 print:px-0 print:py-0">
+    <div className="px-4 py-6 sm:px-8 sm:py-10 print:px-0 print:py-0">
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center justify-between print:hidden">
           <Button href={`/exams/${classSlug}/${examId}`} variant="secondary" size="sm">
