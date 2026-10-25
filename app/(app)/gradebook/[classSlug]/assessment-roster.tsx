@@ -21,6 +21,58 @@ import { useConfirm } from "@/app/_components/confirm-provider";
 
 const PERIOD_NAME: Record<Period, string> = { prelim: "Prelim", midterm: "Midterm", finals: "Finals" };
 
+// Inline "Max [100]" box in an item's header; saves on Enter or leaving
+// the box, and snaps back if the change is cancelled or invalid.
+function MaxScoreEditor({
+  value,
+  lockedReason,
+  onSave,
+}: {
+  value: number;
+  lockedReason: string | null;
+  onSave: (next: number) => Promise<boolean>;
+}) {
+  const [text, setText] = useState(String(value));
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setText(String(value));
+  }
+
+  async function commit() {
+    const next = Number(text.trim());
+    if (text.trim() === String(value)) return;
+    const saved = await onSave(next);
+    if (!saved) setText(String(value));
+  }
+
+  return (
+    <label
+      className="flex h-8 items-center gap-2 rounded-lg border border-line bg-card px-3 text-sm"
+      title={lockedReason ?? "Number of items / highest possible score"}
+    >
+      <span className="text-muted">Max</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        disabled={!!lockedReason}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") {
+            setText(String(value));
+            e.currentTarget.blur();
+          }
+        }}
+        aria-label="Max score"
+        className="w-12 bg-transparent text-center font-mono font-medium text-ink outline-none disabled:text-muted"
+      />
+    </label>
+  );
+}
+
 export default function AssessmentRoster({
   classId,
   category,
@@ -116,6 +168,38 @@ export default function AssessmentRoster({
   // Move an item (with its scores) to another term -- e.g. an activity
   // added under Midterm that belongs to Finals. Its scores then count
   // toward that term's grade and export into that term's sheet.
+  // Fix an item's max score after the fact (e.g. a quiz created as /100
+  // that only had 60 items). Scores stay as entered; only the max changes.
+  async function handleChangeMax(a: Assessment, nextMax: number): Promise<boolean> {
+    if (!Number.isFinite(nextMax) || nextMax <= 0) {
+      showToast("Max score must be a number above 0.");
+      return false;
+    }
+    if (nextMax === a.max_score) return true;
+    const over = Object.values(scoresByAssessment[a.id] ?? {}).filter(
+      (r) => r.score.trim() !== "" && Number(r.score) > nextMax,
+    ).length;
+    const ok = await confirm(
+      over > 0
+        ? `${over} student${over === 1 ? " has a score" : "s have scores"} above ${nextMax}. They'll count as full marks (${nextMax}/${nextMax}) until you correct them.`
+        : `Scores stay as entered and are graded out of ${nextMax} instead of ${a.max_score}.`,
+      { title: `Change "${a.title}" to /${nextMax}?`, confirmLabel: `Set max to ${nextMax}` },
+    );
+    if (!ok) return false;
+    const { error: updateError } = await createClient()
+      .from("assessments")
+      .update({ max_score: nextMax })
+      .eq("id", a.id);
+    if (updateError) {
+      showToast(updateError.message);
+      return false;
+    }
+    setAssessments((prev) => prev.map((x) => (x.id === a.id ? { ...x, max_score: nextMax } : x)));
+    showToast(`"${a.title}" is now out of ${nextMax}.`);
+    router.refresh();
+    return true;
+  }
+
   async function handleMove(a: Assessment, next: Period) {
     if (next === a.period) return;
     const ok = await confirm(
@@ -285,6 +369,13 @@ export default function AssessmentRoster({
                 openLabel="Hide scores"
                 actions={
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <MaxScoreEditor
+                      value={a.max_score}
+                      // An online exam's item takes its max from the exam's
+                      // total points on every submission.
+                      lockedReason={a.source_exam_id ? "Set by the online exam's total points" : null}
+                      onSave={(next) => handleChangeMax(a, next)}
+                    />
                     <MenuSelect
                       label="Term"
                       value={a.period}
