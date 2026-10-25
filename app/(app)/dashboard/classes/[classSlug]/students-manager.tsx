@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateStudentCode } from "@/lib/codes";
@@ -66,6 +66,8 @@ export default function StudentsManager({
   const { showToast } = useToast();
   const confirm = useConfirm();
 
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const displayedStudents = useMemo(() => {
     const list = [...students];
     if (sortMode === "az") {
@@ -87,12 +89,41 @@ export default function StudentsManager({
     });
   }
 
-  function toggleSelectAll() {
-    setSelected((prev) =>
-      prev.size === displayedStudents.length
-        ? new Set()
-        : new Set(displayedStudents.map((s) => s.id)),
+  // Row numbers stay the student's position in the sorted list, so a
+  // filtered row still reads "17." rather than renumbering from 1.
+  const visibleRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = displayedStudents.map((student, i) => ({ student, n: i + 1 }));
+    if (!q) return rows;
+    return rows.filter(
+      ({ student }) => student.name.toLowerCase().includes(q) || student.code.toLowerCase().includes(q),
     );
+  }, [displayedStudents, query]);
+  const allVisibleSelected =
+    visibleRows.length > 0 && visibleRows.every(({ student }) => selected.has(student.id));
+
+  // "/" jumps to the search box from anywhere on the page (unless already typing).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const { student } of visibleRows) {
+        if (allVisibleSelected) next.delete(student.id);
+        else next.add(student.id);
+      }
+      return next;
+    });
   }
 
   function resetSelected() {
@@ -453,8 +484,37 @@ export default function StudentsManager({
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
       <div className="mt-6">
-        <CollapsibleSection title="Students" subtitle={`${displayedStudents.length} students`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <CollapsibleSection
+          title="Students"
+          subtitle={
+            query.trim()
+              ? `${visibleRows.length} of ${displayedStudents.length} students`
+              : `${displayedStudents.length} students`
+          }
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-72">
+              <Input
+                ref={searchRef}
+                type="search"
+                placeholder="Search name or code"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setQuery("");
+                    e.currentTarget.blur();
+                  }
+                }}
+                aria-label="Search students by name or code"
+                className="w-full !py-1.5 pr-8 text-sm"
+              />
+              {!query && (
+                <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-line px-1.5 font-mono text-[10px] text-muted">
+                  /
+                </kbd>
+              )}
+            </div>
             <button
               onClick={() => setSortMode((prev) => NEXT_SORT[prev])}
               className="rounded-sm border border-line px-3 py-1.5 text-sm text-ink transition hover:bg-slate-light"
@@ -463,7 +523,7 @@ export default function StudentsManager({
             </button>
 
             {selected.size > 0 && (
-              <div className="flex items-center gap-3 rounded-sm border border-gold bg-gold/10 px-3 py-1.5">
+              <div className="ml-auto flex flex-wrap items-center gap-3 rounded-sm border border-gold bg-gold/10 px-3 py-1.5">
                 <span className="text-sm font-medium text-ink">
                   {selected.size} selected
                 </span>
@@ -483,33 +543,30 @@ export default function StudentsManager({
             )}
           </div>
 
-          <div className="mt-3 overflow-x-auto">
+          <div className="mt-3 max-h-[min(70vh,48rem)] overflow-auto rounded-md border border-line">
           <table className="w-full border-collapse text-left">
-            <thead>
+            <thead className="sticky top-0 z-[1]">
               <tr className="bg-navy text-card font-display text-[13px] font-medium">
-                <th className="w-8 py-2">
+                <th className="w-10 py-2 pl-3">
                   <input
                     type="checkbox"
-                    checked={
-                      displayedStudents.length > 0 &&
-                      selected.size === displayedStudents.length
-                    }
+                    checked={allVisibleSelected}
                     onChange={toggleSelectAll}
                     aria-label="Select all students"
                   />
                 </th>
                 <th className="w-10 py-2">#</th>
                 <th className="py-2">Name</th>
-                <th className="py-2">Code</th>
-                <th className="py-2" />
+                <th className="w-40 py-2">Code</th>
+                <th className="py-2 pr-3" />
               </tr>
             </thead>
             <tbody>
-              {displayedStudents.map((s, i) => {
+              {visibleRows.map(({ student: s, n }) => {
                 const isEditing = editingId === s.id;
                 return (
-                  <tr key={s.id} className="border-b border-line">
-                    <td className="py-2">
+                  <tr key={s.id} className="border-b border-line last:border-b-0 hover:bg-slate-light/40">
+                    <td className="py-1.5 pl-3">
                       <input
                         type="checkbox"
                         checked={selected.has(s.id)}
@@ -517,8 +574,8 @@ export default function StudentsManager({
                         aria-label={`Select ${s.name}`}
                       />
                     </td>
-                    <td className="py-2 font-mono text-xs text-muted">{i + 1}.</td>
-                    <td className="py-2 text-ink">
+                    <td className="py-1.5 font-mono text-xs text-muted">{n}.</td>
+                    <td className="py-1.5 text-ink">
                       {isEditing ? (
                         <Input
                           type="text"
@@ -549,8 +606,8 @@ export default function StudentsManager({
                         </span>
                       )}
                     </td>
-                    <td className="py-2 font-mono text-slate">{s.code}</td>
-                    <td className="py-2 text-right">
+                    <td className="py-1.5 font-mono text-slate">{s.code}</td>
+                    <td className="py-1.5 pr-3 text-right">
                       {isEditing ? (
                         <div className="flex justify-end gap-2">
                           <Button size="sm" onClick={saveEdit} disabled={editSaving}>
@@ -600,10 +657,10 @@ export default function StudentsManager({
                   </tr>
                 );
               })}
-              {displayedStudents.length === 0 && (
+              {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-4 text-ink/60">
-                    No students yet.
+                  <td colSpan={5} className="px-3 py-4 text-ink/60">
+                    {displayedStudents.length === 0 ? "No students yet." : `No students match "${query.trim()}".`}
                   </td>
                 </tr>
               )}
