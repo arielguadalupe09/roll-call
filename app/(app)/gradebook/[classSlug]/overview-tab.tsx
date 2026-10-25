@@ -406,17 +406,39 @@ export default function OverviewTab({
       </div>
       {emptyCriteria.length > 0 && (
         <div className="mb-4 rounded-[10px] border border-gold/50 bg-gold-soft px-4 py-3 text-sm text-ink">
-          <p className="font-semibold">Some weighted criteria have no items yet</p>
-          <ul className="mt-1 list-disc pl-5">
-            {emptyCriteria.map((e) => (
-              <li key={`${e.period}-${e.label}`}>
-                <span className="font-medium">{e.label}</span> ({e.weight}%) has no {PERIOD_LABEL[e.period]} items, so it
-                counts as 0 — every student&apos;s {PERIOD_LABEL[e.period]} grade is up to {e.weight} points lower until
-                you add one or set its weight to 0% in Setup.
-              </li>
-            ))}
-          </ul>
-          <p className="mt-1 text-xs text-muted">This is the DHVSU class record&apos;s rule; the exported file computes the same.</p>
+          <p className="font-semibold">
+            {emptyCriteria.length} weighted {emptyCriteria.length === 1 ? "criterion has" : "criteria have"} no items yet
+          </p>
+          <p className="mt-0.5 text-ink/75">
+            An empty criterion counts as 0, so it lowers every student&apos;s term grade by up to its weight. Add an
+            item, or set its weight to 0% in Setup.
+          </p>
+          <div className="mt-2.5 flex flex-col gap-3 sm:flex-row sm:gap-8">
+            {shownPeriods
+              .filter((p) => emptyCriteria.some((e) => e.period === p))
+              .map((p) => {
+                const items = emptyCriteria.filter((e) => e.period === p);
+                return (
+                  <div key={p} className="min-w-0 sm:min-w-[14rem]">
+                    <p className="flex items-baseline justify-between gap-4 border-b border-gold/40 pb-1 text-xs font-semibold uppercase tracking-wide text-ink/60">
+                      {PERIOD_LABEL[p]}
+                      <span className="font-mono normal-case tracking-normal">
+                        up to −{items.reduce((sum, e) => sum + e.weight, 0)} pts
+                      </span>
+                    </p>
+                    <ul className="mt-1">
+                      {items.map((e) => (
+                        <li key={e.label} className="flex items-baseline justify-between gap-4 py-0.5">
+                          <span className="truncate">{e.label}</span>
+                          <span className="font-mono text-xs tabular-nums text-ink/70">{e.weight}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+          </div>
+          <p className="mt-2 text-xs text-muted">This is the DHVSU class record&apos;s rule; the exported file computes the same.</p>
         </div>
       )}
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>

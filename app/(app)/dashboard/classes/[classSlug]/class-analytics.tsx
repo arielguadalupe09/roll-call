@@ -1,5 +1,5 @@
 import { LOW_ATTENDANCE_THRESHOLD, type ClassStats, type Insight } from "@/lib/dashboard-insights";
-import { SessionTrendChart } from "../../dashboard-charts";
+import { SessionTrendChart } from "../../session-trend-chart";
 import { StatusRing } from "@/app/_components/status-ring";
 
 export default function ClassAnalytics({
@@ -43,7 +43,7 @@ export default function ClassAnalytics({
           {insights.map((insight, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-ink">
               <span
-                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                className={`mt-1.5 block h-2 w-2 shrink-0 rounded-full ${
                   insight.severity === "warning" ? "bg-danger" : "bg-success"
                 }`}
               />

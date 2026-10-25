@@ -93,3 +93,13 @@ In their place, `app/(app)/dashboard/classes/[classId]/class-analytics.tsx` give
 ## Scheduled data audit
 
 `vercel.json` runs `app/api/cron/data-audit/route.ts` every Monday 00:00 UTC. It's read-only (service-role client, logic in `lib/data-audit.ts`): duplicate student names within a class, sessions open >24h, unsubmitted exam attempts >24h, non-archived classes with no students, and migrations whose tables/columns are missing from the live database. Requires `CRON_SECRET` in Vercel's environment variables (otherwise the route returns 401). Findings go to Vercel's runtime logs only — there's no notification channel yet.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -1,7 +1,6 @@
 import type { ClassStats } from "@/lib/dashboard-insights";
 import CollapsibleSection from "@/app/_components/collapsible-section";
-import { tierFor, TIER_BG } from "@/lib/chart-tiers";
-import { ChartTooltip } from "@/app/_components/chart-tooltip";
+import { tierFor } from "@/lib/chart-tiers";
 import { TierLegend } from "@/app/_components/chart-legend";
 import { CardRow } from "@/app/_components/card-row";
 import { StatusPill, type StatusTone } from "@/app/_components/status-pill";
@@ -31,7 +30,7 @@ export function AttentionBreakdown({
       {visible.slice(0, 3).map((i) => (
         <div key={i.label} className="flex items-center gap-1.5">
           <span className="w-[4.5rem] shrink-0 truncate text-[9px] text-ink/60">{i.label}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink/10">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-navy/[0.07]">
             <div
               className="h-full rounded-full bg-chart-warning"
               style={{ width: `${Math.max(8, (i.count / max) * 100)}%` }}
@@ -85,41 +84,5 @@ export function AttendanceByClassChart({ stats }: { stats: ClassStats[] }) {
         </div>
       )}
     </CollapsibleSection>
-  );
-}
-
-/** Per-session attendance rate over time, for a single class' analytics panel. */
-export function SessionTrendChart({ series }: { series: { date: string; rate: number }[] }) {
-  if (series.length === 0) {
-    return <p className="text-sm text-ink/60">No sessions recorded yet.</p>;
-  }
-
-  return (
-    <div>
-      <div className="mb-1.5 flex justify-end">
-        <TierLegend />
-      </div>
-      <div className="flex h-24 items-end justify-center gap-1" role="img" aria-label="Attendance rate per session">
-        {series.map((point) => {
-          const pct = Math.round(point.rate * 100);
-          const formattedDate = new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          });
-          return (
-            <ChartTooltip
-              key={point.date}
-              label={`${formattedDate}: ${pct}%`}
-              className="h-full max-w-6 flex-1"
-            >
-              <div
-                className={`min-h-[3px] w-full rounded-t transition hover:brightness-110 ${TIER_BG[tierFor(point.rate)]}`}
-                style={{ height: `${Math.max(4, pct)}%` }}
-              />
-            </ChartTooltip>
-          );
-        })}
-      </div>
-    </div>
   );
 }

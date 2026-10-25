@@ -5,6 +5,7 @@ import {
   computeClassStats,
   computeInsights,
   computeStudentActivityCounts,
+  LOW_ATTENDANCE_THRESHOLD,
   TREND_DROP_THRESHOLD,
   type ClassStats,
 } from "@/lib/dashboard-insights";
@@ -15,7 +16,7 @@ import ClassList from "./class-list";
 import { AttendanceByClassChart, AttentionBreakdown } from "./dashboard-charts";
 import { StatCard } from "@/app/_components/stat-card";
 import { TileIcon } from "@/app/_components/tile-icon";
-import { CardRow } from "@/app/_components/card-row";
+import { InsightsPanel } from "./insights-panel";
 import { CalendarWidget } from "@/app/_components/calendar-widget";
 import { NextSessionWidget } from "@/app/_components/next-session-widget";
 
@@ -100,6 +101,18 @@ export default async function DashboardPage() {
     ),
   );
   const insights = computeInsights(stats);
+  // Low attendance gets its own ranked list in the Insights panel; the rest
+  // come from computeInsights with that count zeroed so they aren't repeated.
+  const lowAttendanceRows = stats
+    .filter((s) => s.lowAttendanceStudentCount > 0)
+    .map((s) => ({
+      id: s.classRow.id,
+      name: s.classRow.name,
+      slug: s.classRow.slug,
+      low: s.lowAttendanceStudentCount,
+      total: s.studentCount,
+    }));
+  const otherInsights = computeInsights(stats.map((s) => ({ ...s, lowAttendanceStudentCount: 0 })));
 
   const studentActivity = computeStudentActivityCounts(
     classList.map((c) => ({
@@ -204,26 +217,22 @@ export default async function DashboardPage() {
         </div>
 
         <div className="mt-6">
-          <CollapsibleSection id="insights" title="Insights">
-            {insights.length === 0 ? (
-              <p className="text-sm text-ink/60">No issues detected.</p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {insights.map((insight, i) => (
-                  <CardRow
-                    key={i}
-                    leading={
-                      <span
-                        className={`mt-0.5 h-2 w-2 rounded-full ${
-                          insight.severity === "warning" ? "bg-danger" : "bg-success"
-                        }`}
-                      />
-                    }
-                    title={insight.text}
-                  />
-                ))}
-              </div>
-            )}
+          <CollapsibleSection
+            id="insights"
+            title="Insights"
+            subtitle={
+              lowAttendanceRows.length > 0
+                ? `${lowAttendanceRows.length} of ${classList.length} classes have students below ${Math.round(
+                    LOW_ATTENDANCE_THRESHOLD * 100,
+                  )}% attendance`
+                : undefined
+            }
+          >
+            <InsightsPanel
+              lowAttendance={lowAttendanceRows}
+              thresholdPct={Math.round(LOW_ATTENDANCE_THRESHOLD * 100)}
+              others={otherInsights}
+            />
           </CollapsibleSection>
         </div>
 
