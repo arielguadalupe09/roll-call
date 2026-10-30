@@ -42,6 +42,8 @@ NODE_EXTRA_CA_CERTS="$PWD/certs/corporate-proxy-ca.pem" npx vercel --prod --yes
 
 `.github/workflows/deploy-fallback.yml` automates that: 3 minutes after each push to `main` it checks Vercel for a deployment of that commit and deploys directly if none exists (needs `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` repo secrets).
 
+**Function region is pinned to `sin1` (Singapore) in `vercel.json`** — the Supabase database is in Asia, and Vercel's default `iad1` (Washington, D.C.) made every server-side query cost ~200–700 ms of transpacific round trips (measured 2026-10-30), stacking to multi-second page loads. Keep functions next to the database.
+
 Reconnecting the Git integration if the webhook seems stuck: `vercel git disconnect --yes` then `vercel git connect`.
 
 ## Conventions learned the hard way

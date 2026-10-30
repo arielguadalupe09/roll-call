@@ -1,3 +1,4 @@
 {
+  "regions": ["sin1"],
   "crons": [{ "path": "/api/cron/data-audit", "schedule": "0 0 * * 1" }]
 }
