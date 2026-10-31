@@ -2,10 +2,17 @@
 // today gets a filled dot, days with a recorded session get an underline
 // dot. Read-only (no month navigation) by design, to keep this a quick
 // glance rather than a full calendar app.
+"use client";
+
+import { useNow } from "./use-now";
+
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export function CalendarWidget({ sessionDates }: { sessionDates: string[] }) {
-  const now = new Date();
+  // Client-side so "today" and the month are the teacher's, not the UTC
+  // server's (wrong from midnight to 8 AM in UTC+8).
+  const now = useNow();
+  if (!now) return <div className="min-h-[250px] rounded-xl bg-card p-4" />;
   const year = now.getFullYear();
   const month = now.getMonth();
   const today = now.getDate();

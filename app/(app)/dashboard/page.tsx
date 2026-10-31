@@ -42,10 +42,14 @@ export default async function DashboardPage() {
   const archivedClasses = allClasses.filter((c) => c.archived);
   const classIds = classList.map((c) => c.id);
 
+  // The calendar widget picks the teacher's month client-side; this server
+  // runs in UTC, which lags UTC+8, so their month is either this UTC month or
+  // the next one -- fetch both.
   const now = new Date();
-  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const monthStart = `${monthPrefix}-01`;
-  const monthEnd = `${monthPrefix}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
+  const ymd = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  const monthStart = ymd(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
+  const monthEnd = ymd(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0)));
 
   const [
     { data: students },

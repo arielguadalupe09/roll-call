@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { DayOfWeek, ScheduleEntry } from "@/lib/types";
 import { formatTime12h } from "@/lib/time-format";
+import { useNow } from "./use-now";
 
 const DAY_INDEX: Record<DayOfWeek, number> = {
   Monday: 1,
@@ -49,23 +49,15 @@ function relativeLabel(target: Date, now: Date): string {
 }
 
 export function NextSessionWidget({ scheduleEntries }: { scheduleEntries: ScheduleEntry[] }) {
-  // Lazy initializer so the ticking clock starts from a real timestamp
-  // immediately; the inevitable one-off server/client render mismatch (SSR
-  // time vs. hydration time) is exactly what suppressHydrationWarning below
-  // is for, rather than delaying the first paint with a null placeholder.
-  const [now, setNow] = useState(() => new Date());
+  // Null until mounted: both the clock and which class is "next" depend on
+  // the teacher's local time, which the server (UTC) doesn't know.
+  const now = useNow();
 
-  useEffect(() => {
-    // 1s so the minute rolls over in step with the top bar's seconds clock.
-    const id = setInterval(() => setNow(new Date()), 1_000);
-    return () => clearInterval(id);
-  }, []);
+  const clock = now ? formatTime12h(now) : " ";
 
-  const clock = formatTime12h(now);
-
-  let nextLabel = "No upcoming classes";
+  let nextLabel = now ? "No upcoming classes" : " ";
   let nextTime: string | null = null;
-  if (scheduleEntries.length > 0) {
+  if (now && scheduleEntries.length > 0) {
     const upcoming = scheduleEntries
       .map((entry) => ({ entry, at: nextOccurrence(entry, now) }))
       .sort((a, b) => a.at.getTime() - b.at.getTime())[0];
@@ -77,15 +69,15 @@ export function NextSessionWidget({ scheduleEntries }: { scheduleEntries: Schedu
 
   return (
     <div className="rounded-xl bg-navy p-4 text-card">
-      <p className="font-mono text-2xl font-semibold tabular-nums" suppressHydrationWarning>
+      <p className="font-mono text-2xl font-semibold tabular-nums">
         {clock}
       </p>
       <p className="mt-3 text-xs text-card/70">Next class</p>
-      <p className="mt-0.5 truncate text-sm font-semibold" suppressHydrationWarning>
+      <p className="mt-0.5 truncate text-sm font-semibold">
         {nextLabel}
       </p>
       {nextTime && (
-        <p className="mt-0.5 truncate text-xs text-card/70" suppressHydrationWarning>
+        <p className="mt-0.5 truncate text-xs text-card/70">
           {nextTime}
         </p>
       )}

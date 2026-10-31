@@ -8,6 +8,7 @@ import type { Insight } from "@/lib/dashboard-insights";
 import SidebarIcon from "./sidebar-icons";
 import SignOutButton from "./sign-out-button";
 import { formatTime12h } from "@/lib/time-format";
+import { useNow } from "./use-now";
 
 type SearchStudent = { id: string; name: string; class_id: string };
 
@@ -87,21 +88,16 @@ function NotificationRow({
 }
 
 function TopBarClock() {
-  // Lazy initializer (real timestamp immediately) + suppressHydrationWarning
-  // below, same tradeoff as NextSessionWidget's clock: a one-off SSR/
-  // hydration mismatch is expected and fine for a ticking clock.
-  const [now, setNow] = useState(() => new Date());
+  // Null during SSR (server runs in UTC) -- see useNow.
+  const now = useNow();
 
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  if (!now) return <p className="hidden shrink-0 text-sm md:block">{" "}</p>;
 
   const dateLabel = now.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   const timeLabel = formatTime12h(now, { seconds: true });
 
   return (
-    <p className="hidden shrink-0 whitespace-nowrap text-sm text-ink/70 md:block" suppressHydrationWarning>
+    <p className="hidden shrink-0 whitespace-nowrap text-sm text-ink/70 md:block">
       {dateLabel} <span className="mx-1 text-line">|</span> {timeLabel}
     </p>
   );
