@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
     "/materials",
     "/assignments",
     "/gradebook",
+    "/answer-sheets",
     "/admin",
     "/students",
     "/attendance",

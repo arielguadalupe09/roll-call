@@ -205,7 +205,22 @@ export type MajorExam = {
   // Written (paper) or laboratory exam; a term can have one of each.
   kind: MajorExamKind;
   max_score: number;
+  // Number of items, for item analysis (migration 0043); null until set.
+  item_count?: number | null;
+  // Answer key, one letter A-E per item (migration 0043); null = no key.
+  answer_key?: string | null;
   created_at: string;
+};
+
+// One student's checked paper for item analysis: the item numbers they got wrong.
+export type MajorExamItemResponse = {
+  id: string;
+  major_exam_id: string;
+  student_id: string;
+  wrong_items: number[];
+  // Letters chosen, one per item ("-" = blank); only when the exam has an answer key.
+  answers?: string | null;
+  updated_at: string;
 };
 
 export type MajorExamScore = {

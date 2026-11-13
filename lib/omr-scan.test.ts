@@ -1,0 +1,207 @@
+import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import sharp from "sharp";
+import jsQR from "jsqr";
+import AnswerSheetSvg from "@/app/_components/answer-sheet-svg";
+import { downscale, findSheetCorners, homography, project, readSheet, rgbaToGray, type Gray } from "./omr-scan";
+import {
+  SHEET_H,
+  SHEET_W,
+  answerKeyQrValue,
+  keyTextToLetters,
+  lettersToKeyText,
+  parseSheetQr,
+  sheetQrValue,
+  type Point,
+} from "./omr-sheet";
+
+// Renders the real printed sheet, then fakes a phone photo of it: perspective
+// tilt on a desk-coloured background, a shadow across half the sheet, noise
+// and blur. Returns RGBA so the QR decoder can run on it too.
+async function photographSheet(
+  answers: string,
+  {
+    corners,
+    shadow = 0.45,
+    upsideDown = false,
+    blank = false,
+    fillShade,
+    keySheet = false,
+  }: {
+    corners: Point[];
+    shadow?: number;
+    upsideDown?: boolean;
+    blank?: boolean;
+    fillShade?: string;
+    keySheet?: boolean;
+  },
+): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
+  const svg = renderToStaticMarkup(
+    createElement(AnswerSheetSvg, {
+      itemCount: answers.length,
+      optionCount: 5,
+      title: "BSIT 2A · Data Structures",
+      examLabel: "Midterm written exam",
+      studentName: blank ? undefined : "Dela Cruz, Juan P.",
+      studentCode: blank ? undefined : "ABC123",
+      qrValue: keySheet ? answerKeyQrValue("exam-1") : blank ? undefined : sheetQrValue("exam-1", "ABC123"),
+      answerKeySheet: keySheet,
+      filled: answers,
+      fillShade,
+    }),
+  );
+  const pxPerMm = 6;
+  const { data: sheet, info } = await sharp(Buffer.from(svg), {
+    density: 25.4 * pxPerMm,
+  })
+    .flatten({ background: "#fff" })
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const W = 1200;
+  const H = 1600;
+  // Maps photo pixels -> sheet mm, so each photo pixel samples the sheet.
+  // The page extends MARGIN mm past the printed sheet (printer margins).
+  const MARGIN = 10;
+  const sheetCorners = [
+    { x: -MARGIN, y: -MARGIN },
+    { x: SHEET_W + MARGIN, y: -MARGIN },
+    { x: SHEET_W + MARGIN, y: SHEET_H + MARGIN },
+    { x: -MARGIN, y: SHEET_H + MARGIN },
+  ];
+  const photoCorners = upsideDown ? [corners[2], corners[3], corners[0], corners[1]] : corners;
+  const toSheet = homography(photoCorners, sheetCorners);
+  const gray = new Uint8Array(W * H);
+  let seed = 7;
+  const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const p = project(toSheet, { x, y });
+      let v = 95; // desk
+      if (p.x >= -MARGIN && p.y >= -MARGIN && p.x < SHEET_W + MARGIN && p.y < SHEET_H + MARGIN) {
+        v = 255 * 0.85;
+      }
+      if (p.x >= 0 && p.y >= 0 && p.x < SHEET_W && p.y < SHEET_H) {
+        const sx = Math.min(info.width - 1, Math.floor((p.x * info.width) / SHEET_W));
+        const sy = Math.min(info.height - 1, Math.floor((p.y * info.height) / SHEET_H));
+        v = sheet[sy * info.width + sx] * 0.85; // paper isn't pure white in a photo
+      }
+      if (x > W * 0.55) v *= 1 - shadow; // phone/hand shadow on the right
+      gray[y * W + x] = Math.max(0, Math.min(255, v + (rand() - 0.5) * 30));
+    }
+  const blurred = await sharp(Buffer.from(gray), {
+    raw: { width: W, height: H, channels: 1 },
+  })
+    .blur(1.2)
+    .ensureAlpha()
+    .raw()
+    .toBuffer();
+  if (process.env.OMR_DEBUG_DIR) {
+    await sharp(blurred, { raw: { width: W, height: H, channels: 4 } })
+      .png()
+      .toFile(`${process.env.OMR_DEBUG_DIR}/photo-${upsideDown ? "flip" : "up"}-${corners[0].x}-${shadow}.png`);
+  }
+  return { rgba: new Uint8ClampedArray(blurred), width: W, height: H };
+}
+
+function scan(photo: { rgba: Uint8ClampedArray; width: number; height: number }, items: number) {
+  const full: Gray = rgbaToGray(photo.rgba, photo.width, photo.height);
+  const { gray: small, scale } = downscale(full, 800);
+  const corners = findSheetCorners(small);
+  if (!corners) return null;
+  return readSheet(
+    full,
+    corners.map((c) => ({ x: c.x / scale, y: c.y / scale })),
+    items,
+  );
+}
+
+const ANSWERS = "ABCDEABCDE-BDACEEDCBA" + "CADBE".repeat(9) + "ABCD-"; // 71 items, two blank
+const TILTED = [
+  { x: 170, y: 140 },
+  { x: 1050, y: 190 },
+  { x: 1110, y: 1460 },
+  { x: 110, y: 1500 },
+];
+
+describe("OMR scan of a printed sheet", () => {
+  it("reads every bubble from a tilted, shadowed, noisy photo", async () => {
+    const result = scan(await photographSheet(ANSWERS, { corners: TILTED }), ANSWERS.length);
+    expect(result).not.toBeNull();
+    expect(result!.answers).toBe(ANSWERS);
+    expect(result!.marks.filter((m) => m.status === "blank").map((m) => m.item)).toEqual([11, 71]);
+  }, 30000);
+
+  it("reads an upside-down sheet the right way round", async () => {
+    const result = scan(await photographSheet(ANSWERS, { corners: TILTED, upsideDown: true }), ANSWERS.length);
+    expect(result!.answers).toBe(ANSWERS);
+  }, 30000);
+
+  it("reads a sheet photographed sideways", async () => {
+    // Landscape-held phone: the sheet's top edge runs down the right of the photo.
+    const sideways = [
+      { x: 1120, y: 400 },
+      { x: 1090, y: 1190 },
+      { x: 80, y: 1160 },
+      { x: 110, y: 430 },
+    ];
+    const result = scan(await photographSheet(ANSWERS.slice(0, 40), { corners: sideways }), 40);
+    expect(result!.answers).toBe(ANSWERS.slice(0, 40));
+  }, 30000);
+
+  it("reads light pencil shading on a blank (no-name) sheet", async () => {
+    const result = scan(
+      await photographSheet(ANSWERS, {
+        corners: TILTED,
+        blank: true,
+        fillShade: "#8a8a8a",
+      }),
+      ANSWERS.length,
+    );
+    expect(result!.answers).toBe(ANSWERS);
+  }, 30000);
+
+  it("decodes the sheet's QR code from the photo", async () => {
+    const photo = await photographSheet(ANSWERS, {
+      corners: TILTED,
+      shadow: 0,
+    });
+    const qr = jsQR(photo.rgba, photo.width, photo.height);
+    expect(qr && parseSheetQr(qr.data)).toEqual({
+      kind: "student",
+      majorExamId: "exam-1",
+      studentCode: "ABC123",
+    });
+  }, 30000);
+
+  it("reads a shaded answer-key sheet and its key QR code", async () => {
+    const photo = await photographSheet(ANSWERS, { corners: TILTED, keySheet: true });
+    expect(scan(photo, ANSWERS.length)!.answers).toBe(ANSWERS);
+    const qr = jsQR(photo.rgba, photo.width, photo.height);
+    expect(qr && parseSheetQr(qr.data)).toEqual({ kind: "key", majorExamId: "exam-1" });
+  }, 30000);
+
+  it("tells answer-key QR codes from student ones", () => {
+    expect(parseSheetQr(answerKeyQrValue("exam-1"))).toEqual({ kind: "key", majorExamId: "exam-1" });
+    expect(parseSheetQr("ABC123")).toBeNull();
+  });
+
+  it("finds nothing in a photo without a sheet", () => {
+    const g: Gray = {
+      width: 400,
+      height: 300,
+      data: new Uint8Array(400 * 300).fill(120),
+    };
+    expect(findSheetCorners(g)).toBeNull();
+  });
+});
+
+describe("on-screen answer key", () => {
+  it("maps the key text box to one letter per item and back", () => {
+    expect(keyTextToLetters("ab-d1 2", 7)).toEqual(["A", "B", "", "D", "A", "B", ""]);
+    expect(lettersToKeyText(["A", "B", "", "D", "A", "B", "", ""])).toBe("AB-DA B");
+    expect(lettersToKeyText(["", "", ""])).toBe("");
+  });
+});

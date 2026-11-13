@@ -13,6 +13,7 @@ import type {
   Exam,
   GradingConfig,
   MajorExam,
+  MajorExamItemResponse,
   MajorExamScore,
   ParticipationLog,
   Student,
@@ -25,6 +26,7 @@ import MajorExamTab from "./major-exam-tab";
 import OverviewTab from "./overview-tab";
 import OnlineExamPanel from "./online-exam-panel";
 import GroupedNav, { type NavItem } from "@/app/_components/grouped-nav";
+import { normalizeProgramType } from "@/lib/dhvsu-grade";
 import { CLASS_STANDING_SLOTS, criterionLabel, isCriterionActive, type CriterionKey } from "@/lib/grading-criteria";
 
 type Tab =
@@ -64,6 +66,7 @@ export default function GradingHubClient({
   assessmentScores,
   majorExams,
   majorExamScores,
+  majorExamItemResponses,
   recitationLogs,
   attendance,
   adjustments,
@@ -89,6 +92,7 @@ export default function GradingHubClient({
   assessmentScores: AssessmentScore[];
   majorExams: MajorExam[];
   majorExamScores: MajorExamScore[];
+  majorExamItemResponses: MajorExamItemResponse[];
   recitationLogs: ParticipationLog[];
   attendance: Attendance[];
   adjustments: GradeAdjustment[];
@@ -295,9 +299,12 @@ export default function GradingHubClient({
         <>
           <MajorExamTab
             classId={classId}
+            classSlug={classSlug}
             students={students}
             initialExams={majorExams}
             initialScores={majorExamScores}
+            initialItemResponses={majorExamItemResponses}
+            programType={normalizeProgramType(programType)}
             usePrelims={config.use_prelims}
           />
           <div className="mt-6">

@@ -204,6 +204,13 @@
   }
 }
 
+/* On screen the answer-sheet preview scales with the page (print CSS pins
+   it back to its real millimetre size). */
+.omr-sheet svg {
+  width: 100%;
+  height: auto;
+}
+
 @media print {
   /* Browsers strip background colors/images when printing by default (to
      save ink) unless a page explicitly opts back in — needed for the
@@ -255,6 +262,38 @@
   }
   .no-print {
     display: none !important;
+  }
+
+  /* Bubble answer sheets: one per page at their exact printed size --
+     the scanner (lib/omr-scan.ts) relies on the corner markers and bubbles
+     keeping their proportions, so never scale to fit. */
+  #omr-print {
+    position: absolute;
+    inset: 0;
+    background: white;
+    display: block !important;
+    padding: 0 !important;
+  }
+  #omr-print,
+  #omr-print * {
+    visibility: visible;
+  }
+  #omr-print .omr-sheet {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    width: 186mm;
+    break-after: page;
+    page-break-after: always;
+  }
+  #omr-print .omr-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  #omr-print .omr-sheet svg {
+    width: 186mm !important;
+    height: 250mm !important;
   }
 
   #record-card-print {

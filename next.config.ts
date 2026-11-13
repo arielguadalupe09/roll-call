@@ -27,7 +27,9 @@ const nextConfig: NextConfig = {
   // deployed function and PDF parsing 500s with "DOMMatrix is not defined"
   // despite `npm run build` succeeding locally.
   outputFileTracingIncludes: {
-    "/api/export/dhvsu-class-record/[classId]": ["./lib/templates/**"],
+    "/api/export/dhvsu-class-record/[classSlug]": ["./lib/templates/**"],
+    // Item analysis report: its .xlsx template and the two letterhead logos.
+    "/api/export/item-analysis/[examId]": ["./lib/templates/**"],
     // The weekly audit reads the migration files to check the live schema.
     "/api/cron/data-audit": ["./supabase/migrations/**"],
     // Includes the *entire* pdfjs-dist/pdf-parse trees, not just the worker

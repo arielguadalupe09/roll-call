@@ -11,6 +11,7 @@ import type {
   Exam,
   GradingConfig,
   MajorExam,
+  MajorExamItemResponse,
   MajorExamScore,
   ParticipationLog,
   Student,
@@ -111,14 +112,15 @@ export default async function GradebookPage({
   const assessmentIds = (assessments as Assessment[] | null)?.map((a) => a.id) ?? [];
   const majorExamIds = (majorExams as MajorExam[] | null)?.map((e) => e.id) ?? [];
 
-  // None of these four depend on each other's results, just on IDs already
-  // resolved above -- run them together instead of paying for four
+  // None of these depend on each other's results, just on IDs already
+  // resolved above -- run them together instead of paying for
   // sequential round trips.
   const [
     { data: allStudents },
     { data: submissions },
     { data: assessmentScores },
     { data: majorExamScores },
+    { data: majorExamItemResponses },
   ] = await Promise.all([
     teacherClassIds.length
       ? supabase
@@ -136,6 +138,11 @@ export default async function GradebookPage({
     majorExamIds.length
       ? supabase.from("major_exam_scores").select("*").in("major_exam_id", majorExamIds)
       : Promise.resolve({ data: [] as MajorExamScore[] }),
+    // Item analysis (migration 0043). An error (e.g. table not migrated
+    // yet) just leaves data null -> no checked papers.
+    majorExamIds.length
+      ? supabase.from("major_exam_item_responses").select("*").in("major_exam_id", majorExamIds)
+      : Promise.resolve({ data: [] as MajorExamItemResponse[] }),
   ]);
 
   return (
@@ -161,6 +168,7 @@ export default async function GradebookPage({
             assessmentScores={(assessmentScores as AssessmentScore[] | null) ?? []}
             majorExams={(majorExams as MajorExam[] | null) ?? []}
             majorExamScores={(majorExamScores as MajorExamScore[] | null) ?? []}
+            majorExamItemResponses={(majorExamItemResponses as MajorExamItemResponse[] | null) ?? []}
             recitationLogs={(recitationLogs as ParticipationLog[] | null) ?? []}
             attendance={(attendance as Attendance[] | null) ?? []}
             adjustments={(adjustments as GradeAdjustment[] | null) ?? []}

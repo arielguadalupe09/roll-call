@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { MajorExam, MajorExamKind, MajorExamScore, Period, Student } from "@/lib/types";
+import type { MajorExam, MajorExamItemResponse, MajorExamKind, MajorExamScore, Period, Student } from "@/lib/types";
+import type { ProgramType } from "@/lib/dhvsu-grade";
+import ItemAnalysisSection from "./item-analysis-section";
 import ScoreEntryTable, { type ScoreRow } from "./score-entry-table";
 import CollapsibleSection from "@/app/_components/collapsible-section";
 import { useToast } from "@/app/_components/toast";
@@ -14,20 +16,26 @@ const PERIOD_TITLE: Record<Period, string> = { prelim: "Prelim", midterm: "Midte
 
 function ExamSection({
   classId,
+  classSlug,
   period,
   kind,
   label,
   initialExam,
   students,
   initialScores,
+  initialItemResponses,
+  programType,
 }: {
   classId: string;
+  classSlug: string;
   period: Period;
   kind: MajorExamKind;
   label: string;
   initialExam: MajorExam | null;
   students: Student[];
   initialScores: MajorExamScore[];
+  initialItemResponses: MajorExamItemResponse[];
+  programType: ProgramType;
 }) {
   const { showToast } = useToast();
   const [exam, setExam] = useState(initialExam);
@@ -148,6 +156,26 @@ function ExamSection({
               onSaveAll={handleSaveAll}
             />
           </CollapsibleSection>
+          <div className="mt-3">
+            <CollapsibleSection
+              title="Item analysis"
+              subtitle="Print bubble sheets, scan them with your phone, and find weak items and struggling students"
+              closedLabel="Open item analysis"
+              openLabel="Hide item analysis"
+            >
+              <ItemAnalysisSection
+                classSlug={classSlug}
+                exam={exam}
+                students={students}
+                initialResponses={initialItemResponses}
+                programType={programType}
+                recordedScores={Object.fromEntries(Object.entries(rows).map(([id, r]) => [id, r.score]))}
+                onUseAsScores={(scores) => {
+                  for (const [id, score] of Object.entries(scores)) updateRow(id, { score, dirty: true });
+                }}
+              />
+            </CollapsibleSection>
+          </div>
         </div>
       ) : (
         <p className="mt-4 text-sm text-muted">
@@ -160,15 +188,21 @@ function ExamSection({
 
 export default function MajorExamTab({
   classId,
+  classSlug,
   students,
   initialExams,
   initialScores,
+  initialItemResponses,
+  programType,
   usePrelims,
 }: {
   classId: string;
+  classSlug: string;
   students: Student[];
   initialExams: MajorExam[];
   initialScores: MajorExamScore[];
+  initialItemResponses: MajorExamItemResponse[];
+  programType: ProgramType;
   usePrelims: boolean;
 }) {
   const periods: Period[] = usePrelims ? ["prelim", "midterm", "finals"] : ["midterm", "finals"];
@@ -194,12 +228,17 @@ export default function MajorExamTab({
               <ExamSection
                 key={kind}
                 classId={classId}
+                classSlug={classSlug}
                 period={period}
                 kind={kind}
                 label={`${PERIOD_TITLE[period]} ${kind === "written" ? "written exam" : "laboratory exam"}`}
                 initialExam={exam}
                 students={students}
                 initialScores={exam ? initialScores.filter((s) => s.major_exam_id === exam.id) : []}
+                initialItemResponses={
+                  exam ? initialItemResponses.filter((r) => r.major_exam_id === exam.id) : []
+                }
+                programType={programType}
               />
             );
           })}
