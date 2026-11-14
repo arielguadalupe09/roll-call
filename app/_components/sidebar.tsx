@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useParams } from "next/navigation";
@@ -83,10 +83,6 @@ export default function Sidebar({
   const [open, setOpen] = useState(false);
   const [classesOpen, setClassesOpen] = useState(false);
   const classesRef = useRef<HTMLDivElement>(null);
-  // The Classes rail button sits low on the screen, so a flyout anchored to
-  // its top runs off the bottom of the viewport and hides the last classes.
-  // Position it (fixed) so it always fits inside the window.
-  const [flyoutPos, setFlyoutPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const pathname = usePathname();
   const params = useParams<{ classSlug?: string }>();
   const activeClassSlug = params?.classSlug;
@@ -111,26 +107,6 @@ export default function Sidebar({
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
-
-  useLayoutEffect(() => {
-    // A stale position from the last open is fine: this runs before paint.
-    if (!classesOpen) return;
-    function place() {
-      const btn = classesRef.current?.getBoundingClientRect();
-      if (!btn) return;
-      const margin = 16;
-      const header = 36; // "Classes" label + padding
-      const rowHeight = 44;
-      const vh = window.innerHeight;
-      const maxHeight = Math.max(120, vh - margin * 2 - header);
-      const wanted = Math.min(maxHeight, Math.max(1, classes.length) * rowHeight) + header;
-      const top = Math.max(margin, Math.min(btn.top, vh - margin - wanted));
-      setFlyoutPos({ top, left: btn.right + 8, maxHeight });
-    }
-    place();
-    window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
-  }, [classesOpen, classes.length]);
 
   function closeMenu() {
     setOpen(false);
@@ -328,19 +304,9 @@ export default function Sidebar({
             onClick={() => setClassesOpen((v) => !v)}
           />
           {classesOpen && (
-            <div
-              className="fixed z-50 w-64 rounded-xl bg-navy p-2 shadow-lg"
-              style={
-                flyoutPos
-                  ? { top: flyoutPos.top, left: flyoutPos.left }
-                  : { visibility: "hidden" }
-              }
-            >
+            <div className="absolute left-full top-0 z-50 ml-2 w-64 rounded-xl bg-navy p-2 shadow-lg">
               <p className="px-2 py-1 text-xs font-semibold text-card/70">Classes</p>
-              <div
-                className="subtle-scroll flex flex-col gap-0.5 overflow-y-auto"
-                style={{ maxHeight: flyoutPos?.maxHeight }}
-              >
+              <div className="subtle-scroll flex max-h-80 flex-col gap-0.5 overflow-y-auto">
                 {classes.map((c) => {
                   const active =
                     extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassSlug === c.slug;
