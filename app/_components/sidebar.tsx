@@ -87,6 +87,12 @@ export default function Sidebar({
   // its top runs off the bottom of the viewport and hides the last classes.
   // Position it (fixed) so it always fits inside the window.
   const [flyoutPos, setFlyoutPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
+  const [classFilter, setClassFilter] = useState("");
+  // Long class lists get a filter box; past ~9 rows the list scrolls.
+  const showClassFilter = classes.length > 8;
+  const filteredClasses = classFilter.trim()
+    ? classes.filter((c) => c.name.toLowerCase().includes(classFilter.trim().toLowerCase()))
+    : classes;
   const pathname = usePathname();
   const params = useParams<{ classSlug?: string }>();
   const activeClassSlug = params?.classSlug;
@@ -119,10 +125,11 @@ export default function Sidebar({
       const btn = classesRef.current?.getBoundingClientRect();
       if (!btn) return;
       const margin = 16;
-      const header = 36; // "Classes" label + padding
+      const header = showClassFilter ? 80 : 36; // "Classes" label (+ filter box) + padding
       const rowHeight = 44;
       const vh = window.innerHeight;
-      const maxHeight = Math.max(120, vh - margin * 2 - header);
+      // Cap at ~9 rows so a long list scrolls instead of filling the screen.
+      const maxHeight = Math.max(120, Math.min(400, vh - margin * 2 - header));
       const wanted = Math.min(maxHeight, Math.max(1, classes.length) * rowHeight) + header;
       const top = Math.max(margin, Math.min(btn.top, vh - margin - wanted));
       setFlyoutPos({ top, left: btn.right + 8, maxHeight });
@@ -130,7 +137,7 @@ export default function Sidebar({
     place();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [classesOpen, classes.length]);
+  }, [classesOpen, classes.length, showClassFilter]);
 
   function closeMenu() {
     setOpen(false);
@@ -325,7 +332,10 @@ export default function Sidebar({
             icon="classes"
             label="Classes"
             active={isAnyClassActive || classesOpen}
-            onClick={() => setClassesOpen((v) => !v)}
+            onClick={() => {
+              setClassFilter("");
+              setClassesOpen((v) => !v);
+            }}
           />
           {classesOpen && (
             <div
@@ -336,12 +346,25 @@ export default function Sidebar({
                   : { visibility: "hidden" }
               }
             >
-              <p className="px-2 py-1 text-xs font-semibold text-card/70">Classes</p>
+              <p className="px-2 py-1 text-xs font-semibold text-card/70">
+                Classes{showClassFilter ? ` (${classes.length})` : ""}
+              </p>
+              {showClassFilter && (
+                <input
+                  type="search"
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  placeholder="Filter classes…"
+                  aria-label="Filter classes"
+                  autoFocus
+                  className="mx-1 mb-2 w-[calc(100%-0.5rem)] rounded-lg bg-white/10 px-3 py-1.5 text-sm text-card placeholder:text-card/50 outline-none focus:ring-1 focus:ring-card/40"
+                />
+              )}
               <div
-                className="subtle-scroll flex flex-col gap-0.5 overflow-y-auto"
+                className="subtle-scroll flex flex-col gap-0.5 overflow-y-auto overscroll-contain pr-1"
                 style={{ maxHeight: flyoutPos?.maxHeight }}
               >
-                {classes.map((c) => {
+                {filteredClasses.map((c) => {
                   const active =
                     extraActiveClassIds.size > 0 ? extraActiveClassIds.has(c.id) : activeClassSlug === c.slug;
                   return (
@@ -358,6 +381,9 @@ export default function Sidebar({
                 })}
                 {classes.length === 0 && (
                   <p className="px-3 py-2 text-sm text-card/70">No classes yet</p>
+                )}
+                {classes.length > 0 && filteredClasses.length === 0 && (
+                  <p className="px-3 py-2 text-sm text-card/70">No matching classes</p>
                 )}
               </div>
             </div>
