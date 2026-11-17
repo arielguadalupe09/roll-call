@@ -42,6 +42,8 @@ export type Student = {
   name: string;
   code: string;
   device_id: string | null;
+  // Optional; used only for "your grade is posted" emails (migration 0044).
+  email?: string | null;
   created_at: string;
 };
 

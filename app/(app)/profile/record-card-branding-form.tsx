@@ -134,7 +134,7 @@ export default function RecordCardBrandingForm({
             accept="image/*"
             onChange={(e) => handleLogoChange("primary", e.target.files?.[0] ?? null)}
             disabled={uploading === "primary"}
-            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border-0 file:bg-slate file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-card file:transition hover:file:brightness-110 file:cursor-pointer"
           />
           {uploading === "primary" && <span className="text-xs text-ink/60">Uploading...</span>}
         </label>
@@ -161,7 +161,7 @@ export default function RecordCardBrandingForm({
             accept="image/*"
             onChange={(e) => handleLogoChange("secondary", e.target.files?.[0] ?? null)}
             disabled={uploading === "secondary"}
-            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
+            className="text-sm text-ink/70 file:mr-3 file:rounded-sm file:border-0 file:bg-slate file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-card file:transition hover:file:brightness-110 file:cursor-pointer"
           />
           {uploading === "secondary" && <span className="text-xs text-ink/60">Uploading...</span>}
         </label>

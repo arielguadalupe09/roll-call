@@ -10,6 +10,8 @@ import {
   toLastNameFirst,
 } from "@/lib/name-format";
 import type { ClassRow, Student } from "@/lib/types";
+import { normalizeEmail } from "@/lib/email";
+import { matchEmailRows, rowsFromHtml } from "@/lib/email-import";
 import { useToast } from "@/app/_components/toast";
 import { useConfirm } from "@/app/_components/confirm-provider";
 import IconButton from "@/app/_components/icon-button";
@@ -30,6 +32,14 @@ const SORT_LABEL: Record<SortMode, string> = {
   az: "Sort: A → Z",
   za: "Sort: Z → A",
 };
+
+function UploadIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="mr-0.5">
+      <path d="M8 10.5V2.5M8 2.5 5 5.5M8 2.5l3 3M2.5 10v2.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function StudentsManager({
   classId,
@@ -53,6 +63,7 @@ export default function StudentsManager({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [transferIds, setTransferIds] = useState<string[] | null>(null);
   const [transferClasses, setTransferClasses] = useState<
@@ -347,21 +358,142 @@ export default function StudentsManager({
   function startEdit(student: Student) {
     setEditingId(student.id);
     setEditName(student.name);
+    setEditEmail(student.email ?? "");
   }
 
   function cancelEdit() {
     setEditingId(null);
     setEditName("");
+    setEditEmail("");
+  }
+
+  function editKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") saveEdit();
+    if (e.key === "Escape") cancelEdit();
+  }
+
+  // Rendered in the Email column, or under the name on narrow screens.
+  const emailField = (
+    <Input
+      type="email"
+      inputMode="email"
+      value={editEmail}
+      onChange={(e) => setEditEmail(e.target.value)}
+      onKeyDown={editKeyDown}
+      placeholder="name@example.com"
+      aria-label="Email (optional, for grade notices)"
+      title="Optional. Gets an email when grades are released."
+      autoComplete="off"
+      data-1p-ignore
+      data-lpignore="true"
+      className="w-full !py-1"
+    />
+  );
+
+  // Bulk "add emails" from an Excel/CSV sheet or a Word document. Rows are
+  // matched to students by code or name (lib/email-import.ts); nothing is
+  // saved until the teacher confirms the summary.
+  const emailFileRef = useRef<HTMLInputElement>(null);
+  const [importingEmails, setImportingEmails] = useState(false);
+
+  async function handleEmailImport(file: File) {
+    setImportingEmails(true);
+    setError(null);
+    try {
+      const buffer = await file.arrayBuffer();
+      let rows: unknown[][];
+      if (/\.docx$/i.test(file.name)) {
+        const mammoth = await import("mammoth");
+        const { value: html } = await mammoth.convertToHtml({ arrayBuffer: buffer });
+        rows = rowsFromHtml(html, (h) => new DOMParser().parseFromString(h, "text/html"));
+      } else if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
+        const XLSX = await import("xlsx");
+        const workbook = XLSX.read(buffer, { type: "array" });
+        rows = workbook.SheetNames.flatMap((name) =>
+          XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name], { header: 1, defval: "" }),
+        );
+      } else {
+        setError("Use an Excel (.xlsx, .xls, .csv) or Word (.docx) file. For an old .doc file, save it as .docx first.");
+        return;
+      }
+
+      const { matches, unmatched, invalid } = matchEmailRows(rows, students);
+      const changes = matches.filter((m) => students.find((s) => s.id === m.studentId)?.email !== m.email);
+      if (matches.length === 0) {
+        setError(
+          unmatched.length
+            ? `Found ${unmatched.length} email${unmatched.length === 1 ? "" : "s"}, but none matched a student in this class by name or code.`
+            : "No email addresses found in that file.",
+        );
+        return;
+      }
+      if (changes.length === 0) {
+        showToast(`All ${matches.length} matched students already have those emails.`);
+        return;
+      }
+
+      const replacing = changes.filter((m) => students.find((s) => s.id === m.studentId)?.email).length;
+      const skipped = [...unmatched, ...invalid];
+      const ok = await confirm(
+        [
+          `Save emails for ${changes.length} student${changes.length === 1 ? "" : "s"}` +
+            (replacing ? ` (${replacing} replacing an existing email)` : "") +
+            ".",
+          skipped.length
+            ? `${skipped.length} row${skipped.length === 1 ? "" : "s"} skipped (no matching student, a student listed twice, or a bad address): ` +
+              skipped
+                .slice(0, 5)
+                .map((r) => `"${r.length > 60 ? `${r.slice(0, 57)}...` : r}"`)
+                .join(", ") +
+              (skipped.length > 5 ? `, and ${skipped.length - 5} more.` : ".")
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+        { title: "Import student emails?", confirmLabel: "Save emails" },
+      );
+      if (!ok) return;
+
+      const supabase = createClient();
+      const failed: string[] = [];
+      for (let i = 0; i < changes.length; i += 10) {
+        await Promise.all(
+          changes.slice(i, i + 10).map(async (m) => {
+            const { error: updateError } = await supabase
+              .from("students")
+              .update({ email: m.email })
+              .eq("id", m.studentId);
+            if (updateError) failed.push(m.studentName);
+          }),
+        );
+      }
+      const savedIds = new Map(changes.filter((m) => !failed.includes(m.studentName)).map((m) => [m.studentId, m.email]));
+      setStudents((prev) => prev.map((s) => (savedIds.has(s.id) ? { ...s, email: savedIds.get(s.id) } : s)));
+      if (failed.length) setError(`Couldn't save emails for: ${failed.join("; ")}`);
+      showToast(`Saved ${savedIds.size} email${savedIds.size === 1 ? "" : "s"}.`);
+      router.refresh();
+    } catch {
+      setError("Couldn't read that file. Make sure it's a valid Excel or Word file.");
+    } finally {
+      setImportingEmails(false);
+      if (emailFileRef.current) emailFileRef.current.value = "";
+    }
   }
 
   async function saveEdit() {
     if (!editingId || !editName.trim()) return;
+    // Optional; used for "your grade is posted" emails (lib/notify.ts).
+    const email = normalizeEmail(editEmail);
+    if (email === undefined) {
+      showToast("That email address doesn't look right.");
+      return;
+    }
     setEditSaving(true);
 
     const supabase = createClient();
     const { data, error: updateError } = await supabase
       .from("students")
-      .update({ name: toLastNameFirst(editName) })
+      .update({ name: toLastNameFirst(editName), email })
       .eq("id", editingId)
       .select()
       .single();
@@ -458,21 +590,47 @@ export default function StudentsManager({
         </Button>
       </form>
 
+      {/* Native file pickers stay hidden; solid buttons open them, matching
+          "Add student". Gold stays reserved for the print/export links. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImport(file);
+        }}
+      />
+      <input
+        ref={emailFileRef}
+        type="file"
+        accept=".xlsx,.xls,.csv,.docx"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleEmailImport(file);
+        }}
+      />
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleImport(file);
-          }}
-          disabled={importing}
-          className="min-w-0 max-w-full text-sm text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-ink hover:file:bg-ink/5"
-        />
-        {importing && (
-          <span className="text-sm text-ink/60">Importing...</span>
-        )}
+        <div className="flex w-full gap-3 sm:w-auto">
+          <Button
+            disabled={importing}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 whitespace-nowrap sm:flex-none"
+          >
+            <UploadIcon />
+            {importing ? "Importing..." : "Import students"}
+          </Button>
+          <Button
+            disabled={importingEmails || students.length === 0}
+            onClick={() => emailFileRef.current?.click()}
+            className="flex-1 whitespace-nowrap sm:flex-none"
+          >
+            <UploadIcon />
+            {importingEmails ? "Reading emails..." : "Import emails"}
+          </Button>
+        </div>
         <div className="flex w-full gap-3 sm:ml-auto sm:w-auto">
           <Button href={`/record-card/${classSlug}`} variant="highlight" className="flex-1 text-center sm:flex-none">
             Record Cards (all students)
@@ -482,6 +640,11 @@ export default function StudentsManager({
           </Button>
         </div>
       </div>
+
+      <p className="mt-2 text-xs text-muted">
+        Import students from Excel (.xlsx, .xls, .csv). Import emails from Excel or Word (.docx) with each
+        student&apos;s name or code and email.
+      </p>
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
@@ -559,6 +722,7 @@ export default function StudentsManager({
                 </th>
                 <th className="hidden w-10 py-2 sm:table-cell">#</th>
                 <th className="py-2">Name</th>
+                <th className="hidden w-[30%] py-2 md:table-cell">Email</th>
                 <th className="hidden w-40 py-2 sm:table-cell">Code</th>
                 <th className="py-2 pr-3" />
               </tr>
@@ -578,15 +742,21 @@ export default function StudentsManager({
                     </td>
                     <td className="hidden py-1.5 font-mono text-xs text-muted sm:table-cell">{n}.</td>
                     <td className="py-1.5 pr-2 text-ink">
-                      {isEditing ? (
+                      {isEditing && (
                         <Input
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={editKeyDown}
+                          aria-label="Name"
+                          autoComplete="off"
                           autoFocus
                           className="w-full !border-gold !py-1"
                         />
-                      ) : (
+                      )}
+                      {/* Below md the Email column is hidden, so its field sits under the name. */}
+                      {isEditing && <div className="mt-1.5 md:hidden">{emailField}</div>}
+                      {!isEditing && (
                         <span className="inline-flex items-center gap-1.5">
                           <span className="font-semibold">
                             {s.name}
@@ -607,10 +777,24 @@ export default function StudentsManager({
                           )}
                         </span>
                       )}
+                      {!isEditing && s.email && (
+                        <span className="block truncate text-xs text-muted md:hidden">{s.email}</span>
+                      )}
                       {!isEditing && (
                         <span className="mt-0.5 block font-mono text-xs text-slate sm:hidden">
                           <span className="text-muted">{n}.</span> {s.code}
                         </span>
+                      )}
+                    </td>
+                    <td className="hidden max-w-0 py-1.5 pr-2 md:table-cell">
+                      {isEditing ? (
+                        emailField
+                      ) : s.email ? (
+                        <span className="block truncate text-sm text-slate" title={s.email}>
+                          {s.email}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-ink/25">—</span>
                       )}
                     </td>
                     <td className="hidden py-1.5 font-mono text-slate sm:table-cell">{s.code}</td>
@@ -666,7 +850,7 @@ export default function StudentsManager({
               })}
               {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-ink/60">
+                  <td colSpan={6} className="px-3 py-4 text-ink/60">
                     {displayedStudents.length === 0 ? "No students yet." : `No students match "${query.trim()}".`}
                   </td>
                 </tr>

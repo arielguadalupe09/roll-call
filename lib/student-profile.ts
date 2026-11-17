@@ -83,6 +83,8 @@ export type AnnouncementSummary = { id: string; title: string; body: string; cre
 export type StudentProfile = {
   studentName: string;
   className: string;
+  // Where "your grade is posted" emails go (null = none set).
+  email: string | null;
   // True when this profile load also just marked the student present --
   // the teacher had a self-checkin session open for their class right now.
   justCheckedIn: boolean;

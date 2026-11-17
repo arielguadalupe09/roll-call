@@ -105,7 +105,7 @@ export default function RecordCardClient({
               ))}
             </Select>
           </label>
-          <Button variant="secondary" onClick={handleSavePdf} disabled={exportingPdf}>
+          <Button variant="highlight" onClick={handleSavePdf} disabled={exportingPdf}>
             {exportingPdf ? "Saving PDF..." : "Save PDF"}
           </Button>
           <Button variant="highlight" onClick={() => window.print()}>Print</Button>

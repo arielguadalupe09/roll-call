@@ -322,6 +322,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     studentName: student.name,
     className: (classRow as ClassRow).name,
+    email: (student as Student).email ?? null,
     justCheckedIn,
     announcements: announcementRows ?? [],
     usePrelims: (classData.config as GradingConfig | null)?.use_prelims ?? false,

@@ -96,7 +96,7 @@ export default function GradingHubClient({
   recitationLogs: ParticipationLog[];
   attendance: Attendance[];
   adjustments: GradeAdjustment[];
-  releases: (GradeRelease & { seenCount: number })[];
+  releases: (GradeRelease & { seenCount: number; emailedCount: number })[];
   programType: string | null;
   courseType: string | null;
   exams: Exam[];

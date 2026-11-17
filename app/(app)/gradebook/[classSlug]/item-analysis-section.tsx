@@ -336,7 +336,7 @@ export default function ItemAnalysisSection({
             className="font-mono uppercase"
           />
         </label>
-        <Button variant="secondary" onClick={saveSetup} disabled={savingCount}>
+        <Button onClick={saveSetup} disabled={savingCount}>
           {savingCount ? "Saving..." : "Save"}
         </Button>
       </div>

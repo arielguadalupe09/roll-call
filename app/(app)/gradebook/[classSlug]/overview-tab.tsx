@@ -95,7 +95,7 @@ export default function OverviewTab({
   recitationLogs: ParticipationLog[];
   attendance: Attendance[];
   adjustments: GradeAdjustment[];
-  releases: (GradeRelease & { seenCount: number })[];
+  releases: (GradeRelease & { seenCount: number; emailedCount: number })[];
   programType: string | null;
   classId: string;
 }) {
@@ -108,7 +108,11 @@ export default function OverviewTab({
 
   async function releaseTerm(period: Period) {
     const ok = await confirm(
-      `Each of the ${students.length} students will see their ${PERIOD_LABEL[period]} grade, equivalent and remarks in the student portal, with a "New" notice the next time they open it.`,
+      `Each of the ${students.length} students will see their ${PERIOD_LABEL[period]} grade, equivalent and remarks in the student portal, with a "New" notice the next time they open it.${
+        withEmail > 0
+          ? ` The ${withEmail} student${withEmail === 1 ? "" : "s"} with an email on file will also get an email saying the grade is posted.`
+          : ""
+      }`,
       { title: `Release ${PERIOD_LABEL[period]} grades?`, confirmLabel: "Release" },
     );
     if (!ok) return;
@@ -123,8 +127,46 @@ export default function OverviewTab({
       showToast(error.message);
       return;
     }
-    setReleases((prev) => [...prev, { ...(data as GradeRelease), seenCount: 0 }]);
-    showToast(`${PERIOD_LABEL[period]} grades released. Students will see them in the student portal.`);
+    setReleases((prev) => [...prev, { ...(data as GradeRelease), seenCount: 0, emailedCount: 0 }]);
+    if (withEmail > 0) {
+      await emailRelease(data as GradeRelease, `${PERIOD_LABEL[period]} grades released.`);
+    } else {
+      showToast(`${PERIOD_LABEL[period]} grades released. Students will see them in the student portal.`);
+    }
+  }
+
+  // "Your grade is posted" emails (lib/notify.ts) to every student with an
+  // email on file who hasn't had one for this release yet.
+  const withEmail = students.filter((s) => s.email).length;
+  const [emailing, setEmailing] = useState<string | null>(null);
+
+  async function emailRelease(release: GradeRelease, prefix = "") {
+    setEmailing(release.id);
+    try {
+      const res = await fetch(`/api/grade-releases/${release.id}/notify`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(`${prefix} Couldn't email students: ${data.error ?? res.statusText}`.trim());
+        return;
+      }
+      const { sent, logged, failed, alreadyEmailed, smtpConfigured } = data as {
+        sent: number;
+        logged: number;
+        failed: number;
+        alreadyEmailed: number;
+        smtpConfigured: boolean;
+      };
+      setReleases((prev) =>
+        prev.map((r) => (r.id === release.id ? { ...r, emailedCount: alreadyEmailed + sent + logged } : r)),
+      );
+      const parts = [prefix];
+      if (!smtpConfigured) parts.push(`Email isn't set up yet, so ${logged} notice${logged === 1 ? " was" : "s were"} only logged.`);
+      else if (sent || !failed) parts.push(`Emailed ${sent} student${sent === 1 ? "" : "s"}.`);
+      if (failed) parts.push(`${failed} email${failed === 1 ? "" : "s"} failed; try again with "Email".`);
+      showToast(parts.join(" ").trim());
+    } finally {
+      setEmailing(null);
+    }
   }
 
   async function unreleaseTerm(release: GradeRelease) {
@@ -362,7 +404,19 @@ export default function OverviewTab({
                 {PERIOD_LABEL[p]} released
                 <span className="text-xs text-success-text/80">
                   · {release.seenCount}/{students.length} seen
+                  {withEmail > 0 && ` · ${release.emailedCount}/${withEmail} emailed`}
                 </span>
+                {release.emailedCount < withEmail && (
+                  <button
+                    type="button"
+                    disabled={emailing !== null}
+                    onClick={() => emailRelease(release)}
+                    title="Email students with an email on file who haven't been told yet"
+                    className="text-xs text-muted underline underline-offset-2 hover:text-ink disabled:opacity-50"
+                  >
+                    {emailing === release.id ? "Emailing..." : "Email"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => unreleaseTerm(release)}

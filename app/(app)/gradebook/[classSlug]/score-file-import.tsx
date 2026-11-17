@@ -81,7 +81,7 @@ export default function ScoreFileImport({
           if (file) void handleFile(file);
         }}
       />
-      <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={busy}>
+      <Button onClick={() => inputRef.current?.click()} disabled={busy}>
         {busy ? "Reading file..." : "Upload Excel / Word file"}
       </Button>
 

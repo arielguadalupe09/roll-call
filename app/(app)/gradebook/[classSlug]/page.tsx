@@ -100,12 +100,22 @@ export default async function GradebookPage({
     // Attendance is a weighted category in the DHVSU grade (Overview).
     supabase.from("attendance").select("*").eq("class_id", classId),
     supabase.from("grade_adjustments").select("*").eq("class_id", classId),
-    supabase.from("grade_releases").select("*, grade_release_views(count)").eq("class_id", classId),
+    supabase.from("grade_releases").select("*, grade_release_views(count), grade_notifications(status)").eq("class_id", classId),
   ]);
-  // How many students have opened each released term's notice.
+  // How many students have opened each released term's notice, and how
+  // many were emailed about it (failed sends don't count; they're retried).
   const releases = (
-    (releaseRows as (GradeRelease & { grade_release_views: { count: number }[] })[] | null) ?? []
-  ).map(({ grade_release_views, ...r }) => ({ ...r, seenCount: grade_release_views?.[0]?.count ?? 0 }));
+    (releaseRows as
+      | (GradeRelease & {
+          grade_release_views: { count: number }[];
+          grade_notifications: { status: string }[] | null;
+        })[]
+      | null) ?? []
+  ).map(({ grade_release_views, grade_notifications, ...r }) => ({
+    ...r,
+    seenCount: grade_release_views?.[0]?.count ?? 0,
+    emailedCount: (grade_notifications ?? []).filter((n) => n.status !== "failed").length,
+  }));
 
   const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
   const assignmentIds = (assignments as Assignment[] | null)?.map((a) => a.id) ?? [];

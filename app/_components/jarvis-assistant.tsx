@@ -321,7 +321,7 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
               placeholder="Type a command..."
               className="min-w-0 flex-1 rounded-sm border border-line/50 bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-gold"
             />
-            <Button type="submit" variant="secondary" size="sm" className="shrink-0">
+            <Button type="submit" size="sm" className="shrink-0">
               Send
             </Button>
           </form>

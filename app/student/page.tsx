@@ -7,6 +7,7 @@ import CollapsibleSection from "@/app/_components/collapsible-section";
 import StudentCodeEntry from "@/app/_components/student-code-entry";
 import Button from "@/app/_components/button";
 import { Card, CardHeader } from "@/app/_components/card";
+import { Input } from "@/app/_components/input";
 import PortalTopBar, { type PortalTab } from "@/app/_components/portal-topbar";
 import { toSentenceCase } from "@/lib/text-format";
 import {
@@ -98,6 +99,95 @@ function AssessmentSection({ title, entries }: { title: string; entries: Assessm
         </ul>
       )}
     </CollapsibleSection>
+  );
+}
+
+// Opt-in "your grade is posted" emails (/api/student/email, lib/notify.ts).
+// The email never contains the grade itself, only a link back here.
+function GradeEmailCard({
+  getCode,
+  email,
+  onSaved,
+}: {
+  getCode: () => string;
+  email: string | null;
+  onSaved: (email: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(email ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(next: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/student/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: getCode(), deviceId: getDeviceId(), email: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't save your email. Try again.");
+        return;
+      }
+      onSaved(data.email ?? null);
+      setValue(data.email ?? "");
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Email me when grades are posted"
+        subtitle="We'll only say a grade is out. Your grades stay here, behind your code."
+      />
+      {email && !editing ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="truncate text-ink">{email}</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+              Change
+            </Button>
+            <Button size="sm" variant="secondary" disabled={saving} onClick={() => save("")}>
+              Remove
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <form
+          className="flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (value.trim()) save(value);
+          }}
+        >
+          <Input
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-label="Email address"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="min-w-0 flex-1"
+          />
+          <Button size="sm" type="submit" disabled={saving || !value.trim()}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+          {email && (
+            <Button size="sm" variant="secondary" type="button" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          )}
+        </form>
+      )}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+    </Card>
   );
 }
 
@@ -575,7 +665,7 @@ export default function StudentProfilePage() {
                                       [a.assignmentId]: e.target.files?.[0] ?? null,
                                     }))
                                   }
-                                  className="text-xs text-ink/70 file:mr-3 file:rounded-sm file:border file:border-line file:bg-white/60 file:px-2 file:py-1 file:text-xs file:font-medium"
+                                  className="text-xs text-ink/70 file:mr-3 file:rounded-sm file:border-0 file:bg-slate file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-card file:transition hover:file:brightness-110 file:cursor-pointer"
                                 />
                                 {pendingFile && (
                                   <p className="mt-1 text-xs text-ink/60">
@@ -688,6 +778,13 @@ export default function StudentProfilePage() {
             )}
 
             {tab === "grades" && gradesCard}
+            {tab === "grades" && (
+              <GradeEmailCard
+                getCode={() => activeCodeRef.current}
+                email={profile.email}
+                onSaved={(email) => setProfile((p) => (p ? { ...p, email } : p))}
+              />
+            )}
 
             {tab === "attendance" && attendanceHistoryCard}
           </main>
