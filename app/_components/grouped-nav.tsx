@@ -30,18 +30,20 @@ export type NavItem =
   | { kind: "group"; label: string; tools: NavGroupEntry[] };
 
 const FLAT_CLASS = "rounded-lg px-3 py-1.5 text-sm font-medium transition";
+// One highlight for the whole menu: selected, open and hovered items all use
+// the same navy fill.
 const FLAT_ACTIVE_CLASS = "bg-navy text-card";
-const FLAT_INACTIVE_CLASS = "text-muted hover:bg-slate-light hover:text-ink";
+const FLAT_INACTIVE_CLASS = "text-muted hover:bg-navy hover:text-card";
 const DROPDOWN_ITEM_CLASS =
   "block w-full px-4 py-2 text-left text-sm transition";
+const DROPDOWN_ACTIVE_CLASS = "bg-navy font-semibold text-card";
+const DROPDOWN_INACTIVE_CLASS = "text-muted hover:bg-navy hover:text-card";
 
 function ToolControl({ tool, variant }: { tool: NavTool; variant: "flat" | "dropdown" }) {
   const className =
     variant === "flat"
       ? `${FLAT_CLASS} ${tool.active ? FLAT_ACTIVE_CLASS : FLAT_INACTIVE_CLASS}`
-      : `${DROPDOWN_ITEM_CLASS} ${
-          tool.active ? "bg-gold-soft font-semibold text-ink" : "text-muted hover:bg-slate-light hover:text-ink"
-        }`;
+      : `${DROPDOWN_ITEM_CLASS} ${tool.active ? DROPDOWN_ACTIVE_CLASS : DROPDOWN_INACTIVE_CLASS}`;
 
   if (tool.href) {
     return (
@@ -74,7 +76,7 @@ function SubmenuControl({ submenu }: { submenu: NavSubmenu }) {
           setOpen((prev) => !prev);
         }}
         className={`flex w-full items-center justify-between gap-2 ${DROPDOWN_ITEM_CLASS} ${
-          active ? "bg-gold-soft font-semibold text-ink" : "text-muted hover:bg-slate-light hover:text-ink"
+          active || open ? DROPDOWN_ACTIVE_CLASS : DROPDOWN_INACTIVE_CLASS
         }`}
       >
         {submenu.label}
@@ -145,7 +147,7 @@ export default function GroupedNav({
               onClick={() => setOpenGroup(isOpen ? null : item.label)}
               aria-expanded={isOpen}
               className={`flex items-center gap-2 ${FLAT_CLASS} ${
-                groupActive ? FLAT_ACTIVE_CLASS : FLAT_INACTIVE_CLASS
+                groupActive || isOpen ? FLAT_ACTIVE_CLASS : FLAT_INACTIVE_CLASS
               }`}
             >
               {item.label}
