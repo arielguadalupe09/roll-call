@@ -61,7 +61,7 @@ export default async function AppShellLayout({
                 email={user?.email ?? ""}
                 fullName={teacher?.full_name ?? null}
               />
-              <div className="flex h-[86px] items-end border-b border-line px-4 pb-3 sm:px-8">
+              <div className="flex min-h-12 items-center border-b border-line/60 px-4 pb-2 sm:px-8">
                 <ClassSubNav defaultClassSlug={classRows[0]?.slug ?? null} />
               </div>
             </div>

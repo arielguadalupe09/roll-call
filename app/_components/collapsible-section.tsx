@@ -6,7 +6,8 @@ import { CardHeader } from "./card";
 const SHELL_CLASSES = {
   default: "border border-line bg-card p-4",
   flat: "p-4",
-  primary: "border border-line bg-card p-5 border-t-2 border-t-gold",
+  // Flat white surface for sections sitting directly on the page background.
+  primary: "bg-card p-5",
 } as const;
 
 export default function CollapsibleSection({

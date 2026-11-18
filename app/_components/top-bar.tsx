@@ -240,7 +240,7 @@ export default function TopBar({
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="relative flex h-14 items-center justify-end gap-3 border-b border-line/60 bg-card px-4 sm:px-8">
+    <div className="relative flex h-14 items-center justify-end gap-3 bg-card px-4 sm:px-8">
       {/* Absolutely centered on the top bar itself (not just the leftover
           space next to the cluster) -- the cluster below stays a normal
           flex child so this doesn't need a matching spacer to balance. */}

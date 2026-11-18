@@ -13,7 +13,7 @@ const TIER_TONE: Record<ReturnType<typeof tierFor>, StatusTone> = {
   critical: "warning",
 };
 
-/** Mini breakdown bars for the "Need attention" KPI tile. */
+/** Reason counts for the "Need attention" KPI tile, styled like the breakdown legends. */
 export function AttentionBreakdown({
   items,
 }: {
@@ -21,25 +21,19 @@ export function AttentionBreakdown({
 }) {
   const visible = items.filter((i) => i.count > 0);
   if (visible.length === 0) {
-    return <p className="mt-2 text-[11px] text-ink/50">All classes look healthy.</p>;
+    return <p className="mt-3 text-xs text-muted">All classes look healthy.</p>;
   }
-  const max = Math.max(...visible.map((i) => i.count));
 
   return (
-    <div className="mt-2 flex flex-col gap-1">
+    <ul className="mt-3 flex flex-col gap-1.5 text-xs text-muted">
       {visible.slice(0, 3).map((i) => (
-        <div key={i.label} className="flex items-center gap-1.5">
-          <span className="w-[4.5rem] shrink-0 truncate text-[9px] text-ink/60">{i.label}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-navy/[0.07]">
-            <div
-              className="h-full rounded-full bg-chart-warning"
-              style={{ width: `${Math.max(8, (i.count / max) * 100)}%` }}
-            />
-          </div>
-          <span className="w-4 shrink-0 text-right font-mono text-[10px] text-ink/60">{i.count}</span>
-        </div>
+        <li key={i.label} className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-danger" />
+          <span className="min-w-0 flex-1 truncate">{i.label}</span>
+          <span className="font-mono font-medium tabular-nums text-ink">{i.count}</span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 

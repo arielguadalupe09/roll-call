@@ -73,7 +73,7 @@ export function CardHeader({
           <span className="text-xs font-semibold">
             {chevron.open ? (chevron.openLabel ?? "Hide") : (chevron.closedLabel ?? "Show")}
           </span>
-          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-card transition group-hover:border-slate">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-light transition">
           <svg
             width="16"
             height="16"

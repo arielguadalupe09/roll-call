@@ -11,7 +11,7 @@ export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
   if (classes.length === 0) return null;
 
   return (
-    <div className="mt-8">
+    <div className="mt-4">
       <button
         onClick={() => setOpen((v) => !v)}
         className="text-sm text-ink/60 underline underline-offset-2 hover:text-ink"
@@ -24,7 +24,7 @@ export default function ArchivedClasses({ classes }: { classes: ClassRow[] }) {
           {classes.map((c) => (
             <li
               key={c.id}
-              className="flex flex-col gap-2 rounded-[10px] border border-line bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-[10px] bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
                 <span className="font-display text-lg font-semibold text-ink/70">

@@ -6,7 +6,9 @@ import { ChartTooltip } from "./chart-tooltip";
 // mark, not a badge. Same underlying tokens either way.
 const SOLID_BG: Record<StatusTone, string> = {
   success: "bg-chart-good",
-  warning: "bg-chart-warning",
+  // Slate, not --chart-warning: that token is navy, which made the middle
+  // segment indistinguishable from "success" in a three-part bar.
+  warning: "bg-slate",
   danger: "bg-chart-critical",
   neutral: "bg-line",
   navy: "bg-navy",
@@ -16,7 +18,7 @@ const SOLID_BG: Record<StatusTone, string> = {
   violet: "bg-violet",
 };
 
-const HEIGHT_CLASSES = { sm: "h-1.5", md: "h-2.5" } as const;
+const HEIGHT_CLASSES = { sm: "h-1", md: "h-1.5" } as const;
 
 export type BreakdownSegment = { tone: StatusTone; count: number; label: string };
 
@@ -40,27 +42,33 @@ export function StackedBreakdownBar({
         <div className={`w-full rounded-full bg-ink/10 ${HEIGHT_CLASSES[height]}`} />
       ) : (
         <div className={`flex w-full gap-[2px] ${HEIGHT_CLASSES[height]}`}>
-          {visible.map((s) => (
+          {visible.map((s, i) => (
             <ChartTooltip
               key={s.label}
               label={`${s.label}: ${s.count}`}
               className="h-full"
               style={{ width: `${(s.count / total) * 100}%` }}
             >
-              <div className={`h-full w-full rounded-full transition hover:brightness-110 ${SOLID_BG[s.tone]}`} />
+              {/* Only the outer ends are rounded, so the segments read as one
+                  bar. Not overflow-hidden on the track: it would clip the tooltip. */}
+              <div
+                className={`h-full w-full transition hover:brightness-110 ${SOLID_BG[s.tone]} ${
+                  i === 0 ? "rounded-l-full" : ""
+                } ${i === visible.length - 1 ? "rounded-r-full" : ""}`}
+              />
             </ChartTooltip>
           ))}
         </div>
       )}
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+      <ul className="mt-3 flex flex-col gap-1.5 text-xs text-muted">
         {segments.map((s) => (
-          <span key={s.label} className="flex items-center gap-1.5">
-            <span className={`h-2 w-2 rounded-[2px] ${SOLID_BG[s.tone]}`} />
-            {s.label}
-            <span className="font-mono text-ink/60">{s.count}</span>
-          </span>
+          <li key={s.label} className="flex items-center gap-2">
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${SOLID_BG[s.tone]}`} />
+            <span className="min-w-0 flex-1 truncate">{s.label}</span>
+            <span className="font-mono font-medium tabular-nums text-ink">{s.count}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

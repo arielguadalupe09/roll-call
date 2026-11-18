@@ -68,7 +68,7 @@ export function NextSessionWidget({ scheduleEntries }: { scheduleEntries: Schedu
   }
 
   return (
-    <div className="rounded-xl bg-navy p-4 text-card">
+    <div className="rounded-[10px] bg-navy p-4 text-card">
       <p className="font-mono text-2xl font-semibold tabular-nums">
         {clock}
       </p>

@@ -29,7 +29,7 @@ function GroupLabel({
   );
 }
 
-function CardGrid({ stats, warmBorder = false }: { stats: ClassStats[]; warmBorder?: boolean }) {
+function CardGrid({ stats }: { stats: ClassStats[] }) {
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {stats.map((s) => (
@@ -40,7 +40,6 @@ function CardGrid({ stats, warmBorder = false }: { stats: ClassStats[]; warmBord
           subject={s.classRow.subject}
           studentCount={s.studentCount}
           attendanceRate={s.attendanceRate}
-          warmBorder={warmBorder}
           archiveSlot={
             <ArchiveButton
               classId={s.classRow.id}
@@ -74,7 +73,7 @@ export default function ClassList({ stats }: { stats: ClassStats[] }) {
       {needsAttention.length > 0 && (
         <>
           <GroupLabel tone="danger">Needs attention · below 75%</GroupLabel>
-          <CardGrid stats={needsAttention} warmBorder />
+          <CardGrid stats={needsAttention} />
         </>
       )}
       {onTrackGroup.length > 0 && (

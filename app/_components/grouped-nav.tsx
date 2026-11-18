@@ -31,7 +31,7 @@ export type NavItem =
 
 const FLAT_CLASS = "rounded-lg px-3 py-1.5 text-sm font-medium transition";
 const FLAT_ACTIVE_CLASS = "bg-navy text-card";
-const FLAT_INACTIVE_CLASS = "text-black hover:bg-slate-light";
+const FLAT_INACTIVE_CLASS = "text-muted hover:bg-slate-light hover:text-ink";
 const DROPDOWN_ITEM_CLASS =
   "block w-full px-4 py-2 text-left text-sm transition";
 
@@ -102,7 +102,14 @@ function SubmenuControl({ submenu }: { submenu: NavSubmenu }) {
   );
 }
 
-export default function GroupedNav({ items }: { items: NavItem[] }) {
+export default function GroupedNav({
+  items,
+  divider = true,
+}: {
+  items: NavItem[];
+  // Off where the surrounding bar already draws its own bottom edge.
+  divider?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
@@ -119,7 +126,7 @@ export default function GroupedNav({ items }: { items: NavItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-wrap items-start gap-2 border-b border-line/60 pb-3"
+      className={`relative flex flex-wrap items-start gap-1 ${divider ? "border-b border-line/60 pb-3" : ""}`}
     >
       {items.map((item) => {
         if (item.kind === "tool") {

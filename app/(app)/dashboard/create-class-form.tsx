@@ -60,9 +60,10 @@ export default function CreateClassForm({
       <Input
         type="text"
         placeholder="New class name"
+        aria-label="New class name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="min-w-0 flex-1"
+        className="min-w-0 flex-1 border-transparent! bg-paper!"
       />
       <Button type="submit" disabled={loading} className="whitespace-nowrap">
         {loading ? "Adding..." : "Add class"}

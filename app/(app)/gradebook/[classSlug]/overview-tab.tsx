@@ -435,8 +435,7 @@ export default function OverviewTab({
         <StatCard
           label="Ungraded"
           icon={<TileIcon path={ICON_ALERT} tone="danger" />}
-          alert={ungradedCount > 0}
-          figure={{ kind: "badge", value: ungradedCount, danger: ungradedCount > 0 }}
+          figure={{ kind: "number", value: ungradedCount, danger: ungradedCount > 0 }}
         />
       </div>
 

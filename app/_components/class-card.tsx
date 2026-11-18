@@ -37,7 +37,6 @@ export function ClassCard({
   studentCount,
   attendanceRate,
   archiveSlot,
-  warmBorder = false,
 }: {
   slug: string;
   name: string;
@@ -47,23 +46,16 @@ export function ClassCard({
   // Rendered as the secondary action -- passed in rather than built here
   // since it's a stateful client component (confirm dialog, toast, undo).
   archiveSlot: React.ReactNode;
-  // Subtle warm-tinted border for cards grouped under "needs attention",
-  // reinforcing the grouping without relying on the status tag color alone.
-  warmBorder?: boolean;
 }) {
   const category = getCategoryColor(`${name} ${subject ?? ""}`);
   const pct = attendanceRate == null ? null : Math.round(attendanceRate * 100);
   const tone = attendanceRate == null ? "neutral" : TIER_TONE[tierFor(attendanceRate)];
 
   return (
-    <li
-      className={`group flex flex-col gap-3 rounded-[10px] border bg-card p-5 transition hover:border-gold/60 ${
-        warmBorder ? "border-danger/20" : "border-line"
-      }`}
-    >
+    <li className="group flex flex-col gap-3 rounded-[10px] bg-paper p-4 transition hover:bg-slate-light/60">
       <div className="flex items-start gap-3">
         <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-display text-sm font-semibold ${AVATAR_CLASSES[category]}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg font-display text-sm font-semibold ${AVATAR_CLASSES[category]}`}
         >
           {initials(name)}
         </span>
@@ -83,7 +75,7 @@ export function ClassCard({
         </StatusPill>
       </div>
 
-      <div className="mt-auto flex items-center gap-2 border-t border-line/40 pt-3">
+      <div className="mt-auto flex items-center gap-2 pt-1">
         <Button href={`/dashboard/classes/${slug}`} variant="primary" size="sm" className="flex-1">
           Open
         </Button>

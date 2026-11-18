@@ -184,5 +184,5 @@ export default function ClassSubNav({ defaultClassSlug = null }: { defaultClassS
     },
   ];
 
-  return <GroupedNav items={items} />;
+  return <GroupedNav items={items} divider={false} />;
 }

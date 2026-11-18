@@ -23,6 +23,7 @@ import { NextSessionWidget } from "@/app/_components/next-session-widget";
 const ICON_CLASSES = "M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1 1.3H12.5A1.5 1.5 0 0 1 14 5.8v5.7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7z";
 const ICON_STUDENTS = "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM10.5 7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM2 13c0-2 1.6-3.5 3.5-3.5S9 11 9 13M9.3 9.7c1.6.1 2.7 1.6 2.7 3.3";
 const ICON_ALERT = "M8 2.5 14 13H2L8 2.5zM8 6.5v3M8 11.2v.1";
+const ICON_ATTENDANCE = "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM5.5 8.2l1.8 1.8 3.2-3.6";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -143,15 +144,15 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-6xl">
-        <p className="text-sm text-gold">Dashboard</p>
+        <p className="text-sm font-medium text-warning-text">Dashboard</p>
         <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
           Your classes
         </h1>
-        <p className="mt-1 text-ink/70">
+        <p className="mt-1 text-muted">
           Create a class, then manage students, QR sheets, and attendance.
         </p>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="min-w-0">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard
@@ -182,6 +183,7 @@ export default async function DashboardPage() {
           <StatCard
             href="/attendance"
             label="Attendance"
+            icon={<TileIcon path={ICON_ATTENDANCE} tone="navy" />}
             figure={{
               kind: "ring",
               rate: overallAttendanceRate,
@@ -194,8 +196,7 @@ export default async function DashboardPage() {
             href="#insights"
             label="Need attention"
             icon={<TileIcon path={ICON_ALERT} tone="danger" />}
-            alert={classesNeedingAttention > 0}
-            figure={{ kind: "badge", value: classesNeedingAttention, danger: classesNeedingAttention > 0 }}
+            figure={{ kind: "number", value: classesNeedingAttention, danger: classesNeedingAttention > 0 }}
             footnote={
               <AttentionBreakdown
                 items={[
@@ -208,21 +209,21 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="mt-6 rounded-lg border border-dashed border-gold/50 bg-gold/[0.04] p-5">
-          <p className="text-xs text-gold">+ New</p>
+        <div className="mt-4 rounded-[10px] bg-card p-4">
           <CreateClassForm
             teacherId={user.id}
             defaultUsePrelims={teacherRow?.default_use_prelims ?? false}
           />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4">
           <AttendanceByClassChart stats={stats} />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4">
           <CollapsibleSection
             id="insights"
+            variant="primary"
             title="Insights"
             subtitle={
               lowAttendanceRows.length > 0
@@ -240,9 +241,10 @@ export default async function DashboardPage() {
           </CollapsibleSection>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-4">
           <CollapsibleSection
             id="class-list"
+            variant="primary"
             title="Classes"
             subtitle={`${classList.length} class${classList.length === 1 ? "" : "es"}`}
           >

@@ -12,7 +12,7 @@ export function CalendarWidget({ sessionDates }: { sessionDates: string[] }) {
   // Client-side so "today" and the month are the teacher's, not the UTC
   // server's (wrong from midnight to 8 AM in UTC+8).
   const now = useNow();
-  if (!now) return <div className="min-h-[250px] rounded-xl bg-card p-4" />;
+  if (!now) return <div className="min-h-[250px] rounded-[10px] bg-card p-4" />;
   const year = now.getFullYear();
   const month = now.getMonth();
   const today = now.getDate();
@@ -35,8 +35,8 @@ export function CalendarWidget({ sessionDates }: { sessionDates: string[] }) {
   const monthLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   return (
-    <div className="rounded-xl bg-card p-4">
-      <p className="text-sm font-semibold text-ink">{monthLabel}</p>
+    <div className="rounded-[10px] bg-card p-4">
+      <p className="font-display text-lg font-semibold text-ink">{monthLabel}</p>
       <div className="mt-3 grid grid-cols-7 gap-y-1.5 text-center">
         {WEEKDAY_LABELS.map((w, i) => (
           <span key={i} className="text-[10px] font-medium text-muted">
