@@ -100,22 +100,36 @@ export default async function GradebookPage({
     // Attendance is a weighted category in the DHVSU grade (Overview).
     supabase.from("attendance").select("*").eq("class_id", classId),
     supabase.from("grade_adjustments").select("*").eq("class_id", classId),
-    supabase.from("grade_releases").select("*, grade_release_views(count), grade_notifications(status)").eq("class_id", classId),
+    supabase
+      .from("grade_releases")
+      .select("*, grade_release_views(student_id), grade_notifications(student_id, status)")
+      .eq("class_id", classId),
   ]);
   // How many students have opened each released term's notice, and how
-  // many were emailed about it (failed sends don't count; they're retried).
-  const releases = (
+  // many were really emailed about it (only "sent"; logged or failed ones are retried).
+  // Counted per student across every release of the term, so a student who
+  // got their own release before the class-wide one still counts once.
+  const releaseData =
     (releaseRows as
       | (GradeRelease & {
-          grade_release_views: { count: number }[];
-          grade_notifications: { status: string }[] | null;
+          grade_release_views: { student_id: string }[] | null;
+          grade_notifications: { student_id: string; status: string }[] | null;
         })[]
-      | null) ?? []
-  ).map(({ grade_release_views, grade_notifications, ...r }) => ({
-    ...r,
-    seenCount: grade_release_views?.[0]?.count ?? 0,
-    emailedCount: (grade_notifications ?? []).filter((n) => n.status !== "failed").length,
-  }));
+      | null) ?? [];
+  const seenBy = (r: (typeof releaseData)[number]) => (r.grade_release_views ?? []).map((v) => v.student_id);
+  const emailedTo = (r: (typeof releaseData)[number]) =>
+    (r.grade_notifications ?? []).filter((n) => n.status === "sent").map((n) => n.student_id);
+  const releases = releaseData.map((release) => {
+    // A class-wide release counts every release of its term.
+    const counted = release.student_id ? [release] : releaseData.filter((x) => x.period === release.period);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropped from the props
+    const { grade_release_views: _views, grade_notifications: _notifications, ...r } = release;
+    return {
+      ...r,
+      seenCount: new Set(counted.flatMap(seenBy)).size,
+      emailedCount: new Set(counted.flatMap(emailedTo)).size,
+    };
+  });
 
   const teacherClassIds = (teacherClasses as ClassRow[] | null)?.map((c) => c.id) ?? [];
   const assignmentIds = (assignments as Assignment[] | null)?.map((a) => a.id) ?? [];

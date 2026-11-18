@@ -117,10 +117,12 @@ export async function POST(request: NextRequest) {
   // but a term's grade only reaches the student once the teacher has
   // released it, and the final rating only once every term is released.
   const computed = computeDhvsuGrades(classData, [student], classRow.program_type).get(student.id)!;
+  // The class-wide releases plus any released to this student alone.
   const { data: releaseRows } = await supabase
     .from("grade_releases")
     .select("*")
-    .eq("class_id", student.class_id);
+    .eq("class_id", student.class_id)
+    .or(`student_id.is.null,student_id.eq.${student.id}`);
   const releases = (releaseRows as GradeRelease[] | null) ?? [];
   const released = new Set(releases.map((r) => r.period));
   const termPeriods: Period[] = classData.config?.use_prelims ? ["prelim", "midterm", "finals"] : ["midterm", "finals"];
@@ -135,19 +137,24 @@ export async function POST(request: NextRequest) {
         .in("release_id", releases.map((r) => r.id))
     : { data: [] as { release_id: string }[] };
   const seenReleaseIds = new Set(((viewRows as { release_id: string }[] | null) ?? []).map((v) => v.release_id));
-  const gradeNotices = releases
-    .filter((r) => termPeriods.includes(r.period) && computed[r.period] != null)
-    .sort((a, b) => termPeriods.indexOf(a.period) - termPeriods.indexOf(b.period))
-    .map((r) => {
-      const equivalent = computed.termEquivalents[r.period] ?? null;
+  // One notice per term, even when the term was released to this student
+  // first and to the whole class later: it's new only if neither was seen,
+  // and opening it marks both seen.
+  const gradeNotices = termPeriods
+    .filter((p) => released.has(p) && computed[p] != null)
+    .map((p) => {
+      const forTerm = releases
+        .filter((r) => r.period === p)
+        .sort((a, b) => a.released_at.localeCompare(b.released_at));
+      const equivalent = computed.termEquivalents[p] ?? null;
       return {
-        period: r.period,
-        grade: computed[r.period] as number,
+        period: p,
+        grade: computed[p] as number,
         equivalent,
         descriptive: equivalent != null ? gradeDescriptive(equivalent) : null,
-        releasedAt: r.released_at,
-        isNew: !seenReleaseIds.has(r.id),
-        releaseId: r.id,
+        releasedAt: forTerm[0].released_at,
+        isNew: !forTerm.some((r) => seenReleaseIds.has(r.id)),
+        releaseIds: forTerm.map((r) => r.id),
       };
     });
 
@@ -309,7 +316,9 @@ export async function POST(request: NextRequest) {
       .in("id", newlySeenAttemptIds);
   }
 
-  const newlySeenReleases = gradeNotices.filter((n) => n.isNew).map((n) => n.releaseId);
+  // Every release behind a shown notice, including a class-wide release of a
+  // term this student already saw on their own, so Overview's "seen" counts.
+  const newlySeenReleases = gradeNotices.flatMap((n) => n.releaseIds).filter((id) => !seenReleaseIds.has(id));
   if (newlySeenReleases.length) {
     await supabase
       .from("grade_release_views")

@@ -29,17 +29,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!release) return NextResponse.json({ error: "Release not found." }, { status: 404 });
   const { classes, ...rel } = release as GradeRelease & { classes: { name: string } | null };
 
+  // A release to one student emails only them. Either way, a student already
+  // emailed about this term (through any release of it -- e.g. their own
+  // release before the class-wide one) isn't emailed again.
+  const { data: termReleases } = await supabase
+    .from("grade_releases")
+    .select("id")
+    .eq("class_id", rel.class_id)
+    .eq("period", rel.period);
+  let studentsQuery = supabase.from("students").select("id, name, email").eq("class_id", rel.class_id).not("email", "is", null);
+  if (rel.student_id) studentsQuery = studentsQuery.eq("id", rel.student_id);
   const [{ data: students, error: studentsError }, { data: previous, error: previousError }] = await Promise.all([
-    supabase.from("students").select("id, name, email").eq("class_id", rel.class_id).not("email", "is", null),
-    supabase.from("grade_notifications").select("student_id, status").eq("release_id", rel.id),
+    studentsQuery,
+    supabase
+      .from("grade_notifications")
+      .select("student_id, status")
+      .in("release_id", ((termReleases as { id: string }[] | null) ?? [{ id: rel.id }]).map((r) => r.id)),
   ]);
   if (studentsError || previousError) {
     return NextResponse.json({ error: (studentsError ?? previousError)!.message }, { status: 500 });
   }
 
+  // "sent" is final. "logged" (printed only, because SMTP wasn't configured --
+  // e.g. a release made from local dev) counts as done only while SMTP is
+  // still unconfigured, so it's really emailed once SMTP is set up. "failed"
+  // is always retried.
+  const isDone = (status: string) => status === "sent" || (status === "logged" && !smtpConfigured());
   const done = new Set(
     ((previous as { student_id: string; status: string }[] | null) ?? [])
-      .filter((p) => p.status !== "failed")
+      .filter((p) => isDone(p.status) && (!rel.student_id || p.student_id === rel.student_id))
       .map((p) => p.student_id),
   );
   const pending = ((students as { id: string; name: string; email: string }[] | null) ?? []).filter(

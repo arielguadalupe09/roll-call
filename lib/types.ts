@@ -400,5 +400,7 @@ export type GradeRelease = {
   id: string;
   class_id: string;
   period: Period;
+  // Set for a release to one student only (migration 0045); null = whole class.
+  student_id?: string | null;
   released_at: string;
 };

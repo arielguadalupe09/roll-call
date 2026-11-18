@@ -157,7 +157,7 @@ export default function OverviewTab({
         smtpConfigured: boolean;
       };
       setReleases((prev) =>
-        prev.map((r) => (r.id === release.id ? { ...r, emailedCount: alreadyEmailed + sent + logged } : r)),
+        prev.map((r) => (r.id === release.id ? { ...r, emailedCount: alreadyEmailed + sent } : r)),
       );
       const parts = [prefix];
       if (!smtpConfigured) parts.push(`Email isn't set up yet, so ${logged} notice${logged === 1 ? " was" : "s were"} only logged.`);
@@ -169,9 +169,57 @@ export default function OverviewTab({
     }
   }
 
-  async function unreleaseTerm(release: GradeRelease) {
+  // Releases to the whole class vs. to one student (grade_releases.student_id).
+  const classRelease = (p: Period) => releases.find((r) => r.period === p && !r.student_id);
+  const studentRelease = (studentId: string, p: Period) =>
+    releases.find((r) => r.period === p && r.student_id === studentId);
+  const [releasingStudent, setReleasingStudent] = useState<string | null>(null);
+
+  async function releaseToStudent(student: Student, period: Period) {
     const ok = await confirm(
-      `Students will no longer see their ${PERIOD_LABEL[release.period]} grade in the student portal. Releasing again later shows them a new notice.`,
+      `${student.name} will see their ${PERIOD_LABEL[period]} grade, equivalent and remarks in the student portal, with a "New" notice the next time they open it.${
+        student.email ? ` They'll also get an email at ${student.email}.` : ""
+      } The rest of the class won't see theirs until you release it to them.`,
+      { title: `Release ${PERIOD_LABEL[period]} grade to this student?`, confirmLabel: "Release" },
+    );
+    if (!ok) return;
+    setReleasingStudent(student.id);
+    const { data, error } = await createClient()
+      .from("grade_releases")
+      .insert({ class_id: classId, period, student_id: student.id })
+      .select()
+      .single();
+    setReleasingStudent(null);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setReleases((prev) => [...prev, { ...(data as GradeRelease), seenCount: 0, emailedCount: 0 }]);
+    const prefix = `${PERIOD_LABEL[period]} grade released to ${student.name}.`;
+    if (student.email) await emailRelease(data as GradeRelease, prefix);
+    else showToast(prefix);
+  }
+
+  async function unreleaseStudent(release: GradeRelease, student: Student) {
+    const ok = await confirm(
+      `${student.name} will no longer see their ${PERIOD_LABEL[release.period]} grade in the student portal.`,
+      { title: `Hide ${PERIOD_LABEL[release.period]} grade?`, confirmLabel: "Hide grade", danger: true },
+    );
+    if (!ok) return;
+    const { error } = await createClient().from("grade_releases").delete().eq("id", release.id);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setReleases((prev) => prev.filter((r) => r.id !== release.id));
+  }
+
+  async function unreleaseTerm(release: GradeRelease) {
+    const individually = releases.filter((r) => r.period === release.period && r.student_id).length;
+    const ok = await confirm(
+      `Students will no longer see their ${PERIOD_LABEL[release.period]} grade in the student portal. Releasing again later shows them a new notice.${
+        individually ? ` The ${individually} student${individually === 1 ? "" : "s"} you released individually will still see theirs.` : ""
+      }`,
       { title: `Hide ${PERIOD_LABEL[release.period]} grades?`, confirmLabel: "Hide grades", danger: true },
     );
     if (!ok) return;
@@ -332,6 +380,9 @@ export default function OverviewTab({
   const tierCounts = { good: 0, warning: 0, critical: 0 };
   for (const final of gradedFinals) tierCounts[tierFor(final / 100)] += 1;
   const ungradedCount = students.length - gradedFinals.length;
+  // Per-student "Release" column: only in a single-term view, and only
+  // until that term is released to the whole class.
+  const showReleaseCol = view !== "all" && !classRelease(view);
   const totalCols =
     1 + // student
     quizzes.length +
@@ -344,7 +395,8 @@ export default function OverviewTab({
     shownPeriods.length + // adjustments
     shownPeriods.length + // per-period grade
     (view === "all" ? 1 : 0) + // final rating
-    2; // equivalent + remarks
+    2 + // equivalent + remarks
+    (showReleaseCol ? 1 : 0);
 
   return (
     <div className="mt-6">
@@ -391,7 +443,8 @@ export default function OverviewTab({
         />
         <div className="flex flex-wrap items-center gap-2">
           {periods.map((p) => {
-            const release = releases.find((r) => r.period === p);
+            const release = classRelease(p);
+            const individually = releases.filter((r) => r.period === p && r.student_id).length;
             return release ? (
               <span
                 key={p}
@@ -435,6 +488,12 @@ export default function OverviewTab({
                 onClick={() => releaseTerm(p)}
               >
                 {releasing === p ? "Releasing..." : `Release ${PERIOD_LABEL[p]} grades`}
+                {individually > 0 && (
+                  <span className="font-normal text-muted">
+                    {" "}
+                    · {individually} released individually
+                  </span>
+                )}
               </Button>
             );
           })}
@@ -584,6 +643,11 @@ export default function OverviewTab({
               <TableHeaderCell align="center" className={ITEM_HEADER}>
                 Remarks
               </TableHeaderCell>
+              {showReleaseCol && (
+                <TableHeaderCell align="center" className={ITEM_HEADER}>
+                  Release
+                </TableHeaderCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -697,6 +761,42 @@ export default function OverviewTab({
                   >
                     {shownEquivalent != null ? gradeDescriptive(shownEquivalent) : <span className="text-ink/20">—</span>}
                   </TableCell>
+                  {showReleaseCol && (
+                    <TableCell align="center" className="whitespace-nowrap px-2">
+                      {(() => {
+                        const own = studentRelease(s.id, view);
+                        if (own) {
+                          return (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs text-success-text"
+                              title={`Released ${new Date(own.released_at).toLocaleString()}${own.seenCount ? " · seen" : ""}${own.emailedCount ? " · emailed" : ""}`}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              Released{own.seenCount ? " · seen" : ""}
+                              <button
+                                type="button"
+                                onClick={() => unreleaseStudent(own, s)}
+                                className="text-muted underline underline-offset-2 hover:text-ink"
+                              >
+                                Undo
+                              </button>
+                            </span>
+                          );
+                        }
+                        return (
+                          <Button
+                            size="sm"
+                            disabled={releasingStudent !== null || grade?.[view] == null}
+                            onClick={() => releaseToStudent(s, view)}
+                          >
+                            {releasingStudent === s.id ? "Releasing..." : "Release"}
+                          </Button>
+                        );
+                      })()}
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
