@@ -27,6 +27,7 @@ import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } fro
 import { StatCard } from "@/app/_components/stat-card";
 import { TileIcon } from "@/app/_components/tile-icon";
 import { tierFor, TIER_TEXT, type Tier } from "@/lib/chart-tiers";
+import EmptyCriteriaNotice from "./empty-criteria-notice";
 
 const PERIOD_LABEL: Record<Period, string> = {
   prelim: "Prelim",
@@ -61,6 +62,14 @@ function Cell({ children }: { children: React.ReactNode }) {
     <TableCell align="center" tabular className="whitespace-nowrap px-2">
       {children ?? <span className="text-ink/20">—</span>}
     </TableCell>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 2.5v8M8 10.5 5 7.5M8 10.5l3-3M2.5 10v2.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -448,14 +457,16 @@ export default function OverviewTab({
             return release ? (
               <span
                 key={p}
-                className="flex h-8 items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-3 text-sm text-success-text"
+                className="flex h-8 items-center gap-2 rounded-sm border border-line bg-card px-3 text-sm font-medium text-ink"
                 title={`Released ${new Date(release.released_at).toLocaleString()}`}
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate text-card" aria-hidden="true">
+                  <svg width="9" height="9" viewBox="0 0 16 16" fill="none">
+                    <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
                 {PERIOD_LABEL[p]} released
-                <span className="text-xs text-success-text/80">
+                <span className="text-xs font-normal text-muted">
                   · {release.seenCount}/{students.length} seen
                   {withEmail > 0 && ` · ${release.emailedCount}/${withEmail} emailed`}
                 </span>
@@ -481,7 +492,6 @@ export default function OverviewTab({
             ) : (
               <Button
                 key={p}
-                variant="secondary"
                 size="sm"
                 className="h-8"
                 disabled={releasing !== null}
@@ -489,7 +499,7 @@ export default function OverviewTab({
               >
                 {releasing === p ? "Releasing..." : `Release ${PERIOD_LABEL[p]} grades`}
                 {individually > 0 && (
-                  <span className="font-normal text-muted">
+                  <span className="font-normal text-card/70">
                     {" "}
                     · {individually} released individually
                   </span>
@@ -500,7 +510,7 @@ export default function OverviewTab({
         {config.use_prelims ? (
           <span
             title="DHVSU export only supports Midterm/Finals classes. Turn off Prelims in Setup to export."
-            className="flex h-8 cursor-not-allowed items-center rounded-lg bg-line/20 px-3 text-sm font-medium text-ink/40"
+            className="flex h-8 cursor-not-allowed items-center gap-1 rounded-sm border border-line px-3 text-xs font-medium text-ink/40"
           >
             Export Class Record (.xlsx)
           </span>
@@ -508,51 +518,26 @@ export default function OverviewTab({
           <Button
             href={`/api/export/dhvsu-class-record/${classSlug}`}
             external
-            variant="highlight"
+            variant="secondary"
             size="sm"
             className="h-8"
           >
+            <DownloadIcon />
             Export Class Record (.xlsx)
           </Button>
         )}
         </div>
       </div>
       {emptyCriteria.length > 0 && (
-        <div className="mb-4 rounded-[10px] border border-gold/50 bg-gold-soft px-4 py-3 text-sm text-ink">
-          <p className="font-semibold">
-            {emptyCriteria.length} weighted {emptyCriteria.length === 1 ? "criterion has" : "criteria have"} no items yet
-          </p>
-          <p className="mt-0.5 text-ink/75">
-            An empty criterion counts as 0, so it lowers every student&apos;s term grade by up to its weight. Add an
-            item, or set its weight to 0% in Setup.
-          </p>
-          <div className="mt-2.5 flex flex-col gap-3 sm:flex-row sm:gap-8">
-            {shownPeriods
-              .filter((p) => emptyCriteria.some((e) => e.period === p))
-              .map((p) => {
-                const items = emptyCriteria.filter((e) => e.period === p);
-                return (
-                  <div key={p} className="min-w-0 sm:min-w-[14rem]">
-                    <p className="flex items-baseline justify-between gap-4 border-b border-gold/40 pb-1 text-xs font-semibold uppercase tracking-wide text-ink/60">
-                      {PERIOD_LABEL[p]}
-                      <span className="font-mono normal-case tracking-normal">
-                        up to −{items.reduce((sum, e) => sum + e.weight, 0)} pts
-                      </span>
-                    </p>
-                    <ul className="mt-1">
-                      {items.map((e) => (
-                        <li key={e.label} className="flex items-baseline justify-between gap-4 py-0.5">
-                          <span className="truncate">{e.label}</span>
-                          <span className="font-mono text-xs tabular-nums text-ink/70">{e.weight}%</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-          </div>
-          <p className="mt-2 text-xs text-muted">This is the DHVSU class record&apos;s rule; the exported file computes the same.</p>
-        </div>
+        <EmptyCriteriaNotice
+          terms={shownPeriods
+            .filter((p) => emptyCriteria.some((e) => e.period === p))
+            .map((p) => ({
+              period: p,
+              label: PERIOD_LABEL[p],
+              items: emptyCriteria.filter((e) => e.period === p),
+            }))}
+        />
       )}
       <CollapsibleSection title="Overview" subtitle={`${students.length} students`}>
         <Table>
@@ -768,12 +753,14 @@ export default function OverviewTab({
                         if (own) {
                           return (
                             <span
-                              className="inline-flex items-center gap-1.5 text-xs text-success-text"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-ink"
                               title={`Released ${new Date(own.released_at).toLocaleString()}${own.seenCount ? " · seen" : ""}${own.emailedCount ? " · emailed" : ""}`}
                             >
-                              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
+                              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate text-card" aria-hidden="true">
+                                <svg width="8" height="8" viewBox="0 0 16 16" fill="none">
+                                  <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
                               Released{own.seenCount ? " · seen" : ""}
                               <button
                                 type="button"
