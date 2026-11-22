@@ -398,6 +398,8 @@ export default function AssessmentRoster({
                   students={students}
                   rows={rows}
                   maxScore={a.max_score}
+                  classId={classId}
+                  title={a.title}
                   onScoreChange={(studentId, value) =>
                     updateScore(a.id, studentId, { score: value, dirty: true })
                   }

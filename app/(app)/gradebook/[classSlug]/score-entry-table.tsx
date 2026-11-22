@@ -7,6 +7,7 @@ import { Input } from "@/app/_components/input";
 import { useToast } from "@/app/_components/toast";
 import { isValidScore, parseScoreColumn } from "@/lib/score-paste";
 import ScoreFileImport from "./score-file-import";
+import ScoreAiImport from "./score-ai-import";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
 // `dirty` = edited (typed or pasted) since it was last saved.
@@ -19,6 +20,8 @@ export default function ScoreEntryTable({
   onScoreChange,
   onSave,
   onSaveAll,
+  classId,
+  title,
 }: {
   students: Student[];
   rows: Record<string, ScoreRow>;
@@ -26,6 +29,9 @@ export default function ScoreEntryTable({
   onScoreChange: (studentId: string, value: string) => void;
   onSave: (studentId: string) => void;
   onSaveAll: () => void;
+  // When both are given, the AI encoding bot is offered next to the file upload.
+  classId?: string;
+  title?: string;
 }) {
   const { showToast } = useToast();
 
@@ -126,12 +132,22 @@ export default function ScoreEntryTable({
           Tip: copy a column of scores from Excel or Google Sheets and paste it into the first score box.
         </p>
       </div>
-      <div className="mb-3">
+      <div className="mb-3 flex flex-col gap-3">
         <ScoreFileImport
           students={students}
           currentScores={Object.fromEntries(students.map((s) => [s.id, rowFor(s.id).score]))}
           onScoreChange={onScoreChange}
         />
+        {classId && title && (
+          <ScoreAiImport
+            classId={classId}
+            title={title}
+            maxScore={maxScore}
+            students={students}
+            currentScores={Object.fromEntries(students.map((s) => [s.id, rowFor(s.id).score]))}
+            onScoreChange={onScoreChange}
+          />
+        )}
       </div>
       <Table>
         <TableHead>

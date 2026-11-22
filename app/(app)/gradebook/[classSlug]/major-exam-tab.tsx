@@ -151,6 +151,8 @@ function ExamSection({
               students={students}
               rows={rows}
               maxScore={exam.max_score}
+              classId={classId}
+              title={`${PERIOD_TITLE[period]} ${label}`}
               onScoreChange={(studentId, value) => updateRow(studentId, { score: value, dirty: true })}
               onSave={handleSaveScore}
               onSaveAll={handleSaveAll}
