@@ -77,24 +77,23 @@ export default function ItemAnalysisExportPanel({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-paper/60 px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <span className="text-sm font-semibold text-ink">Results of item analysis</span>
-        {savedPapers === 0 ? (
-          <span className="text-xs text-muted">Save or scan some papers first.</span>
-        ) : (
-          <>
-            {FORMATS.map((f) => (
-              <Button key={f.format} variant="primary" size="sm" href={href(f.format)} external>
-                {f.label}
-              </Button>
-            ))}
-            <Button variant="primary" size="sm" onClick={() => setShowForm((v) => !v)}>
-              {showForm ? "Hide signatories" : "Signatories & letterhead"}
-            </Button>
-          </>
-        )}
+    <div className="flex flex-col gap-3 rounded-[10px] border border-line bg-paper/60 px-4 py-4">
+      <div>
+        <p className="text-base font-semibold text-ink">Download the school&apos;s item analysis report</p>
+        {savedPapers === 0 && <p className="text-xs text-muted">Scan or type some papers first.</p>}
       </div>
+      {savedPapers > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          {FORMATS.map((f) => (
+            <Button key={f.format} variant="primary" href={href(f.format)} external>
+              {f.label}
+            </Button>
+          ))}
+          <Button variant="secondary" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? "Hide names & letterhead" : "Edit names & letterhead"}
+          </Button>
+        </div>
+      )}
       {savedPapers > 0 && (
         <p className="text-xs text-muted">
           Uses the {savedPapers} saved paper{savedPapers === 1 ? "" : "s"}

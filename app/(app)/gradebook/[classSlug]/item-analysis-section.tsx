@@ -11,7 +11,6 @@ import type { ProgramType } from "@/lib/dhvsu-grade";
 import {
   analyzeItems,
   BLANK,
-  EASY_ITEM_P,
   formatAnswerString,
   formatItemList,
   GROUP_FRACTION,
@@ -66,7 +65,12 @@ function reliabilityLabel(kr20: number | null) {
   return "Very low";
 }
 
+// Which half of the section the Major Exam tab is showing; both stay mounted
+// (one instance), so typed papers survive switching.
+export type ItemAnalysisView = "sheets" | "results";
+
 export default function ItemAnalysisSection({
+  view,
   classSlug,
   exam,
   students,
@@ -75,6 +79,7 @@ export default function ItemAnalysisSection({
   recordedScores,
   onScoresSynced,
 }: {
+  view: ItemAnalysisView;
   classSlug: string;
   exam: MajorExam;
   students: Student[];
@@ -107,6 +112,8 @@ export default function ItemAnalysisSection({
   const keyMode = answerKey != null;
   const [drafts, setDrafts] = useState(() => draftsFrom(students, saved, keyMode));
   const [saving, setSaving] = useState(false);
+  const [showTyping, setShowTyping] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const nameById = useMemo(() => new Map(students.map((s) => [s.id, s.name])), [students]);
 
@@ -347,320 +354,420 @@ export default function ItemAnalysisSection({
   const decisionCounts = { Retain: 0, Revise: 0, Reject: 0 };
   for (const item of analysis?.items ?? []) decisionCounts[item.decision] += 1;
 
-  return (
+  const keyReady = itemCount != null && answerKey != null && answerKey.length === itemCount;
+  const sheetsFit = itemCount != null && itemCount <= MAX_SHEET_ITEMS;
+
+  // ---- Bubble sheets: three numbered steps, typing papers tucked away ----
+  const sheetsView = (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-muted">
-        Set the number of items. With an <strong>answer key</strong> (multiple choice), type each student&apos;s
-        answers in order (e.g. <span className="font-mono">ABDCA BCD-A</span>; <span className="font-mono">-</span> =
-        no answer) and you also see how many picked each choice. Without a key, type the item numbers they got wrong
-        (e.g. <span className="font-mono">3, 7, 12-15</span>; <span className="font-mono">none</span> for a perfect
-        paper). Leave a box blank if that paper hasn&apos;t been checked.
-      </p>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex w-32 flex-col gap-1">
-          <span className="text-xs font-semibold text-ink">Number of items</span>
-          <Input
-            type="number"
-            min={1}
-            max={500}
-            value={itemCountDraft}
-            onChange={(e) => setItemCountDraft(e.target.value)}
-            className="font-mono"
-          />
-        </label>
-        <label className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
-          <span className="text-xs font-semibold text-ink">Answer key (type it, or scan a shaded key sheet)</span>
-          <Input
-            value={keyDraft}
-            onChange={(e) => setKeyDraft(e.target.value)}
-            placeholder="e.g. ABDCA BCDAB"
-            className="font-mono uppercase"
-          />
-        </label>
-        <Button onClick={saveSetup} disabled={savingCount}>
-          {savingCount ? "Saving..." : "Save"}
-        </Button>
-      </div>
-
-      {bubbleCount > 0 && (
-        <div className="flex flex-col gap-3 rounded-[10px] border border-line px-3 py-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="text-sm font-semibold text-ink">Shade the answer key</span>
-            <span className="text-xs text-muted">
-              {keyAnswered} / {bubbleCount} items answered
-            </span>
+      <Step
+        n={1}
+        title="Set the answer key"
+        done={keyReady}
+        doneText={keyReady ? `Answer key saved — ${itemCount} items` : undefined}
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex w-36 flex-col gap-1">
+            <span className="text-xs font-semibold text-ink">Number of items</span>
+            <Input
+              type="number"
+              min={1}
+              max={500}
+              value={itemCountDraft}
+              onChange={(e) => setItemCountDraft(e.target.value)}
+              className="font-mono"
+            />
+          </label>
+          <label className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
+            <span className="text-xs font-semibold text-ink">Correct answers, in order</span>
+            <Input
+              value={keyDraft}
+              onChange={(e) => setKeyDraft(e.target.value)}
+              placeholder="e.g. ABDCA BCDAB"
+              className="font-mono uppercase"
+            />
+          </label>
+          <Button onClick={saveSetup} disabled={savingCount}>
+            {savingCount ? "Saving…" : "Save answer key"}
+          </Button>
+        </div>
+        {itemCount != null && answerKey != null && answerKey.length !== itemCount && (
+          <p className="text-sm text-danger">
+            The answer key has {answerKey.length} answers but the exam has {itemCount} items — fix one and save.
+          </p>
+        )}
+        {bubbleCount > 0 && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Button variant="secondary" onClick={() => setShowBubbles((v) => !v)}>
+                {showBubbles ? "Hide the answer ovals" : "Tap the answers on screen instead"}
+              </Button>
+              {showBubbles && (
+                <>
+                  <span className="text-xs text-muted">
+                    {keyAnswered} of {bubbleCount} answered
+                  </span>
+                  <label className="flex items-center gap-2 text-xs text-ink">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={shownOptions === 5}
+                      disabled={keyLetters.includes("E")}
+                      onChange={(e) => setKeyOptions(e.target.checked ? 5 : 4)}
+                    />
+                    Include choice E
+                  </label>
+                </>
+              )}
+            </div>
             {showBubbles && (
-              <label className="flex items-center gap-1.5 text-xs text-ink">
-                <input
-                  type="checkbox"
-                  checked={shownOptions === 5}
-                  disabled={keyLetters.includes("E")}
-                  onChange={(e) => setKeyOptions(e.target.checked ? 5 : 4)}
+              <>
+                <p className="text-xs text-muted">
+                  Tap the correct oval for each item (tap again to clear), then press Save answer key.
+                </p>
+                <AnswerKeyBubbles
+                  value={keyLetters}
+                  onChange={(letters) => setKeyDraft(lettersToKeyText(letters))}
+                  optionCount={shownOptions}
                 />
-                Choices A–E
-              </label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button onClick={saveSetup} disabled={savingCount}>
+                    {savingCount ? "Saving…" : "Save answer key"}
+                  </Button>
+                  {keyAnswered < bubbleCount && (
+                    <span className="text-sm text-danger">
+                      {bubbleCount - keyAnswered} item{bubbleCount - keyAnswered === 1 ? "" : "s"} still need an
+                      answer (numbers in red).
+                    </span>
+                  )}
+                </div>
+              </>
             )}
-            <Button variant="primary" size="sm" onClick={() => setShowBubbles((v) => !v)}>
-              {showBubbles ? "Hide bubbles" : "Shade on screen"}
-            </Button>
           </div>
-          {showBubbles && (
-            <>
-              <p className="text-xs text-muted">
-                Tap the correct oval for each item (tap again to clear) — the same as shading the printed answer-key
-                sheet. It fills the answer key box above; press Save to use it.
-              </p>
-              <AnswerKeyBubbles
-                value={keyLetters}
-                onChange={(letters) => setKeyDraft(lettersToKeyText(letters))}
-                optionCount={shownOptions}
-              />
+        )}
+        <p className="text-xs text-muted">
+          Or print an answer-key sheet in step 2, shade it, and scan it first in step 3.
+        </p>
+      </Step>
+
+      <Step n={2} title="Print the answer sheets" disabled={itemCount == null}>
+        {itemCount == null ? (
+          <p className="text-xs text-muted">Set the number of items first.</p>
+        ) : !sheetsFit ? (
+          <p className="text-xs text-muted">Bubble sheets fit up to {MAX_SHEET_ITEMS} items.</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button href={`/answer-sheets/${classSlug}/${exam.id}`}>Print answer sheets</Button>
+            <span className="text-xs text-muted">One sheet per student, with their name already on it.</span>
+          </div>
+        )}
+      </Step>
+
+      <Step n={3} title="Scan the papers with your phone" disabled={itemCount == null || !sheetsFit}>
+        {itemCount != null && sheetsFit ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="highlight" href={`/answer-sheets/${classSlug}/${exam.id}/scan`}>
+              Scan with phone
+            </Button>
+            <span className="text-xs text-muted">
+              {saved.size > 0
+                ? `${saved.size} of ${students.length} papers checked. Each one is scored and recorded in Scores automatically.`
+                : "Each scanned paper is scored and recorded in Scores automatically."}
+            </span>
+          </div>
+        ) : (
+          <p className="text-xs text-muted">Available once the answer sheets can be printed.</p>
+        )}
+      </Step>
+
+      {itemCount != null && (
+        <div className="rounded-[10px] border border-line">
+          <button
+            type="button"
+            onClick={() => setShowTyping((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            aria-expanded={showTyping}
+          >
+            <span>
+              <span className="block text-base font-semibold text-ink">No phone? Type the answers instead</span>
+              <span className="block text-xs text-muted">
+                {keyMode
+                  ? "Type each student's answers, e.g. ABDCA BCD-A (- = no answer)."
+                  : "Type the item numbers each student got wrong, e.g. 3, 7, 12-15."}
+              </span>
+            </span>
+            <span className="text-xs font-medium text-navy">{showTyping ? "Hide" : "Show"}</span>
+          </button>
+          {showTyping && (
+            <div className="flex flex-col gap-3 border-t border-line px-4 py-3">
+              {!scoresMatchItems && (
+                <p className="text-xs text-muted">
+                  The exam has {itemCount} items but is out of {exam.max_score} points. Saving a paper changes it to
+                  out of {itemCount}.
+                </p>
+              )}
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeaderCell>Student</TableHeaderCell>
+                    <TableHeaderCell>{keyMode ? "Answers" : "Wrong items"}</TableHeaderCell>
+                    <TableHeaderCell align="right">Score</TableHeaderCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {students.map((s) => {
+                    const p = parsed[s.id] ?? {};
+                    const correct = p.wrongItems ? itemCount - p.wrongItems.length : null;
+                    return (
+                      <TableRow key={s.id} striped>
+                        <TableCell>{s.name}</TableCell>
+                        <TableCell>
+                          <Input
+                            value={drafts[s.id]?.text ?? ""}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({ ...prev, [s.id]: { text: e.target.value, dirty: true } }))
+                            }
+                            placeholder={keyMode ? "not checked" : "not checked (none = perfect)"}
+                            aria-invalid={!!p.error}
+                            className={`!py-1.5 font-mono ${keyMode ? "uppercase" : ""} ${p.error ? "!border-danger" : ""}`}
+                          />
+                          {p.error && <p className="mt-0.5 text-xs text-danger">{p.error}</p>}
+                          {keyMode && p.wrongItems && p.wrongItems.length > 0 && (
+                            <p className="mt-0.5 text-xs text-muted">Wrong: {formatItemList(p.wrongItems)}</p>
+                          )}
+                        </TableCell>
+                        <TableCell align="right" tabular>
+                          {correct != null ? `${correct} / ${itemCount}` : "--"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
               <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={saveSetup} disabled={savingCount}>
-                  {savingCount ? "Saving..." : "Save answer key"}
+                <Button onClick={saveAll} disabled={saving || dirtyIds.length === 0}>
+                  {saving ? "Saving…" : `Save${dirtyIds.length ? ` ${dirtyIds.length} paper${dirtyIds.length === 1 ? "" : "s"}` : ""}`}
                 </Button>
-                {keyAnswered < bubbleCount && (
-                  <span className="text-xs text-danger">
-                    {bubbleCount - keyAnswered} item{bubbleCount - keyAnswered === 1 ? "" : "s"} still need an answer
-                    (numbers in red).
+                {invalidCount > 0 && (
+                  <span className="text-sm text-danger">
+                    {invalidCount} box{invalidCount === 1 ? "" : "es"} need fixing
                   </span>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
-      {itemCount != null && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-line bg-paper/60 px-3 py-2.5">
-          <span className="text-sm font-semibold text-ink">Bubble sheets</span>
-          {itemCount > MAX_SHEET_ITEMS ? (
-            <span className="text-xs text-muted">Sheets fit up to {MAX_SHEET_ITEMS} items.</span>
-          ) : (
-            <>
-              <Button variant="primary" size="sm" href={`/answer-sheets/${classSlug}/${exam.id}`}>
-                Print answer sheets
-              </Button>
-              <Button variant="highlight" size="sm" href={`/answer-sheets/${classSlug}/${exam.id}/scan`}>
-                  Scan with phone
-                </Button>
-              {!(answerKey && answerKey.length === itemCount) && (
-                <span className="text-xs text-muted">
-                  Shade the key on screen above, or print an <strong>Answer key (teacher)</strong> sheet, shade it, and
-                  scan it first.
-                </span>
-              )}
-              <span className="text-xs text-muted">Scanned papers appear here automatically.</span>
-            </>
-          )}
+    </div>
+  );
+
+  // ---- Results: what a teacher acts on first; the statistics on request ----
+  const resultsView = (
+    <div className="flex flex-col gap-5">
+      {!analysis || checkedCount < 2 ? (
+        <div className="rounded-[10px] border border-dashed border-line bg-paper/60 px-5 py-6">
+          <p className="text-base font-semibold text-ink">No results yet.</p>
+          <p className="mt-1 text-xs text-muted">
+            Results appear once at least 2 papers are scanned or typed in Bubble sheets
+            {checkedCount === 1 ? " (1 so far)" : ""}.
+          </p>
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Papers checked" value={`${checkedCount} of ${students.length}`} />
+            <Stat
+              label="Average score"
+              value={`${analysis.meanScore} / ${itemCount}`}
+              note={`${percent(analysis.meanScore, itemCount!)}%`}
+            />
+            <Stat label="Highest · Lowest" value={`${analysis.summary.high} · ${analysis.summary.low}`} />
+            <Stat label="Below passing" value={String(struggling.length)} tone={struggling.length ? "danger" : undefined} />
+          </div>
+
+          {mismatches.length > 0 && (
+            <p className="text-sm text-danger">
+              {mismatches.length} score{mismatches.length === 1 ? " in Scores doesn't" : "s in Scores don't"} match the
+              paper: {mismatches.map((m) => nameById.get(m.studentId)).join("; ")}. Reopen this page to update them.
+            </p>
+          )}
+
+          <section>
+            <h4 className="font-display text-base font-semibold text-ink">Students below passing</h4>
+            <p className="text-xs text-muted">
+              Exam grade below {PASSING_GRADE}. &ldquo;Missed easy items&rdquo; are items most of the class got right —
+              worth a one-on-one.
+            </p>
+            {struggling.length === 0 ? (
+              <p className="mt-2 text-sm text-success-text">✓ No one is below passing on this exam.</p>
+            ) : (
+              <Table className="mt-2">
+                <TableHead>
+                  <TableRow>
+                    <TableHeaderCell>Student</TableHeaderCell>
+                    <TableHeaderCell align="right">Score</TableHeaderCell>
+                    <TableHeaderCell align="right">Grade</TableHeaderCell>
+                    <TableHeaderCell>Missed easy items</TableHeaderCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {struggling.map((s) => (
+                    <TableRow key={s.studentId} striped>
+                      <TableCell>{nameById.get(s.studentId)}</TableCell>
+                      <TableCell align="right" tabular>
+                        {s.score} / {itemCount}
+                      </TableCell>
+                      <TableCell align="right" tabular className="text-danger">
+                        {s.transmuted}
+                      </TableCell>
+                      <TableCell tabular>{formatItemList(s.missedEasyItems) || "--"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </section>
+
+          <section>
+            <h4 className="font-display text-base font-semibold text-ink">Items to reteach</h4>
+            {analysis.leastLearned.length > 0 ? (
+              <>
+                <p className="text-xs text-muted">Fewer than half the class got these right.</p>
+                <p className="mt-1 font-mono text-sm text-ink">{formatItemList(analysis.leastLearned)}</p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-success-text">✓ More than half the class got every item right.</p>
+            )}
+          </section>
+        </>
       )}
 
       {itemCount != null && (
         <ItemAnalysisExportPanel examId={exam.id} savedPapers={saved.size} unsavedPapers={dirtyIds.length} />
       )}
 
-      {itemCount != null && answerKey != null && answerKey.length !== itemCount && (
-        <p className="text-xs text-danger">
-          The answer key has {answerKey.length} letters but the exam has {itemCount} items — fix one and Save.
-        </p>
-      )}
-
-      {itemCount != null && !scoresMatchItems && (
-        <p className="text-xs text-muted">
-          The exam has {itemCount} items but a max score of {exam.max_score}. Saving a paper sets the max score to{" "}
-          {itemCount} and records each checked student&apos;s correct items as their score.
-        </p>
-      )}
-
-      {itemCount != null && (
-        <>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeaderCell>Student</TableHeaderCell>
-                <TableHeaderCell>{keyMode ? "Answers" : "Wrong items"}</TableHeaderCell>
-                <TableHeaderCell align="right">Correct</TableHeaderCell>
-                <TableHeaderCell align="right">Incorrect</TableHeaderCell>
-                {scoresMatchItems && <TableHeaderCell align="right">Recorded score</TableHeaderCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {students.map((s) => {
-                const p = parsed[s.id] ?? {};
-                const correct = p.wrongItems ? itemCount - p.wrongItems.length : null;
-                const recorded = recordedScores[s.id]?.trim() ?? "";
-                const mismatch = correct != null && recorded !== "" && Number(recorded) !== correct;
-                return (
-                  <TableRow key={s.id} striped>
-                    <TableCell>{s.name}</TableCell>
-                    <TableCell>
-                      <Input
-                        value={drafts[s.id]?.text ?? ""}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({ ...prev, [s.id]: { text: e.target.value, dirty: true } }))
-                        }
-                        placeholder="not checked"
-                        aria-invalid={!!p.error}
-                        className={`!py-1 font-mono text-sm ${keyMode ? "uppercase" : ""} ${p.error ? "!border-danger" : ""}`}
-                      />
-                      {p.error && <p className="mt-0.5 text-xs text-danger">{p.error}</p>}
-                      {keyMode && p.wrongItems && p.wrongItems.length > 0 && (
-                        <p className="mt-0.5 text-xs text-muted">Wrong: {formatItemList(p.wrongItems)}</p>
-                      )}
-                    </TableCell>
-                    <TableCell align="right" tabular>
-                      {correct != null ? `${correct} / ${itemCount}` : "--"}
-                    </TableCell>
-                    <TableCell align="right" tabular className={correct != null && correct < itemCount ? "text-danger" : undefined}>
-                      {correct != null ? itemCount - correct : "--"}
-                    </TableCell>
-                    {scoresMatchItems && (
-                      <TableCell align="right" tabular className={mismatch ? "text-danger" : undefined}>
-                        {recorded === "" ? "--" : recorded}
-                        {mismatch && " ≠"}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={saveAll} disabled={saving || dirtyIds.length === 0}>
-              {saving ? "Saving..." : `Save all${dirtyIds.length ? ` (${dirtyIds.length})` : ""}`}
-            </Button>
-            <span className="text-xs text-muted">
-              Saved papers fill in the exam&apos;s Scores automatically (correct items out of {itemCount}).
-            </span>
-            {invalidCount > 0 && (
-              <span className="text-xs text-danger">
-                {invalidCount} box{invalidCount === 1 ? "" : "es"} need fixing
+      {analysis && checkedCount >= 2 && (
+        <div className="rounded-[10px] border border-line">
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            aria-expanded={showDetails}
+          >
+            <span>
+              <span className="block text-base font-semibold text-ink">Detailed item analysis</span>
+              <span className="block text-xs text-muted">
+                Difficulty, discrimination and reliability for each item — for reviewing the test itself.
               </span>
-            )}
-          </div>
-
-          {mismatches.length > 0 && (
-            <p className="text-sm text-danger">
-              {mismatches.length} recorded score{mismatches.length === 1 ? " doesn't" : "s don't"} match the number of
-              correct items: {mismatches.map((m) => nameById.get(m.studentId)).join("; ")}.
-            </p>
-          )}
-
-          {analysis && checkedCount < 2 && (
-            <p className="text-sm text-muted">Check at least 2 papers to see the item analysis.</p>
-          )}
-
-          {analysis && checkedCount >= 2 && (
-            <div className="flex flex-col gap-5">
+            </span>
+            <span className="text-xs font-medium text-navy">{showDetails ? "Hide" : "Show"}</span>
+          </button>
+          {showDetails && (
+            <div className="flex flex-col gap-5 border-t border-line px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h4 className="font-display text-base font-semibold text-ink">Exam summary</h4>
-                <Button variant="secondary" size="sm" onClick={downloadCsv}>
-                  Download CSV
-                </Button>
-              </div>
-              <div className="-mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Papers checked" value={`${checkedCount} / ${students.length}`} />
-                <Stat
-                  label="Mean score"
-                  value={`${analysis.meanScore} / ${itemCount}`}
-                  note={`${percent(analysis.meanScore, itemCount)}%`}
-                />
-                <Stat label="Median" value={String(analysis.summary.median)} />
-                <Stat label="High · Low" value={`${analysis.summary.high} · ${analysis.summary.low}`} />
-                <Stat label="Standard deviation" value={analysis.summary.stdDev.toFixed(2)} />
-                <Stat
-                  label="Reliability (KR-20)"
-                  value={analysis.summary.kr20 == null ? "--" : analysis.summary.kr20.toFixed(2)}
-                  note={reliabilityLabel(analysis.summary.kr20)}
-                />
-                <Stat label="Struggling" value={String(struggling.length)} />
-                <Stat
-                  label="Retain · Revise · Reject"
-                  value={`${decisionCounts.Retain} · ${decisionCounts.Revise} · ${decisionCounts.Reject}`}
-                />
-              </div>
-
-              <ScoreDistribution analysis={analysis} />
-
-              <div>
-                <h4 className="font-display text-base font-semibold text-ink">Struggling students</h4>
-                <p className="text-xs text-muted">
-                  Exam grade below {PASSING_GRADE} after transmutation. &ldquo;Missed easy items&rdquo; are items at
-                  least {Math.round(EASY_ITEM_P * 100)}% of the class got right — likely gaps worth a one-on-one.
-                </p>
-                {struggling.length === 0 ? (
-                  <p className="mt-2 text-sm text-ink/70">No one is below passing on this exam.</p>
-                ) : (
-                  <Table className="mt-2">
-                    <TableHead>
-                      <TableRow>
-                        <TableHeaderCell>Student</TableHeaderCell>
-                        <TableHeaderCell align="right">Score</TableHeaderCell>
-                        <TableHeaderCell align="right">Grade</TableHeaderCell>
-                        <TableHeaderCell>Missed easy items</TableHeaderCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {struggling.map((s) => (
-                        <TableRow key={s.studentId} striped>
-                          <TableCell>{nameById.get(s.studentId)}</TableCell>
-                          <TableCell align="right" tabular>
-                            {s.score} / {itemCount}
-                          </TableCell>
-                          <TableCell align="right" tabular className="text-danger">
-                            {s.transmuted}
-                          </TableCell>
-                          <TableCell tabular className="text-sm">
-                            {formatItemList(s.missedEasyItems) || "--"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-
-              {analysis.leastLearned.length > 0 && (
-                <div>
-                  <h4 className="font-display text-base font-semibold text-ink">Least-learned items</h4>
-                  <p className="text-xs text-muted">Fewer than half the class got these right — consider reteaching.</p>
-                  <p className="mt-1 font-mono text-sm text-ink">{formatItemList(analysis.leastLearned)}</p>
+                <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+                  <Stat label="Median" value={String(analysis.summary.median)} />
+                  <Stat label="Standard deviation" value={analysis.summary.stdDev.toFixed(2)} />
+                  <Stat
+                    label="Reliability (KR-20)"
+                    value={analysis.summary.kr20 == null ? "--" : analysis.summary.kr20.toFixed(2)}
+                    note={reliabilityLabel(analysis.summary.kr20)}
+                  />
+                  <Stat
+                    label="Retain · Revise · Reject"
+                    value={`${decisionCounts.Retain} · ${decisionCounts.Revise} · ${decisionCounts.Reject}`}
+                  />
                 </div>
-              )}
-
+              </div>
+              <ScoreDistribution analysis={analysis} />
               <div>
-                <h4 className="font-display text-base font-semibold text-ink">Per-item analysis</h4>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="font-display text-base font-semibold text-ink">Per-item analysis</h4>
+                  <Button variant="secondary" size="sm" onClick={downloadCsv}>
+                    Download CSV
+                  </Button>
+                </div>
                 <p className="text-xs text-muted">
                   Difficulty = share who got it right. Discrimination compares the top and bottom{" "}
                   {Math.round(GROUP_FRACTION * 100)}% ({analysis.groupSize} students each). Retain: difficulty
-                  0.21–0.80 and discrimination ≥ 0.20. Reject: negative discrimination, or both outside range. Pt-biserial
-                  correlates the item with total score (above 0.20 is good; negative means stronger students missed it).
+                  0.21–0.80 and discrimination ≥ 0.20. Reject: negative discrimination, or both outside range.
+                  Pt-biserial above 0.20 is good; negative means stronger students missed it.
                 </p>
                 {keyMode && (
                   <p className="mt-1 text-xs text-muted">
-                    Choice columns show how many picked each letter (hover for the upper/lower group split). The key is
-                    bold and green. <span className="text-danger">Red</span> = a wrong choice the upper group picked
-                    more than the lower group (check the item for ambiguity);{" "}
-                    <span className="italic">italic 0</span> = a wrong choice nobody picked (not a working distractor).
+                    Choice columns show how many picked each letter. The key is bold and green.{" "}
+                    <span className="text-danger">Red</span> = a wrong choice the upper group picked more than the
+                    lower group (check for ambiguity); <span className="italic">italic 0</span> = a wrong choice nobody
+                    picked.
                   </p>
                 )}
                 <ItemTable analysis={analysis} />
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
+    </div>
+  );
+
+  return view === "results" ? resultsView : sheetsView;
+}
+
+// One numbered step of the bubble-sheet workflow.
+function Step({
+  n,
+  title,
+  done,
+  doneText,
+  disabled,
+  children,
+}: {
+  n: number;
+  title: string;
+  done?: boolean;
+  doneText?: string;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`flex gap-4 rounded-[10px] border border-line px-4 py-4 ${disabled ? "opacity-60" : ""}`}>
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+          done ? "bg-success text-card" : "bg-navy text-card"
+        }`}
+        aria-hidden
+      >
+        {done ? "✓" : n}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div>
+          <h4 className="font-display text-base font-semibold text-ink">
+            <span className="sr-only">Step {n}: </span>
+            {title}
+          </h4>
+          {done && doneText && <p className="text-xs text-success-text">{doneText}</p>}
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function Stat({
+  label,
+  value,
+  note,
+  tone,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  tone?: "danger";
+}) {
   return (
-    <div className="rounded-[10px] border border-line bg-card px-3 py-2">
+    <div className="rounded-[10px] border border-line bg-card px-3 py-2.5">
       <p className="text-xs text-muted">{label}</p>
-      <p className="font-mono text-lg font-semibold text-ink">
+      <p className={`font-mono text-lg font-semibold ${tone === "danger" ? "text-danger" : "text-ink"}`}>
         {value}
         {note && <span className="ml-1.5 font-sans text-xs font-normal text-muted">{note}</span>}
       </p>
