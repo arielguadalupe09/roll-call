@@ -172,8 +172,13 @@ function ExamSection({
                 initialResponses={initialItemResponses}
                 programType={programType}
                 recordedScores={Object.fromEntries(Object.entries(rows).map(([id, r]) => [id, r.score]))}
-                onUseAsScores={(scores) => {
-                  for (const [id, score] of Object.entries(scores)) updateRow(id, { score, dirty: true });
+                onScoresSynced={(scores, synced) => {
+                  // Already saved -- shown as saved, not as unsaved edits.
+                  for (const [id, score] of Object.entries(scores)) updateRow(id, { score, dirty: false });
+                  if (synced !== exam.max_score) {
+                    setExam({ ...exam, max_score: synced });
+                    setMaxScore(String(synced));
+                  }
                 }}
               />
             </CollapsibleSection>

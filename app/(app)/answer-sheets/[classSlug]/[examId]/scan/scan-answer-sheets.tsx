@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { createClient } from "@/lib/supabase/client";
+import { syncItemScoresToGradebook, type CheckedPaper } from "@/lib/item-score-sync";
 import type { MajorExam, MajorExamItemResponse, Student } from "@/lib/types";
 import {
   BUBBLE_RADIUS,
@@ -87,6 +88,22 @@ export default function ScanAnswerSheets({
 }) {
   const { showToast } = useToast();
   const itemCount = exam.item_count ?? 0;
+  // The exam's max score, kept in step with the item count once scores sync.
+  const maxScoreRef = useRef(exam.max_score);
+
+  // Saved papers become the students' exam scores (lib/item-score-sync.ts).
+  // Returns an error message, or null.
+  async function syncScores(papers: CheckedPaper[]): Promise<string | null> {
+    if (!papers.length || itemCount < 1) return null;
+    const result = await syncItemScoresToGradebook(
+      createClient(),
+      { id: exam.id, max_score: maxScoreRef.current },
+      itemCount,
+      papers,
+    );
+    if (!result.error) maxScoreRef.current = result.maxScore;
+    return result.error;
+  }
   // The basis for checking: the teacher's scanned (or typed) answer key.
   const [key, setKey] = useState<string | null>(
     exam.answer_key && exam.answer_key.length === itemCount ? exam.answer_key : null,
@@ -533,11 +550,13 @@ export default function ScanAnswerSheets({
       },
       { onConflict: "major_exam_id,student_id" },
     );
+    const syncError = error ? null : await syncScores([{ student_id: capture.studentId, wrong_items: wrong }]);
     setSaving(false);
     if (error) {
       showToast(error.message);
       return;
     }
+    if (syncError) showToast(`Paper saved, but the gradebook score wasn't: ${syncError}`);
     setSaved((prev) =>
       new Map(prev).set(capture.studentId, {
         student_id: capture.studentId,
@@ -546,7 +565,7 @@ export default function ScanAnswerSheets({
       }),
     );
     const name = studentById.get(capture.studentId)?.name ?? "Student";
-    showToast(`Saved ${name} — ${itemCount - wrong.length} / ${itemCount}`);
+    if (!syncError) showToast(`Saved ${name} — ${itemCount - wrong.length} / ${itemCount}, recorded in Scores`);
     resume();
   }
 
@@ -577,7 +596,7 @@ export default function ScanAnswerSheets({
         })),
         { onConflict: "major_exam_id,student_id" },
       );
-      rescoreFailed = !!rescoreError;
+      rescoreFailed = !!rescoreError || !!(await syncScores(rescored));
     }
     setSaving(false);
     setKey(newKey);

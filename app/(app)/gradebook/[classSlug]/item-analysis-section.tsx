@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MAX_SHEET_ITEMS, keyTextToLetters, lettersToKeyText, sheetOptionCount } from "@/lib/omr-sheet";
 import ItemAnalysisExportPanel from "./item-analysis-export-panel";
 import AnswerKeyBubbles from "@/app/_components/answer-key-bubbles";
 import { createClient } from "@/lib/supabase/client";
+import { papersOutOfSync, syncItemScoresToGradebook, type CheckedPaper } from "@/lib/item-score-sync";
 import type { MajorExam, MajorExamItemResponse, Student } from "@/lib/types";
 import type { ProgramType } from "@/lib/dhvsu-grade";
 import {
@@ -72,7 +73,7 @@ export default function ItemAnalysisSection({
   initialResponses,
   programType,
   recordedScores,
-  onUseAsScores,
+  onScoresSynced,
 }: {
   classSlug: string;
   exam: MajorExam;
@@ -81,8 +82,9 @@ export default function ItemAnalysisSection({
   programType: ProgramType;
   // The Scores table's current values, to cross-check against item counts.
   recordedScores: Record<string, string>;
-  // Fills the Scores table (unsaved) with each checked student's correct count.
-  onUseAsScores: (scores: Record<string, string>) => void;
+  // Checked papers were just saved as the exam's scores (correct counts, out
+  // of maxScore); "" = a removed paper's score was cleared.
+  onScoresSynced: (scores: Record<string, string>, maxScore: number) => void;
 }) {
   const { showToast } = useToast();
   const [itemCount, setItemCount] = useState<number | null>(exam.item_count ?? null);
@@ -107,6 +109,41 @@ export default function ItemAnalysisSection({
   const [saving, setSaving] = useState(false);
 
   const nameById = useMemo(() => new Map(students.map((s) => [s.id, s.name])), [students]);
+
+  // Every saved paper is the student's exam score (lib/item-score-sync.ts).
+  async function syncScores(count: number, papers: CheckedPaper[], cleared: string[] = []): Promise<boolean> {
+    if (!papers.length && !cleared.length) return true;
+    const result = await syncItemScoresToGradebook(createClient(), exam, count, papers, cleared);
+    if (result.error) {
+      showToast(`Papers saved, but the scores weren't updated: ${result.error}`);
+      return false;
+    }
+    onScoresSynced(
+      {
+        ...Object.fromEntries(Object.entries(result.scores).map(([id, v]) => [id, String(v)])),
+        ...Object.fromEntries(cleared.map((id) => [id, ""])),
+      },
+      result.maxScore,
+    );
+    return true;
+  }
+
+  // Papers checked before scores were synced automatically (or edited since in
+  // Scores): bring the Scores table in line once when the section opens.
+  const caughtUp = useRef(false);
+  useEffect(() => {
+    if (caughtUp.current || !itemCount) return;
+    caughtUp.current = true;
+    const recorded = Object.fromEntries(
+      Object.entries(recordedScores).map(([id, v]) => [id, v.trim() === "" ? null : Number(v)]),
+    );
+    const stale = papersOutOfSync(itemCount, [...saved.values()], recorded);
+    if (stale.length || (saved.size && exam.max_score !== itemCount)) {
+      void syncScores(itemCount, stale.length ? stale : [...saved.values()]);
+    }
+    // Runs once, with the values the section opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Parse every box once per render; an invalid box blocks Save all.
   const parsed = useMemo(() => {
@@ -209,6 +246,8 @@ export default function ItemAnalysisSection({
     }
     setSavingCount(false);
     setSaved(nextSaved);
+    // A new key or item count changes every paper's correct count.
+    if (key || value !== itemCount) await syncScores(value, [...nextSaved.values()]);
     setItemCount(value);
     setItemCountDraft(String(value));
     setAnswerKey(key);
@@ -269,15 +308,18 @@ export default function ItemAnalysisSection({
       for (const id of dirtyIds) next[id] = { ...next[id], dirty: false };
       return next;
     });
-    showToast(`Saved ${dirtyIds.length} paper${dirtyIds.length === 1 ? "" : "s"}`);
-  }
-
-  function useAsScores() {
-    if (!analysis) return;
-    const scores: Record<string, string> = {};
-    for (const s of analysis.students) scores[s.studentId] = String(s.score);
-    onUseAsScores(scores);
-    showToast(`Filled ${analysis.students.length} scores — review them in Scores, then Save all.`);
+    const synced = await syncScores(
+      itemCount!,
+      toUpsert.map((id) => ({ student_id: id, wrong_items: parsed[id].wrongItems! })),
+      toClear.filter((id) => saved.has(id)),
+    );
+    if (synced) {
+      showToast(
+        `Saved ${dirtyIds.length} paper${dirtyIds.length === 1 ? "" : "s"} — ${
+          toUpsert.length === 1 ? "score" : "scores"
+        } updated in Scores`,
+      );
+    }
   }
 
   const mismatches =
@@ -426,8 +468,8 @@ export default function ItemAnalysisSection({
 
       {itemCount != null && !scoresMatchItems && (
         <p className="text-xs text-muted">
-          The exam has {itemCount} items but a max score of {exam.max_score}, so items aren&apos;t compared with the
-          recorded scores.
+          The exam has {itemCount} items but a max score of {exam.max_score}. Saving a paper sets the max score to{" "}
+          {itemCount} and records each checked student&apos;s correct items as their score.
         </p>
       )}
 
@@ -489,11 +531,9 @@ export default function ItemAnalysisSection({
             <Button onClick={saveAll} disabled={saving || dirtyIds.length === 0}>
               {saving ? "Saving..." : `Save all${dirtyIds.length ? ` (${dirtyIds.length})` : ""}`}
             </Button>
-            {scoresMatchItems && checkedCount > 0 && (
-              <Button variant="secondary" onClick={useAsScores}>
-                Use correct counts as scores
-              </Button>
-            )}
+            <span className="text-xs text-muted">
+              Saved papers fill in the exam&apos;s Scores automatically (correct items out of {itemCount}).
+            </span>
             {invalidCount > 0 && (
               <span className="text-xs text-danger">
                 {invalidCount} box{invalidCount === 1 ? "" : "es"} need fixing
