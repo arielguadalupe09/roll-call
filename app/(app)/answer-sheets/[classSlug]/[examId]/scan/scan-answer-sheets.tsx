@@ -103,6 +103,7 @@ export default function ScanAnswerSheets({
   const [saved, setSaved] = useState(() => new Map<string, Saved>(initialResponses.map((r) => [r.student_id, r])));
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [status, setStatus] = useState("Point the camera at a sheet");
   const [capture, setCapture] = useState<Capture | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -128,46 +129,89 @@ export default function ScanAnswerSheets({
     timerRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+  }
+
+  // Asks for the sharpest stream first, then settles for less: some phones
+  // refuse (or hang on) a 4K request but open fine at 1080p or default size.
+  async function openStream(): Promise<MediaStream> {
+    const attempts: MediaTrackConstraints[] = [
+      { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } },
+      { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      { facingMode: { ideal: "environment" } },
+    ];
+    let lastError: unknown = null;
+    for (const video of attempts) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({ video, audio: false });
+      } catch (e) {
+        lastError = e;
+        // A refused permission won't change with smaller sizes.
+        if (e instanceof Error && (e.name === "NotAllowedError" || e.name === "SecurityError")) throw e;
+      }
+    }
+    throw lastError;
+  }
+
+  // Attaches the stream and waits until real frames arrive (true) or 4 s pass (false).
+  async function attachStream(v: HTMLVideoElement, stream: MediaStream): Promise<boolean> {
+    v.srcObject = stream;
+    const ready = new Promise<boolean>((resolve) => {
+      const done = () => resolve(v.videoWidth > 0);
+      if (v.readyState >= 2 && v.videoWidth) return resolve(true);
+      v.addEventListener("loadeddata", done, { once: true });
+      window.setTimeout(() => resolve(v.readyState >= 2 && v.videoWidth > 0), 4000);
+    });
+    await v.play().catch(() => {});
+    return ready;
   }
 
   async function startCamera() {
+    if (cameraStarting || streamRef.current) return;
     setCameraError(null);
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setCameraError("The live camera needs a secure (https) connection. Use “Take a photo” instead.");
       return;
     }
+    setCameraStarting(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          // As sharp as the camera allows: bubbles are small in a video frame.
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
-        },
-        audio: false,
-      });
-      const track = stream.getVideoTracks()[0];
-      // Keep refocusing as the phone moves between papers (ignored where unsupported).
-      track
-        ?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] })
-        .catch(() => {});
-      streamRef.current = stream;
-      setCameraOn(true);
-      // The <video> mounts once cameraOn is true.
-      requestAnimationFrame(async () => {
+      // Two tries: the first open after a permission prompt sometimes gives a
+      // stream that never delivers frames (black preview) until reopened.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const stream = await openStream();
+        streamRef.current = stream;
+        setCameraOn(true);
+        // Let the preview box un-hide first: iOS won't start a hidden video.
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         const v = videoRef.current;
-        if (!v) return;
-        v.srcObject = stream;
-        await v.play().catch(() => {});
-        pausedRef.current = false;
-        scheduleDetect();
-      });
+        if (v && (await attachStream(v, stream))) {
+          // Keep refocusing as the phone moves between papers (ignored where unsupported).
+          stream
+            .getVideoTracks()[0]
+            ?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] })
+            .catch(() => {});
+          pausedRef.current = false;
+          lastCornersRef.current = null;
+          stableRef.current = 0;
+          setStatus("Point the camera at a sheet");
+          scheduleDetect();
+          return;
+        }
+        stopCamera();
+        await wait(300);
+      }
+      setCameraOn(false);
+      setCameraError("The camera didn't start. Tap “Start camera” again, or use “Take a photo”.");
     } catch (e) {
+      stopCamera();
+      setCameraOn(false);
       setCameraError(
         e instanceof Error && e.name === "NotAllowedError"
           ? "Camera permission was denied. Allow it in your browser settings, or use “Take a photo”."
           : "Couldn't open the camera. Use “Take a photo” instead.",
       );
+    } finally {
+      setCameraStarting(false);
     }
   }
 
@@ -180,6 +224,8 @@ export default function ScanAnswerSheets({
     const v = videoRef.current;
     const overlay = overlayRef.current;
     if (!v || !overlay || pausedRef.current || !streamRef.current) return;
+    // iOS can pause the preview (e.g. after the tab was in the background).
+    if (v.paused) v.play().catch(() => {});
     if (v.readyState < 2 || !v.videoWidth) return scheduleDetect();
 
     const s = DETECT_SIZE / Math.max(v.videoWidth, v.videoHeight);
@@ -681,22 +727,22 @@ export default function ScanAnswerSheets({
 
       {/* Stays mounted while reviewing so the camera stream survives. */}
       <div className={capture ? "hidden" : "flex flex-col gap-3"}>
-        {cameraOn ? (
-          <div className="relative overflow-hidden rounded-[10px] bg-black">
-            <video ref={videoRef} playsInline muted className="block h-auto w-full" />
-            <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
-            <p className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-center text-sm text-white">
-              {processing ? "Reading…" : status}
-            </p>
-          </div>
-        ) : (
+        {/* Always mounted, so the stream has a <video> to attach to the moment it opens. */}
+        <div className={cameraOn ? "relative overflow-hidden rounded-[10px] bg-black" : "hidden"}>
+          <video ref={videoRef} autoPlay playsInline muted className="block h-auto w-full" />
+          <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+          <p className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-center text-sm text-white">
+            {processing ? "Reading…" : status}
+          </p>
+        </div>
+        {!cameraOn && (
           <div className="rounded-[10px] border border-dashed border-line bg-card px-4 py-8 text-center">
             <p className="text-sm text-ink/70">
               Lay the sheet flat in good light and hold your phone straight above it. The sheet is captured
               automatically once all 4 corner squares are in view.
             </p>
-            <Button className="mt-3" onClick={startCamera}>
-              Start camera
+            <Button className="mt-3" onClick={startCamera} disabled={cameraStarting}>
+              {cameraStarting ? "Starting camera…" : "Start camera"}
             </Button>
           </div>
         )}
