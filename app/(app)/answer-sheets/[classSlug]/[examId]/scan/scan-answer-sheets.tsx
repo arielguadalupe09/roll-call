@@ -16,7 +16,16 @@ import {
   sheetOptionCount,
   type Point,
 } from "@/lib/omr-sheet";
-import { downscale, findSheetCorners, project, readSheet, rgbaToGray, type ItemMark } from "@/lib/omr-scan";
+import {
+  downscale,
+  findSheetCorners,
+  mergeReads,
+  project,
+  readSheet,
+  rgbaToGray,
+  type ItemMark,
+  type SheetRead,
+} from "@/lib/omr-scan";
 import { BLANK, formatItemList, tallyAnswers, wrongItemsFromAnswers } from "@/lib/item-analysis";
 import { playBeep } from "@/lib/beep";
 import { useToast } from "@/app/_components/toast";
@@ -25,13 +34,26 @@ import { Select } from "@/app/_components/input";
 import AnswerKeyBubbles from "@/app/_components/answer-key-bubbles";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
-// Live detection runs on a small copy of each video frame; a sheet held
-// steady for STABLE_FRAMES checks in a row is captured at full resolution.
-// Kept short: teachers scan a stack of papers back to back. Detection already
-// confirms the orientation bar, so a found sheet is a real sheet.
+// Live detection runs on a small copy of each video frame. Once a sheet has
+// been held steady for STABLE_FRAMES checks in a row (~1.2 s, long enough for
+// autofocus and the hand to settle) it is captured: a real still photo where
+// the browser can take one (ImageCapture, Android Chrome), otherwise
+// BURST_FRAMES full-resolution video frames whose readings are averaged --
+// a single video frame is softer than a photo and misses light shading.
 const DETECT_SIZE = 640;
-const DETECT_EVERY_MS = 100;
-const STABLE_FRAMES = 2;
+const DETECT_EVERY_MS = 150;
+const STABLE_FRAMES = 8;
+const BURST_FRAMES = 3;
+const BURST_GAP_MS = 120;
+
+type ImageCaptureLike = { takePhoto(): Promise<Blob> };
+declare global {
+  interface Window {
+    ImageCapture?: new (track: MediaStreamTrack) => ImageCaptureLike;
+  }
+}
+
+const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
 
 type Saved = Pick<MajorExamItemResponse, "student_id" | "wrong_items" | "answers">;
 
@@ -118,11 +140,17 @@ export default function ScanAnswerSheets({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          // As sharp as the camera allows: bubbles are small in a video frame.
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
         },
         audio: false,
       });
+      const track = stream.getVideoTracks()[0];
+      // Keep refocusing as the phone moves between papers (ignored where unsupported).
+      track
+        ?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] })
+        .catch(() => {});
       streamRef.current = stream;
       setCameraOn(true);
       // The <video> mounts once cameraOn is true.
@@ -185,28 +213,93 @@ export default function ScanAnswerSheets({
     const moved = prev ? Math.max(...corners.map((c, i) => Math.hypot(c.x - prev[i].x, c.y - prev[i].y))) : Infinity;
     stableRef.current = moved < Math.max(w, h) * 0.015 ? stableRef.current + 1 : 0;
     lastCornersRef.current = corners;
+    // Progress bar along the top while the sheet is held steady.
+    const progress = Math.min(1, stableRef.current / STABLE_FRAMES);
+    o.fillStyle = "rgba(0,0,0,0.45)";
+    o.fillRect(0, 0, w, 8);
+    o.fillStyle = "#22c55e";
+    o.fillRect(0, 0, w * progress, 8);
     if (stableRef.current < STABLE_FRAMES) {
-      setStatus("Sheet found — hold steady…");
+      setStatus(stableRef.current ? "Sheet found — hold still…" : "Sheet found — hold steady…");
       return scheduleDetect();
     }
 
-    // Steady: grab the full-resolution frame.
     pausedRef.current = true;
     stableRef.current = 0;
-    const full = document.createElement("canvas");
-    full.width = v.videoWidth;
-    full.height = v.videoHeight;
-    full.getContext("2d")!.drawImage(v, 0, 0);
+    setStatus("Reading — keep still…");
     // Reuse this frame's confirmed corners if the full-size pass misses them.
     const hint = corners.map((c) => ({ x: c.x / s, y: c.y / s }));
-    if (!processCanvas(full, hint)) {
+    void captureSteady(v, hint).then((ok) => {
+      if (ok || !streamRef.current) return;
+      lastCornersRef.current = null;
       pausedRef.current = false;
       scheduleDetect();
+    });
+  }
+
+  function grabFrame(v: HTMLVideoElement): HTMLCanvasElement {
+    const c = document.createElement("canvas");
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext("2d")!.drawImage(v, 0, 0);
+    return c;
+  }
+
+  // A still photo from the camera (full sensor resolution, like “Take a
+  // photo”), where the browser supports it; null otherwise or if it's slow.
+  async function takeStill(): Promise<HTMLCanvasElement | null> {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track || !window.ImageCapture) return null;
+    try {
+      const blob = await Promise.race([
+        new window.ImageCapture(track).takePhoto(),
+        wait(2500).then(() => null),
+      ]);
+      if (!blob) return null;
+      const bitmap = await createImageBitmap(blob);
+      const k = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(bitmap.width * k);
+      c.height = Math.round(bitmap.height * k);
+      c.getContext("2d")!.drawImage(bitmap, 0, 0, c.width, c.height);
+      return c;
+    } catch {
+      return null;
     }
   }
 
+  async function captureSteady(v: HTMLVideoElement, hint: Point[]): Promise<boolean> {
+    const still = await takeStill();
+    if (still && processCanvas(still)) return true;
+    // Several video frames, read separately and averaged.
+    const frames = [grabFrame(v)];
+    for (let i = 1; i < BURST_FRAMES; i++) {
+      await wait(BURST_GAP_MS);
+      if (!streamRef.current) return false;
+      frames.push(grabFrame(v));
+    }
+    const extra = frames
+      .slice(1)
+      .map((f) => readCanvas(f, hint))
+      .filter((r): r is SheetRead => r !== null);
+    // iOS Safari holds canvas memory until the size is zeroed.
+    frames.slice(1).forEach((f) => (f.width = f.height = 0));
+    return processCanvas(frames[0], hint, extra);
+  }
+
+  // Corners + reading of one image, or null.
+  function readCanvas(canvas: HTMLCanvasElement, hint?: Point[]): SheetRead | null {
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    const gray = rgbaToGray(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+    const { gray: small, scale } = downscale(gray, 800);
+    const found = findSheetCorners(small);
+    const corners = found ? found.map((c) => ({ x: c.x / scale, y: c.y / scale })) : hint;
+    return corners ? readSheet(gray, corners, itemCount) : null;
+  }
+
   // Reads one sheet image; returns false (with a status message) when it can't.
-  function processCanvas(canvas: HTMLCanvasElement, hint?: Point[]): boolean {
+  // extraReads: the same sheet read from other video frames, averaged in.
+  function processCanvas(canvas: HTMLCanvasElement, hint?: Point[], extraReads: SheetRead[] = []): boolean {
     const W = canvas.width;
     const H = canvas.height;
     const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
@@ -219,11 +312,12 @@ export default function ScanAnswerSheets({
       setStatus("Couldn't find the 4 corner squares — try again with the whole sheet in view.");
       return false;
     }
-    const read = readSheet(
+    const single = readSheet(
       gray,
       found.map((c) => ({ x: c.x / scale, y: c.y / scale })),
       itemCount,
     );
+    const read = single && mergeReads([single, ...extraReads]);
     if (!read) {
       setStatus("Couldn't tell which way up the sheet is — keep the top bar and all corners in view.");
       return false;

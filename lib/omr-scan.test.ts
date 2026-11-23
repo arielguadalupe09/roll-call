@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
 import jsQR from "jsqr";
 import AnswerSheetSvg from "@/app/_components/answer-sheet-svg";
-import { downscale, findSheetCorners, homography, project, readSheet, rgbaToGray, type Gray } from "./omr-scan";
+import { downscale, findSheetCorners, homography, mergeReads, project, readSheet, rgbaToGray, type Gray } from "./omr-scan";
 import {
   SHEET_H,
   SHEET_W,
@@ -29,6 +29,7 @@ async function photographSheet(
     fillShade,
     keySheet = false,
     clutter = false,
+    blur = 1.2,
   }: {
     corners: Point[];
     shadow?: number;
@@ -39,6 +40,7 @@ async function photographSheet(
     // A keyboard of dark keys beside the sheet plus loose dark squares on the
     // desk -- things a live camera frame picks up around the paper.
     clutter?: boolean;
+    blur?: number;
   },
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
   const svg = renderToStaticMarkup(
@@ -112,7 +114,7 @@ async function photographSheet(
   const blurred = await sharp(Buffer.from(gray), {
     raw: { width: W, height: H, channels: 1 },
   })
-    .blur(1.2)
+    .blur(blur)
     .ensureAlpha()
     .raw()
     .toBuffer();
@@ -223,6 +225,19 @@ describe("OMR scan of a printed sheet", () => {
     expect(scan(photo, ANSWERS.length)!.answers).toBe(ANSWERS);
   }, 30000);
 
+  it("reads light pencil from a blurry, low-resolution video frame", async () => {
+    // A phone's live video frame is softer than a still photo: shading reads
+    // grey, not black, and must still beat the blank bubbles.
+    const photo = await photographSheet(ANSWERS, { corners: TILTED, fillShade: "#a0a0a0", blur: 6 });
+    const full = rgbaToGray(photo.rgba, photo.width, photo.height);
+    const { gray: frame } = downscale(full, 640);
+    const corners = findSheetCorners(frame);
+    const read = readSheet(frame, corners!, ANSWERS.length);
+    expect(read!.answers).toBe(ANSWERS);
+    // Averaging several frames gives the same reading.
+    expect(mergeReads([read!, read!, read!]).answers).toBe(ANSWERS);
+  }, 30000);
+
   it("tells answer-key QR codes from student ones", () => {
     expect(parseSheetQr(answerKeyQrValue("exam-1"))).toEqual({ kind: "key", majorExamId: "exam-1" });
     expect(parseSheetQr("ABC123")).toBeNull();
@@ -245,3 +260,4 @@ describe("on-screen answer key", () => {
     expect(lettersToKeyText(["", "", ""])).toBe("");
   });
 });
+

@@ -400,8 +400,45 @@ export type SheetRead = {
   answers: string;
 };
 
-// Minimum darkening (relative to the brightest bubble in the row) that counts as shaded.
+// Minimum darkening (relative to the brightest bubble in the row) that counts
+// as shaded on a sharp photo. A blurry or low-resolution image (a live video
+// frame) washes pencil shading out towards grey while blank bubbles stay near
+// 0, so the threshold drops with the sheet's own typical shading -- see
+// sheetThreshold.
 export const FILL_THRESHOLD = 0.3;
+const MIN_FILL_THRESHOLD = 0.15;
+// A row whose darkest bubble is under this is treated as unshaded when
+// measuring the sheet's typical shading.
+const MARKED_ROW_FILL = 0.12;
+
+function sheetThreshold(fills: number[][]): number {
+  const marked = fills
+    .map((f) => Math.max(...f))
+    .filter((m) => m >= MARKED_ROW_FILL)
+    .sort((p, q) => p - q);
+  if (!marked.length) return FILL_THRESHOLD;
+  const typical = marked[Math.floor(marked.length / 2)];
+  return Math.min(FILL_THRESHOLD, Math.max(MIN_FILL_THRESHOLD, typical * 0.5));
+}
+
+function classify(item: number, fill: number[], threshold: number): ItemMark {
+  const order = fill.map((f, o) => ({ f, o })).sort((a, b) => b.f - a.f);
+  const shaded = order.filter((x) => x.f >= threshold);
+  let answer = "-";
+  let status: ItemMark["status"] = "blank";
+  if (shaded.length === 1 || (shaded.length > 1 && shaded[0].f >= shaded[1].f * 1.6)) {
+    answer = SHEET_OPTIONS[shaded[0].o];
+    status = "ok";
+  } else if (shaded.length > 1) {
+    status = "multiple";
+  }
+  return { item, answer, status, fill: fill.map((f) => Math.round(f * 100) / 100) };
+}
+
+function classifyAll(fills: number[][]): ItemMark[] {
+  const threshold = sheetThreshold(fills);
+  return fills.map((f, i) => classify(i + 1, f, threshold));
+}
 
 // corners: from findSheetCorners (in this image's pixel coordinates).
 export function readSheet(
@@ -414,32 +451,30 @@ export function readSheet(
   if (!best || best.contrast < MIN_BAR_CONTRAST) return null;
   const { H } = best;
 
-  const marks: ItemMark[] = [];
+  const fills: number[][] = [];
   for (let item = 1; item <= itemCount; item++) {
     const means = Array.from({ length: optionCount }, (_, o) => bubbleMean(g, H, bubbleCenter(item, o)));
     const paper = Math.max(...means, 1);
-    const fill = means.map((m) => Math.max(0, (paper - m) / paper));
-    const order = fill.map((f, o) => ({ f, o })).sort((a, b) => b.f - a.f);
-    const shaded = order.filter((x) => x.f >= FILL_THRESHOLD);
-    let answer = "-";
-    let status: ItemMark["status"] = "blank";
-    if (shaded.length === 1 || (shaded.length > 1 && shaded[0].f >= shaded[1].f * 1.6)) {
-      answer = SHEET_OPTIONS[shaded[0].o];
-      status = "ok";
-    } else if (shaded.length > 1) {
-      status = "multiple";
-    }
-    marks.push({
-      item,
-      answer,
-      status,
-      fill: fill.map((f) => Math.round(f * 100) / 100),
-    });
+    fills.push(means.map((m) => Math.max(0, (paper - m) / paper)));
   }
+  const marks = classifyAll(fills);
   return {
     corners: best.corners,
     homography: H,
     marks,
     answers: marks.map((m) => m.answer).join(""),
   };
+}
+
+// Combines reads of the same sheet from several video frames: each bubble's
+// darkness is averaged across frames before classifying, so one blurred or
+// glare-hit frame can't flip an answer. Geometry comes from the first read.
+export function mergeReads(reads: SheetRead[]): SheetRead {
+  if (reads.length === 1) return reads[0];
+  const [first] = reads;
+  const fills = first.marks.map((m, i) =>
+    m.fill.map((_, o) => reads.reduce((s, r) => s + (r.marks[i]?.fill[o] ?? 0), 0) / reads.length),
+  );
+  const marks = classifyAll(fills);
+  return { ...first, marks, answers: marks.map((m) => m.answer).join("") };
 }
