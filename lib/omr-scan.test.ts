@@ -28,6 +28,7 @@ async function photographSheet(
     blank = false,
     fillShade,
     keySheet = false,
+    clutter = false,
   }: {
     corners: Point[];
     shadow?: number;
@@ -35,6 +36,9 @@ async function photographSheet(
     blank?: boolean;
     fillShade?: string;
     keySheet?: boolean;
+    // A keyboard of dark keys beside the sheet plus loose dark squares on the
+    // desk -- things a live camera frame picks up around the paper.
+    clutter?: boolean;
   },
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
   const svg = renderToStaticMarkup(
@@ -80,6 +84,20 @@ async function photographSheet(
     for (let x = 0; x < W; x++) {
       const p = project(toSheet, { x, y });
       let v = 95; // desk
+      if (clutter) {
+        if (x > 900 && y > 300 && y < 1300) {
+          v = 50; // keyboard body
+          if (x % 60 > 10 && (y - 300) % 60 > 10) v = 22; // keys
+        }
+        for (const [qx, qy] of [
+          [60, 120],
+          [1000, 120],
+          [80, 1450],
+          [700, 1450],
+        ]) {
+          if (x >= qx && x < qx + 30 && y >= qy && y < qy + 30) v = 15;
+        }
+      }
       if (p.x >= -MARGIN && p.y >= -MARGIN && p.x < SHEET_W + MARGIN && p.y < SHEET_H + MARGIN) {
         v = 255 * 0.85;
       }
@@ -117,6 +135,8 @@ function scan(photo: { rgba: Uint8ClampedArray; width: number; height: number },
     items,
   );
 }
+
+const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const ANSWERS = "ABCDEABCDE-BDACEEDCBA" + "CADBE".repeat(9) + "ABCD-"; // 71 items, two blank
 const TILTED = [
@@ -181,6 +201,26 @@ describe("OMR scan of a printed sheet", () => {
     expect(scan(photo, ANSWERS.length)!.answers).toBe(ANSWERS);
     const qr = jsQR(photo.rgba, photo.width, photo.height);
     expect(qr && parseSheetQr(qr.data)).toEqual({ kind: "key", majorExamId: "exam-1" });
+  }, 30000);
+
+  it("ignores a keyboard and dark squares around the sheet in a live-sized frame", async () => {
+    const corners = [
+      { x: 240, y: 440 },
+      { x: 860, y: 420 },
+      { x: 880, y: 1250 },
+      { x: 220, y: 1270 },
+    ];
+    const photo = await photographSheet(ANSWERS, { corners, clutter: true, shadow: 0.2 });
+    const full = rgbaToGray(photo.rgba, photo.width, photo.height);
+    // The live preview detects on a 640 px copy of the frame.
+    const { gray: live, scale } = downscale(full, 640);
+    const found = findSheetCorners(live);
+    expect(found).not.toBeNull();
+    const read = readSheet(full, found!.map((c) => ({ x: c.x / scale, y: c.y / scale })), ANSWERS.length);
+    expect(read!.answers).toBe(ANSWERS);
+    // TL, TR, BR, BL of the printed markers lie just inside the page corners.
+    read!.corners.forEach((c, i) => expect(dist(c, corners[i])).toBeLessThan(90));
+    expect(scan(photo, ANSWERS.length)!.answers).toBe(ANSWERS);
   }, 30000);
 
   it("tells answer-key QR codes from student ones", () => {

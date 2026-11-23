@@ -27,9 +27,11 @@ import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } fro
 
 // Live detection runs on a small copy of each video frame; a sheet held
 // steady for STABLE_FRAMES checks in a row is captured at full resolution.
+// Kept short: teachers scan a stack of papers back to back. Detection already
+// confirms the orientation bar, so a found sheet is a real sheet.
 const DETECT_SIZE = 640;
-const DETECT_EVERY_MS = 200;
-const STABLE_FRAMES = 3;
+const DETECT_EVERY_MS = 100;
+const STABLE_FRAMES = 2;
 
 type Saved = Pick<MajorExamItemResponse, "student_id" | "wrong_items" | "answers">;
 
@@ -195,21 +197,24 @@ export default function ScanAnswerSheets({
     full.width = v.videoWidth;
     full.height = v.videoHeight;
     full.getContext("2d")!.drawImage(v, 0, 0);
-    if (!processCanvas(full)) {
+    // Reuse this frame's confirmed corners if the full-size pass misses them.
+    const hint = corners.map((c) => ({ x: c.x / s, y: c.y / s }));
+    if (!processCanvas(full, hint)) {
       pausedRef.current = false;
       scheduleDetect();
     }
   }
 
   // Reads one sheet image; returns false (with a status message) when it can't.
-  function processCanvas(canvas: HTMLCanvasElement): boolean {
+  function processCanvas(canvas: HTMLCanvasElement, hint?: Point[]): boolean {
     const W = canvas.width;
     const H = canvas.height;
     const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
     const img = ctx.getImageData(0, 0, W, H);
     const gray = rgbaToGray(img.data, W, H);
     const { gray: small, scale } = downscale(gray, 800);
-    const found = findSheetCorners(small);
+    const detected = findSheetCorners(small);
+    const found = detected ?? hint?.map((c) => ({ x: c.x * scale, y: c.y * scale })) ?? null;
     if (!found) {
       setStatus("Couldn't find the 4 corner squares — try again with the whole sheet in view.");
       return false;

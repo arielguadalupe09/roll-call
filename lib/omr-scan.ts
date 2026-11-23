@@ -56,6 +56,8 @@ type Blob = {
   cy: number;
   w: number;
   h: number;
+  minX: number;
+  minY: number;
   compactness: number;
 };
 
@@ -138,6 +140,8 @@ function darkBlobs(g: Gray): Blob[] {
       cy: sy / area,
       w: maxX - minX + 1,
       h: maxY - minY + 1,
+      minX,
+      minY,
       compactness: (4 * Math.PI * area) / (perimeter * perimeter),
     });
   }
@@ -149,17 +153,91 @@ const MARKER_TO_LONG_SIDE = MARKER_SIZE / (MARKER_CENTERS[3].y - MARKER_CENTERS[
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
+// Mean brightness of an axis-aligned pixel rectangle (clamped to the image), sampled on a grid.
+function boxMean(g: Gray, x0: number, y0: number, x1: number, y1: number): number {
+  x0 = Math.max(0, Math.floor(x0));
+  y0 = Math.max(0, Math.floor(y0));
+  x1 = Math.min(g.width - 1, Math.ceil(x1));
+  y1 = Math.min(g.height - 1, Math.ceil(y1));
+  if (x1 < x0 || y1 < y0) return 255;
+  const step = Math.max(1, Math.floor(Math.min(x1 - x0, y1 - y0) / 6));
+  let sum = 0;
+  let count = 0;
+  for (let y = y0; y <= y1; y += step)
+    for (let x = x0; x <= x1; x += step) {
+      sum += g.data[y * g.width + x];
+      count++;
+    }
+  return count ? sum / count : 255;
+}
+
+// A corner marker is a solid black square printed on white paper: its core is
+// much darker than a ring of paper around it. Keyboard keys, phone edges, dark
+// desk patterns etc. sit on dark surroundings and fail this.
+function onBrightPaper(g: Gray, b: Blob): boolean {
+  const core = boxMean(g, b.cx - b.w / 4, b.cy - b.h / 4, b.cx + b.w / 4, b.cy + b.h / 4);
+  const gap = Math.max(2, Math.round(Math.max(b.w, b.h) * 0.35));
+  const band = Math.max(2, Math.round(Math.max(b.w, b.h) * 0.3));
+  const x0 = b.minX - gap;
+  const y0 = b.minY - gap;
+  const x1 = b.minX + b.w - 1 + gap;
+  const y1 = b.minY + b.h - 1 + gap;
+  // Four strips just outside the square; the brightest three must be paper
+  // (one side may run off the sheet edge or into a shadow).
+  const sides = [
+    boxMean(g, x0 - band, y0 - band, x1 + band, y0),
+    boxMean(g, x0 - band, y1, x1 + band, y1 + band),
+    boxMean(g, x0 - band, y0, x0, y1),
+    boxMean(g, x1, y0, x1 + band, y1),
+  ].sort((p, q) => q - p);
+  return sides[2] > core * 1.6 + 25;
+}
+
+// Interior angle at b of the polyline a-b-c, in degrees.
+function angleAt(a: Point, b: Point, c: Point): number {
+  const v1x = a.x - b.x;
+  const v1y = a.y - b.y;
+  const v2x = c.x - b.x;
+  const v2y = c.y - b.y;
+  const cos = (v1x * v2x + v1y * v2y) / Math.max(1e-9, Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y));
+  return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+}
+
+// Of the four rotations giving a portrait sheet, the one whose top orientation
+// bar is darkest relative to the paper beside it.
+function orient(g: Gray, corners: Point[]): { H: number[]; corners: Point[]; contrast: number } | null {
+  let best: { H: number[]; corners: Point[]; contrast: number } | null = null;
+  for (let k = 0; k < 4; k++) {
+    const ordered = [0, 1, 2, 3].map((i) => corners[(i + k) % 4]);
+    const top = (dist(ordered[0], ordered[1]) + dist(ordered[3], ordered[2])) / 2;
+    const side = (dist(ordered[1], ordered[2]) + dist(ordered[0], ordered[3])) / 2;
+    if (top >= side) continue;
+    const H = homography([...MARKER_CENTERS], ordered);
+    const bar = ORIENTATION_BAR;
+    const barMean = rectMean(g, H, bar.x + 1, bar.y + 1, bar.w - 2, bar.h - 2);
+    // Blank paper right beside the bar, between it and the top-left marker.
+    const paperMean = rectMean(g, H, MARKER_SIZE + 6, 2, bar.x - MARKER_SIZE - 10, bar.h);
+    const contrast = (paperMean - barMean) / Math.max(1, paperMean);
+    if (!best || contrast > best.contrast) best = { H, corners: ordered, contrast };
+  }
+  return best;
+}
+
+const MIN_BAR_CONTRAST = 0.25;
+
 // The four corner-square centres in clockwise image order (top-left-ish
-// first), or null. Orientation is decided later by readSheet.
+// first), or null. Every returned set has passed the orientation-bar check,
+// so a stray dark square on the desk can't stand in for a corner.
 export function findSheetCorners(g: Gray): Point[] | null {
   const candidates = darkBlobs(g)
     .filter((b) => b.compactness >= 0.5 && b.w / b.h > 0.5 && b.w / b.h < 2 && b.area / (b.w * b.h) > 0.45)
+    .filter((b) => onBrightPaper(g, b))
     .sort((a, b) => b.area - a.area)
-    .slice(0, 16);
+    .slice(0, 24);
   if (candidates.length < 4) return null;
   const largest = candidates[0].area;
 
-  let best: { score: number; pts: Point[] } | null = null;
+  const quads: { score: number; pts: Point[] }[] = [];
   const n = candidates.length;
   for (let a = 0; a < n; a++)
     for (let b = a + 1; b < n; b++)
@@ -180,6 +258,18 @@ export function findSheetCorners(g: Gray): Point[] | null {
             .sort((p, q) => p.ang - q.ang)
             .map(({ x, y }) => ({ x, y }));
           if (!isConvex(pts)) continue;
+          // A photographed rectangle: every corner roughly square, diagonals
+          // roughly equal, opposite sides roughly equal.
+          let angleError = 0;
+          for (let i = 0; i < 4; i++) {
+            angleError = Math.max(angleError, Math.abs(angleAt(pts[(i + 3) % 4], pts[i], pts[(i + 1) % 4]) - 90));
+          }
+          if (angleError > 35) continue;
+          const diag = dist(pts[0], pts[2]) / dist(pts[1], pts[3]);
+          if (diag < 0.7 || diag > 1 / 0.7) continue;
+          const opp1 = dist(pts[0], pts[1]) / dist(pts[2], pts[3]);
+          const opp2 = dist(pts[1], pts[2]) / dist(pts[3], pts[0]);
+          if (Math.abs(Math.log(opp1)) > 0.45 || Math.abs(Math.log(opp2)) > 0.45) continue;
           const s1 = (dist(pts[0], pts[1]) + dist(pts[2], pts[3])) / 2;
           const s2 = (dist(pts[1], pts[2]) + dist(pts[3], pts[0])) / 2;
           const short = Math.min(s1, s2);
@@ -191,10 +281,20 @@ export function findSheetCorners(g: Gray): Point[] | null {
           if (markerError > 0.8) continue;
           const meanArea = areas.reduce((s, v) => s + v, 0) / 4;
           const score =
-            sideError + markerError * 0.3 + Math.log(sizeSpread) * 0.2 + (meanArea < largest * 0.4 ? 0.5 : 0);
-          if (!best || score < best.score) best = { score, pts };
+            sideError +
+            markerError * 0.3 +
+            Math.log(sizeSpread) * 0.2 +
+            angleError / 180 +
+            (meanArea < largest * 0.4 ? 0.5 : 0);
+          quads.push({ score, pts });
         }
-  return best?.pts ?? null;
+  quads.sort((p, q) => p.score - q.score);
+  // Confirm the best few against the printed orientation bar.
+  for (const q of quads.slice(0, 8)) {
+    const o = orient(g, q.pts);
+    if (o && o.contrast >= MIN_BAR_CONTRAST) return q.pts;
+  }
+  return null;
 }
 
 function isConvex(pts: Point[]): boolean {
@@ -310,22 +410,8 @@ export function readSheet(
   itemCount: number,
   optionCount = SHEET_OPTIONS.length,
 ): SheetRead | null {
-  // Try each rotation that gives a portrait sheet; keep the one with a dark orientation bar.
-  let best: { H: number[]; corners: Point[]; contrast: number } | null = null;
-  for (let k = 0; k < 4; k++) {
-    const ordered = [0, 1, 2, 3].map((i) => corners[(i + k) % 4]);
-    const top = (dist(ordered[0], ordered[1]) + dist(ordered[3], ordered[2])) / 2;
-    const side = (dist(ordered[1], ordered[2]) + dist(ordered[0], ordered[3])) / 2;
-    if (top >= side) continue;
-    const H = homography([...MARKER_CENTERS], ordered);
-    const bar = ORIENTATION_BAR;
-    const barMean = rectMean(g, H, bar.x + 1, bar.y + 1, bar.w - 2, bar.h - 2);
-    // Blank paper right beside the bar, between it and the top-left marker.
-    const paperMean = rectMean(g, H, MARKER_SIZE + 6, 2, bar.x - MARKER_SIZE - 10, bar.h);
-    const contrast = (paperMean - barMean) / Math.max(1, paperMean);
-    if (!best || contrast > best.contrast) best = { H, corners: ordered, contrast };
-  }
-  if (!best || best.contrast < 0.25) return null;
+  const best = orient(g, corners);
+  if (!best || best.contrast < MIN_BAR_CONTRAST) return null;
   const { H } = best;
 
   const marks: ItemMark[] = [];
