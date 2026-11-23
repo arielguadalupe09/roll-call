@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MAX_SHEET_ITEMS, keyTextToLetters, lettersToKeyText, sheetOptionCount } from "@/lib/omr-sheet";
 import ItemAnalysisExportPanel from "./item-analysis-export-panel";
 import AnswerKeyBubbles from "@/app/_components/answer-key-bubbles";
+import AnswerKeyGrid from "@/app/_components/answer-key-grid";
 import { createClient } from "@/lib/supabase/client";
 import { papersOutOfSync, syncItemScoresToGradebook, type CheckedPaper } from "@/lib/item-score-sync";
 import type { MajorExam, MajorExamItemResponse, Student } from "@/lib/types";
@@ -97,7 +98,9 @@ export default function ItemAnalysisSection({
   const [answerKey, setAnswerKey] = useState<string | null>(exam.answer_key ?? null);
   const [keyDraft, setKeyDraft] = useState(exam.answer_key ? formatAnswerString(exam.answer_key) : "");
   // On-screen answer-key bubbles (open by default until a key is saved).
-  const [showBubbles, setShowBubbles] = useState(!exam.answer_key);
+  // Answer-key editor open (always, until a key or item count is saved).
+  const [editingKey, setEditingKey] = useState(!exam.answer_key && !exam.item_count);
+  const [keyEntry, setKeyEntry] = useState<"type" | "tap">("type");
   const [keyOptions, setKeyOptions] = useState<4 | 5>(sheetOptionCount(exam.answer_key));
   const draftCount = Number(itemCountDraft);
   const bubbleCount =
@@ -261,6 +264,7 @@ export default function ItemAnalysisSection({
     setKeyDraft(key ? formatAnswerString(key) : "");
     setDrafts(draftsFrom(students, nextSaved, key != null));
     showToast(key ? `Saved ${value}-item answer key` : `Set to ${value} items`);
+    setEditingKey(false);
   }
 
   async function saveAll() {
@@ -366,88 +370,150 @@ export default function ItemAnalysisSection({
         done={keyReady}
         doneText={keyReady ? `Answer key saved — ${itemCount} items` : undefined}
       >
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex w-36 flex-col gap-1">
-            <span className="text-xs font-semibold text-ink">Number of items</span>
-            <Input
-              type="number"
-              min={1}
-              max={500}
-              value={itemCountDraft}
-              onChange={(e) => setItemCountDraft(e.target.value)}
-              className="font-mono"
-            />
-          </label>
-          <label className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
-            <span className="text-xs font-semibold text-ink">Correct answers, in order</span>
-            <Input
-              value={keyDraft}
-              onChange={(e) => setKeyDraft(e.target.value)}
-              placeholder="e.g. ABDCA BCDAB"
-              className="font-mono uppercase"
-            />
-          </label>
-          <Button onClick={saveSetup} disabled={savingCount}>
-            {savingCount ? "Saving…" : "Save answer key"}
-          </Button>
-        </div>
-        {itemCount != null && answerKey != null && answerKey.length !== itemCount && (
-          <p className="text-sm text-danger">
-            The answer key has {answerKey.length} answers but the exam has {itemCount} items — fix one and save.
-          </p>
-        )}
-        {bubbleCount > 0 && (
+        {!editingKey ? (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Button variant="secondary" onClick={() => setShowBubbles((v) => !v)}>
-                {showBubbles ? "Hide the answer ovals" : "Tap the answers on screen instead"}
+            {keyReady && (
+              <p className="break-all font-mono text-sm tracking-wide text-ink/80">{formatAnswerString(answerKey!)}</p>
+            )}
+            {!keyReady && itemCount != null && (
+              <p className="text-sm text-ink">
+                {itemCount} items, no answer key — papers are checked by typing the items each student got wrong.
+              </p>
+            )}
+            <div>
+              <Button variant="secondary" onClick={() => setEditingKey(true)}>
+                {keyReady ? "Edit answer key" : "Add an answer key"}
               </Button>
-              {showBubbles && (
-                <>
-                  <span className="text-xs text-muted">
-                    {keyAnswered} of {bubbleCount} answered
-                  </span>
-                  <label className="flex items-center gap-2 text-xs text-ink">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      checked={shownOptions === 5}
-                      disabled={keyLetters.includes("E")}
-                      onChange={(e) => setKeyOptions(e.target.checked ? 5 : 4)}
-                    />
-                    Include choice E
-                  </label>
-                </>
-              )}
             </div>
-            {showBubbles && (
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+              <label className="flex w-36 flex-col gap-1">
+                <span className="text-xs font-semibold text-ink">Number of items</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={itemCountDraft}
+                  onChange={(e) => setItemCountDraft(e.target.value)}
+                  className="font-mono"
+                />
+              </label>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-ink">Choices</span>
+                <div className="flex overflow-hidden rounded-[7px] border border-line" role="radiogroup">
+                  {([4, 5] as const).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      aria-checked={shownOptions === n}
+                      disabled={n === 4 && keyLetters.includes("E")}
+                      onClick={() => setKeyOptions(n)}
+                      className={`px-3 py-2 text-sm font-medium transition disabled:opacity-50 ${
+                        shownOptions === n ? "bg-navy text-card" : "bg-card text-ink hover:bg-slate-light"
+                      }`}
+                    >
+                      {n === 4 ? "A – D" : "A – E"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-ink">Enter answers by</span>
+                <div className="flex overflow-hidden rounded-[7px] border border-line" role="radiogroup">
+                  {(
+                    [
+                      ["type", "Typing letters"],
+                      ["tap", "Tapping ovals"],
+                    ] as const
+                  ).map(([mode, text]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      role="radio"
+                      aria-checked={keyEntry === mode}
+                      onClick={() => setKeyEntry(mode)}
+                      className={`px-3 py-2 text-sm font-medium transition ${
+                        keyEntry === mode ? "bg-navy text-card" : "bg-card text-ink hover:bg-slate-light"
+                      }`}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {bubbleCount === 0 ? (
+              <p className="text-sm text-muted">Enter the number of items to start.</p>
+            ) : keyEntry === "type" ? (
               <>
                 <p className="text-xs text-muted">
-                  Tap the correct oval for each item (tap again to clear), then press Save answer key.
+                  Click item 1 and type the letters — it moves to the next item by itself. You can also paste the whole
+                  key into item 1.
                 </p>
+                <AnswerKeyGrid
+                  value={keyLetters}
+                  onChange={(letters) => setKeyDraft(lettersToKeyText(letters))}
+                  optionCount={shownOptions}
+                />
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted">Tap the correct oval for each item (tap again to clear).</p>
                 <AnswerKeyBubbles
                   value={keyLetters}
                   onChange={(letters) => setKeyDraft(lettersToKeyText(letters))}
                   optionCount={shownOptions}
                 />
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button onClick={saveSetup} disabled={savingCount}>
-                    {savingCount ? "Saving…" : "Save answer key"}
-                  </Button>
-                  {keyAnswered < bubbleCount && (
-                    <span className="text-sm text-danger">
-                      {bubbleCount - keyAnswered} item{bubbleCount - keyAnswered === 1 ? "" : "s"} still need an
-                      answer (numbers in red).
-                    </span>
-                  )}
-                </div>
               </>
             )}
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-line pt-3">
+              <Button onClick={saveSetup} disabled={savingCount}>
+                {savingCount ? "Saving…" : keyAnswered === 0 ? "Save number of items" : "Save answer key"}
+              </Button>
+              {(keyReady || itemCount != null) && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setKeyDraft(answerKey ? formatAnswerString(answerKey) : "");
+                    setItemCountDraft(String(itemCount ?? ""));
+                    setEditingKey(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+              {bubbleCount > 0 && (
+                <span className={`text-sm ${keyAnswered < bubbleCount ? "text-danger" : "text-success-text"}`}>
+                  {keyAnswered < bubbleCount
+                    ? `${keyAnswered} of ${bubbleCount} filled — ${bubbleCount - keyAnswered} left (numbers in red)`
+                    : `✓ All ${bubbleCount} filled`}
+                </span>
+              )}
+              {keyAnswered > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setKeyDraft("")}
+                  className="ml-auto text-xs font-medium text-danger underline underline-offset-2 hover:no-underline"
+                >
+                  Clear all answers
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-muted">
+              Or print an answer-key sheet in step 2, shade it, and scan it first in step 3.
+            </p>
           </div>
         )}
-        <p className="text-xs text-muted">
-          Or print an answer-key sheet in step 2, shade it, and scan it first in step 3.
-        </p>
+        {itemCount != null && answerKey != null && answerKey.length !== itemCount && (
+          <p className="text-sm text-danger">
+            The answer key has {answerKey.length} answers but the exam has {itemCount} items — edit it and save.
+          </p>
+        )}
       </Step>
 
       <Step n={2} title="Print the answer sheets" disabled={itemCount == null}>
