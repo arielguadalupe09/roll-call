@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
 import jsQR from "jsqr";
 import AnswerSheetSvg from "@/app/_components/answer-sheet-svg";
+import { AnswerKeyPhotoError, readAnswerKeyPhoto } from "./answer-key-photo";
 import { downscale, findSheetCorners, homography, mergeReads, project, readSheet, rgbaToGray, type Gray } from "./omr-scan";
 import {
   SHEET_H,
@@ -204,6 +205,32 @@ describe("OMR scan of a printed sheet", () => {
     const qr = jsQR(photo.rgba, photo.width, photo.height);
     expect(qr && parseSheetQr(qr.data)).toEqual({ kind: "key", majorExamId: "exam-1" });
   }, 30000);
+
+  it("turns an uploaded photo of the key sheet into on-screen answers", async () => {
+    const photo = await photographSheet(ANSWERS, { corners: TILTED, keySheet: true });
+    const expected = [...ANSWERS].map((ch) => (ch === "-" ? "" : ch));
+    const blanks = [...ANSWERS].flatMap((ch, i) => (ch === "-" ? [i + 1] : []));
+
+    const known = readAnswerKeyPhoto(photo.rgba, photo.width, photo.height, ANSWERS.length, "exam-1");
+    expect(known.letters).toEqual(expected);
+    expect(known.blank).toEqual(blanks);
+    expect(known.multiple).toEqual([]);
+    expect(known.warning).toBeNull();
+
+    // No item count yet: reads every row and stops at the last shaded item.
+    const unknown = readAnswerKeyPhoto(photo.rgba, photo.width, photo.height, 0, "exam-1");
+    expect(unknown.letters).toEqual(expected.slice(0, ANSWERS.replace(/-+$/, "").length));
+
+    expect(readAnswerKeyPhoto(photo.rgba, photo.width, photo.height, ANSWERS.length, "exam-2").warning).toMatch(
+      /different exam/,
+    );
+    const student = await photographSheet(ANSWERS, { corners: TILTED });
+    expect(readAnswerKeyPhoto(student.rgba, student.width, student.height, ANSWERS.length, "exam-1").warning).toMatch(
+      /student's answer sheet/,
+    );
+    const empty = new Uint8ClampedArray(400 * 300 * 4).fill(200);
+    expect(() => readAnswerKeyPhoto(empty, 400, 300, 10, "exam-1")).toThrow(AnswerKeyPhotoError);
+  }, 60000);
 
   it("ignores a keyboard and dark squares around the sheet in a live-sized frame", async () => {
     const corners = [

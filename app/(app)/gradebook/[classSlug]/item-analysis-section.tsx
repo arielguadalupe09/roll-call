@@ -5,6 +5,7 @@ import { MAX_SHEET_ITEMS, keyTextToLetters, lettersToKeyText, sheetOptionCount }
 import ItemAnalysisExportPanel from "./item-analysis-export-panel";
 import AnswerKeyBubbles from "@/app/_components/answer-key-bubbles";
 import AnswerKeyGrid from "@/app/_components/answer-key-grid";
+import AnswerKeyUpload from "./answer-key-upload";
 import { createClient } from "@/lib/supabase/client";
 import { papersOutOfSync, syncItemScoresToGradebook, type CheckedPaper } from "@/lib/item-score-sync";
 import type { MajorExam, MajorExamItemResponse, Student } from "@/lib/types";
@@ -446,8 +447,21 @@ export default function ItemAnalysisSection({
               </div>
             </div>
 
+            <AnswerKeyUpload
+              examId={exam.id}
+              itemCount={bubbleCount}
+              onRead={(letters) => {
+                // A file decides the item count when none is entered yet.
+                if (bubbleCount === 0) setItemCountDraft(String(letters.length));
+                if (letters.includes("E")) setKeyOptions(5);
+                setKeyDraft(lettersToKeyText(letters));
+                // Show the result on the ovals, like the sheet it came from.
+                setKeyEntry("tap");
+              }}
+            />
+
             {bubbleCount === 0 ? (
-              <p className="text-sm text-muted">Enter the number of items to start.</p>
+              <p className="text-sm text-muted">Enter the number of items to start, or upload the answer key.</p>
             ) : keyEntry === "type" ? (
               <>
                 <p className="text-xs text-muted">

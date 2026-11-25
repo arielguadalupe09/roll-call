@@ -263,7 +263,7 @@ function ExamSection({
                 Same grades as the {copySource.label.toLowerCase()}? Sets this exam up out of {copySource.maxScore}{" "}
                 points and fills in its {copyCount} score{copyCount === 1 ? "" : "s"} for you to review and save.
               </p>
-              <Button variant="secondary" className="mt-2" onClick={() => setUpAndCopy(copySource)} disabled={savingMax}>
+              <Button className="mt-2" onClick={() => setUpAndCopy(copySource)} disabled={savingMax}>
                 Set up with the {copySource.label.toLowerCase()} scores
               </Button>
             </div>
@@ -338,7 +338,7 @@ function ExamSection({
                 ({copyCount} saved score{copyCount === 1 ? "" : "s"}, out of {copySource.maxScore})
               </span>
             </p>
-            <Button variant="secondary" onClick={() => copyScoresFrom(copySource, exam.max_score)}>
+            <Button onClick={() => copyScoresFrom(copySource, exam.max_score)}>
               Copy {copySource.label.toLowerCase()} scores
             </Button>
           </div>
