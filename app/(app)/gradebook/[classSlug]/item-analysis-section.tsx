@@ -6,6 +6,7 @@ import ItemAnalysisExportPanel from "./item-analysis-export-panel";
 import AnswerKeyBubbles from "@/app/_components/answer-key-bubbles";
 import AnswerKeyGrid from "@/app/_components/answer-key-grid";
 import AnswerKeyUpload from "./answer-key-upload";
+import ShareAnswerKey from "./share-answer-key";
 import { createClient } from "@/lib/supabase/client";
 import { papersOutOfSync, syncItemScoresToGradebook, type CheckedPaper } from "@/lib/item-score-sync";
 import type { MajorExam, MajorExamItemResponse, Student } from "@/lib/types";
@@ -381,10 +382,11 @@ export default function ItemAnalysisSection({
                 {itemCount} items, no answer key — papers are checked by typing the items each student got wrong.
               </p>
             )}
-            <div>
+            <div className="flex flex-wrap items-start gap-3">
               <Button variant="secondary" onClick={() => setEditingKey(true)}>
                 {keyReady ? "Edit answer key" : "Add an answer key"}
               </Button>
+              {keyReady && <ShareAnswerKey exam={exam} answerKey={answerKey!} />}
             </div>
           </div>
         ) : (
