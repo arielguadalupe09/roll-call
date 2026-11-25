@@ -20,7 +20,10 @@ const PERIOD_TITLE: Record<Period, string> = { prelim: "Prelim", midterm: "Midte
 const KIND_TITLE: Record<MajorExamKind, string> = { written: "Written exam", laboratory: "Laboratory exam" };
 const KINDS: MajorExamKind[] = ["written", "laboratory"];
 
-type Summary = { setUp: boolean; maxScore: number; scored: number };
+// `scores` = saved, non-blank scores by student id -- what the sibling exam
+// (same term, other kind) can copy.
+type Summary = { setUp: boolean; maxScore: number; scored: number; scores: Record<string, string> };
+type CopySource = { label: string; maxScore: number; scores: Record<string, string> };
 type View = "scores" | ItemAnalysisView;
 
 const VIEWS: { view: View; label: string; hint: string }[] = [
@@ -29,8 +32,17 @@ const VIEWS: { view: View; label: string; hint: string }[] = [
   { view: "results", label: "Results", hint: "Who struggled, which items" },
 ];
 
-function countScored(scores: MajorExamScore[]): number {
-  return scores.filter((s) => s.score != null).length;
+function savedScores(scores: MajorExamScore[]): Record<string, string> {
+  return Object.fromEntries(scores.filter((s) => s.score != null).map((s) => [s.student_id, String(s.score)]));
+}
+
+function sameSummary(a: Summary, b: Summary): boolean {
+  return (
+    a.setUp === b.setUp &&
+    a.maxScore === b.maxScore &&
+    a.scored === b.scored &&
+    JSON.stringify(a.scores) === JSON.stringify(b.scores)
+  );
 }
 
 function ExamSection({
@@ -43,6 +55,7 @@ function ExamSection({
   initialScores,
   initialItemResponses,
   programType,
+  copySource,
   onSummary,
 }: {
   classId: string;
@@ -54,6 +67,8 @@ function ExamSection({
   initialScores: MajorExamScore[];
   initialItemResponses: MajorExamItemResponse[];
   programType: ProgramType;
+  // The other exam of the same term (written <-> laboratory), when it has scores.
+  copySource: CopySource | null;
   onSummary: (summary: Summary) => void;
 }) {
   const { showToast } = useToast();
@@ -75,14 +90,20 @@ function ExamSection({
     return byStudent;
   });
 
-  const scored = students.filter((s) => (rows[s.id]?.score ?? "").trim() !== "" && !rows[s.id]?.dirty).length;
+  const saved: Record<string, string> = {};
+  for (const s of students) {
+    const row = rows[s.id];
+    if (row && !row.dirty && row.score.trim() !== "") saved[s.id] = row.score.trim();
+  }
+  const scored = Object.keys(saved).length;
+  const savedKey = JSON.stringify(saved);
 
-  // Keeps the tile at the top in step with this exam.
+  // Keeps the tile at the top (and the sibling exam's copy button) in step with this exam.
   useEffect(() => {
-    onSummary({ setUp: exam != null, maxScore: exam?.max_score ?? 0, scored });
+    onSummary({ setUp: exam != null, maxScore: exam?.max_score ?? 0, scored, scores: saved });
     // onSummary is a fresh closure each parent render; the values are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exam, scored]);
+  }, [exam, savedKey]);
 
   function updateRow(studentId: string, patch: Partial<ScoreRow>) {
     setRows((prev) => ({ ...prev, [studentId]: { ...prev[studentId], ...patch } }));
@@ -94,6 +115,11 @@ function ExamSection({
       showToast("Enter how many points the exam is worth, e.g. 100.");
       return;
     }
+    const saved = await saveMaxScore(value);
+    if (saved) showToast(exam ? `${label}: now out of ${value} points` : `${label} is ready — enter scores or scan papers.`);
+  }
+
+  async function saveMaxScore(value: number): Promise<MajorExam | null> {
     setSavingMax(true);
     const supabase = createClient();
     const { data, error } = await supabase
@@ -105,12 +131,47 @@ function ExamSection({
     setSavingMax(false);
     if (error) {
       showToast(error.message);
-      return;
+      return null;
     }
     setExam(data as MajorExam);
+    setMaxScore(String(value));
     setEditingMax(false);
-    showToast(exam ? `${label}: now out of ${value} points` : `${label} is ready — enter scores or scan papers.`);
+    return data as MajorExam;
   }
+
+  // Fills the score boxes with the other exam's saved scores (e.g. the lab
+  // exam gets the same grades as the written one). Like pasting, nothing is
+  // written until Save all, so the filled table is the preview. Students
+  // with no score in the source are left alone.
+  function copyScoresFrom(source: CopySource, targetMax: number) {
+    let filled = 0;
+    let replaced = 0;
+    for (const s of students) {
+      const value = source.scores[s.id];
+      if (value == null) continue;
+      const current = (rows[s.id]?.score ?? "").trim();
+      if (current === value) continue;
+      if (current !== "") replaced += 1;
+      updateRow(s.id, { score: value, dirty: true });
+      filled += 1;
+    }
+    if (filled === 0) {
+      showToast(`Nothing to copy — every student already has the same score as the ${source.label.toLowerCase()}.`);
+      return;
+    }
+    let message = `Copied ${filled} score${filled === 1 ? "" : "s"} from the ${source.label.toLowerCase()} — review, then Save all.`;
+    if (replaced > 0) message += ` ${replaced} existing score${replaced === 1 ? " was" : "s were"} replaced (not saved yet).`;
+    if (source.maxScore !== targetMax)
+      message += ` Note: that exam is out of ${source.maxScore}, this one out of ${targetMax}.`;
+    showToast(message);
+  }
+
+  async function setUpAndCopy(source: CopySource) {
+    const created = await saveMaxScore(source.maxScore);
+    if (created) copyScoresFrom(source, created.max_score);
+  }
+
+  const copyCount = copySource ? Object.keys(copySource.scores).length : 0;
 
   async function handleSaveScore(studentId: string) {
     if (!exam) return;
@@ -196,6 +257,17 @@ function ExamSection({
           <p className="text-base font-semibold text-ink">This exam isn&apos;t set up yet.</p>
           <p className="mt-1 text-xs text-muted">How many points is it worth? You can change this later.</p>
           <div className="mt-4">{maxScoreForm}</div>
+          {copySource && (
+            <div className="mt-4 border-t border-line/60 pt-4">
+              <p className="text-xs text-muted">
+                Same grades as the {copySource.label.toLowerCase()}? Sets this exam up out of {copySource.maxScore}{" "}
+                points and fills in its {copyCount} score{copyCount === 1 ? "" : "s"} for you to review and save.
+              </p>
+              <Button variant="secondary" className="mt-2" onClick={() => setUpAndCopy(copySource)} disabled={savingMax}>
+                Set up with the {copySource.label.toLowerCase()} scores
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     );
@@ -258,6 +330,19 @@ function ExamSection({
       </div>
 
       <div className={view === "scores" ? "" : "hidden"}>
+        {copySource && (
+          <div className="mb-3 flex flex-wrap items-center gap-3 rounded-[10px] border border-line/60 bg-paper/60 p-3">
+            <p className="text-sm text-ink">
+              Same grades as the <strong>{copySource.label.toLowerCase()}</strong>?{" "}
+              <span className="text-xs text-muted">
+                ({copyCount} saved score{copyCount === 1 ? "" : "s"}, out of {copySource.maxScore})
+              </span>
+            </p>
+            <Button variant="secondary" onClick={() => copyScoresFrom(copySource, exam.max_score)}>
+              Copy {copySource.label.toLowerCase()} scores
+            </Button>
+          </div>
+        )}
         <ScoreEntryTable
           students={students}
           rows={rows}
@@ -320,14 +405,13 @@ export default function MajorExamTab({
 
   const [summaries, setSummaries] = useState<Record<string, Summary>>(() =>
     Object.fromEntries(
-      slots.map((s) => [
-        s.key,
-        {
-          setUp: s.exam != null,
-          maxScore: s.exam?.max_score ?? 0,
-          scored: s.exam ? countScored(initialScores.filter((x) => x.major_exam_id === s.exam!.id)) : 0,
-        },
-      ]),
+      slots.map((s) => {
+        const scores = s.exam ? savedScores(initialScores.filter((x) => x.major_exam_id === s.exam!.id)) : {};
+        return [
+          s.key,
+          { setUp: s.exam != null, maxScore: s.exam?.max_score ?? 0, scored: Object.keys(scores).length, scores },
+        ];
+      }),
     ),
   );
 
@@ -389,29 +473,37 @@ export default function MajorExamTab({
         })}
       </div>
 
-      {slots.map((s) => (
-        <div key={s.key} className={s.key === selected ? "" : "hidden"}>
-          <ExamSection
-            classId={classId}
-            classSlug={classSlug}
-            period={s.period}
-            kind={s.kind}
-            initialExam={s.exam}
-            students={students}
-            initialScores={s.exam ? initialScores.filter((x) => x.major_exam_id === s.exam!.id) : []}
-            initialItemResponses={s.exam ? initialItemResponses.filter((r) => r.major_exam_id === s.exam!.id) : []}
-            programType={programType}
-            onSummary={(summary) =>
-              setSummaries((prev) => {
-                const old = prev[s.key];
-                if (old.setUp === summary.setUp && old.maxScore === summary.maxScore && old.scored === summary.scored)
-                  return prev;
-                return { ...prev, [s.key]: summary };
-              })
-            }
-          />
-        </div>
-      ))}
+      {slots.map((s) => {
+        const otherKind: MajorExamKind = s.kind === "written" ? "laboratory" : "written";
+        const other = summaries[`${s.period}:${otherKind}`];
+        const copySource: CopySource | null =
+          other?.setUp && Object.keys(other.scores).length > 0
+            ? {
+                label: `${PERIOD_TITLE[s.period]} ${KIND_TITLE[otherKind].toLowerCase()}`,
+                maxScore: other.maxScore,
+                scores: other.scores,
+              }
+            : null;
+        return (
+          <div key={s.key} className={s.key === selected ? "" : "hidden"}>
+            <ExamSection
+              classId={classId}
+              classSlug={classSlug}
+              period={s.period}
+              kind={s.kind}
+              initialExam={s.exam}
+              students={students}
+              initialScores={s.exam ? initialScores.filter((x) => x.major_exam_id === s.exam!.id) : []}
+              initialItemResponses={s.exam ? initialItemResponses.filter((r) => r.major_exam_id === s.exam!.id) : []}
+              programType={programType}
+              copySource={copySource}
+              onSummary={(summary) =>
+                setSummaries((prev) => (sameSummary(prev[s.key], summary) ? prev : { ...prev, [s.key]: summary }))
+              }
+            />
+          </div>
+        );
+      })}
 
       <p className="text-xs text-muted">
         A term can have a written and a laboratory exam. With both, each counts for half of the Major Exam weight;
