@@ -7,6 +7,9 @@ import AnswerSheetSvg from "@/app/_components/answer-sheet-svg";
 import { AnswerKeyPhotoError, readAnswerKeyPhoto } from "./answer-key-photo";
 import { downscale, findSheetCorners, homography, mergeReads, project, readSheet, rgbaToGray, type Gray } from "./omr-scan";
 import {
+  LEGACY_COLUMNS,
+  itemRowOrigin,
+  sheetColumns,
   SHEET_H,
   SHEET_W,
   answerKeyQrValue,
@@ -31,6 +34,7 @@ async function photographSheet(
     keySheet = false,
     clutter = false,
     blur = 1.2,
+    legacyLayout = false,
   }: {
     corners: Point[];
     shadow?: number;
@@ -42,6 +46,7 @@ async function photographSheet(
     // desk -- things a live camera frame picks up around the paper.
     clutter?: boolean;
     blur?: number;
+    legacyLayout?: boolean;
   },
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
   const svg = renderToStaticMarkup(
@@ -56,6 +61,7 @@ async function photographSheet(
       answerKeySheet: keySheet,
       filled: answers,
       fillShade,
+      legacyLayout,
     }),
   );
   const pxPerMm = 6;
@@ -231,6 +237,38 @@ describe("OMR scan of a printed sheet", () => {
     const empty = new Uint8ClampedArray(400 * 300 * 4).fill(200);
     expect(() => readAnswerKeyPhoto(empty, 400, 300, 10, "exam-1")).toThrow(AnswerKeyPhotoError);
   }, 60000);
+
+  it("reads the column layout from the sheet's layout code", async () => {
+    // 71 items -> three columns spread over the full width.
+    const result = scan(await photographSheet(ANSWERS, { corners: TILTED }), ANSWERS.length);
+    expect(result!.columns).toBe(3);
+    for (const answers of [ANSWERS.slice(0, 20), ANSWERS.slice(0, 40), ANSWERS + "ABCDEABCDEABCDEABCDEABCD"]) {
+      const read = scan(await photographSheet(answers, { corners: TILTED }), answers.length);
+      expect(read!.columns).toBe(sheetColumns(answers.length));
+      expect(read!.answers).toBe(answers);
+    }
+  }, 60000);
+
+  it("still reads sheets printed before the layout code", async () => {
+    const photo = await photographSheet(ANSWERS, { corners: TILTED, legacyLayout: true });
+    const read = scan(photo, ANSWERS.length);
+    expect(read!.columns).toBe(LEGACY_COLUMNS);
+    expect(read!.answers).toBe(ANSWERS);
+    const upsideDown = scan(
+      await photographSheet(ANSWERS, { corners: TILTED, legacyLayout: true, upsideDown: true }),
+      ANSWERS.length,
+    );
+    expect(upsideDown!.answers).toBe(ANSWERS);
+  }, 60000);
+
+  it("spreads fewer than four columns evenly, keeping the 4-column layout as printed before", () => {
+    expect([1, 2, 3, 4].map((col) => itemRowOrigin(col * 25 - 24, 4).x)).toEqual([12, 55, 98, 141]);
+    const three = [1, 26, 51].map((item) => itemRowOrigin(item, 3).x);
+    // Equal gaps, and the block is centred like the 4-column one.
+    expect(three[1] - three[0]).toBeCloseTo(three[2] - three[1]);
+    expect((three[0] + three[2]) / 2).toBeCloseTo((12 + 141) / 2);
+    expect(itemRowOrigin(1, 1).x).toBeCloseTo((12 + 141) / 2);
+  });
 
   it("ignores a keyboard and dark squares around the sheet in a live-sized frame", async () => {
     const corners = [

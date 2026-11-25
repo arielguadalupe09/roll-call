@@ -8,7 +8,7 @@
 //      Name / exam header               [QR]
 //      1 (A)(B)(C)(D)(E)   26 (A)...   51 ...   76 ...
 //      ...
-//   ■                                          ■
+//   ■  ▪▪▪ (layout code: one square per column)  ■
 
 export const SHEET_W = 186;
 export const SHEET_H = 250;
@@ -38,19 +38,49 @@ const COL_X0 = 12;
 const COL_WIDTH = 43;
 const FIRST_BUBBLE_DX = 12;
 const BUBBLE_PITCH = 6.2;
+// Width the item columns are spread across (COL_X0 to the right margin).
+const GRID_WIDTH = 4 * COL_WIDTH;
 
 export type Point = { x: number; y: number };
 
+// Columns of 25 items an exam's sheet needs (1-4).
+export function sheetColumns(itemCount: number): number {
+  return Math.min(4, Math.max(1, Math.ceil(itemCount / ITEMS_PER_COLUMN)));
+}
+
+// Sheets printed before the layout code always placed the columns as if
+// there were four (so a 75-item sheet left the right quarter empty). Newer
+// sheets spread their columns evenly over the grid width and print one
+// layout-code square per column, so the scanner knows which layout it has --
+// a sheet with no squares is read with this legacy spacing.
+export const LEGACY_COLUMNS = 4;
+
+// Layout code: small solid squares along the bottom edge, left of centre.
+// Kept clear of the corner markers' paper ring and of the strips the
+// orientation check samples (the bar region and the paper beside it,
+// rotated 180 degrees), so they never change how a sheet is found.
+export const LAYOUT_MARK = { x: 24, y: 242, size: 4, pitch: 6 } as const;
+export const LAYOUT_MARK_SLOTS = 4;
+
+export function layoutMarkRect(index: number): { x: number; y: number; size: number } {
+  return { x: LAYOUT_MARK.x + index * LAYOUT_MARK.pitch, y: LAYOUT_MARK.y, size: LAYOUT_MARK.size };
+}
+
 // Left edge of an item's row (for the item number) and its row centre.
-export function itemRowOrigin(item: number): Point {
+// columns: how many columns the sheet's layout spreads out (4 = the
+// original spacing, used for 76-100 items and for every legacy sheet).
+export function itemRowOrigin(item: number, columns: number = LEGACY_COLUMNS): Point {
   const col = Math.floor((item - 1) / ITEMS_PER_COLUMN);
   const row = (item - 1) % ITEMS_PER_COLUMN;
-  return { x: COL_X0 + col * COL_WIDTH, y: GRID_TOP + row * ROW_PITCH };
+  // Each column is centred in an equal share of the grid width; with four
+  // columns this is exactly COL_X0 + col * COL_WIDTH.
+  const slot = GRID_WIDTH / columns;
+  return { x: COL_X0 + slot * (col + 0.5) - COL_WIDTH / 2, y: GRID_TOP + row * ROW_PITCH };
 }
 
 // Centre of one bubble; option 0 = A.
-export function bubbleCenter(item: number, option: number): Point {
-  const o = itemRowOrigin(item);
+export function bubbleCenter(item: number, option: number, columns: number = LEGACY_COLUMNS): Point {
+  const o = itemRowOrigin(item, columns);
   return { x: o.x + FIRST_BUBBLE_DX + option * BUBBLE_PITCH, y: o.y };
 }
 

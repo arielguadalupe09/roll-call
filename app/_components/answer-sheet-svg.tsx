@@ -11,11 +11,15 @@ import {
   SHEET_W,
   bubbleCenter,
   itemRowOrigin,
+  LEGACY_COLUMNS,
+  layoutMarkRect,
+  sheetColumns,
 } from "@/lib/omr-sheet";
 
 // One printable bubble answer sheet, drawn in millimetres from lib/omr-sheet.ts
 // so the scanner (lib/omr-scan.ts) finds every bubble where it was printed.
 // filled / fillShade: optional answers to pre-shade, and their colour (tests only).
+// legacyLayout: draw a sheet as printed before the layout code (tests only).
 export default function AnswerSheetSvg({
   itemCount,
   optionCount,
@@ -27,6 +31,7 @@ export default function AnswerSheetSvg({
   answerKeySheet = false,
   filled,
   fillShade = "#222",
+  legacyLayout = false,
 }: {
   itemCount: number;
   optionCount: number;
@@ -39,9 +44,13 @@ export default function AnswerSheetSvg({
   answerKeySheet?: boolean;
   filled?: string;
   fillShade?: string;
+  legacyLayout?: boolean;
 }) {
   const items = Array.from({ length: itemCount }, (_, i) => i + 1);
-  const columns = Math.ceil(itemCount / ITEMS_PER_COLUMN);
+  // The item columns are spread evenly across the sheet; the layout-code
+  // squares (one per column) tell the scanner which spacing this sheet uses.
+  const columns = legacyLayout ? LEGACY_COLUMNS : sheetColumns(itemCount);
+  const markCount = legacyLayout ? 0 : columns;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -69,6 +78,10 @@ export default function AnswerSheetSvg({
         height={ORIENTATION_BAR.h}
         fill="#000"
       />
+      {Array.from({ length: markCount }, (_, i) => {
+        const r = layoutMarkRect(i);
+        return <rect key={`layout-${i}`} x={r.x} y={r.y} width={r.size} height={r.size} fill="#000" />;
+      })}
 
       <text x={14} y={17} fontSize={4.6} fontWeight={700} fill="#000">
         {answerKeySheet ? "ANSWER KEY" : "ANSWER SHEET"}
@@ -149,12 +162,12 @@ export default function AnswerSheetSvg({
       <text x={14} y={49.5} fontSize={2.6} fill="#333">
         Use a pencil or black pen. Shade ONE circle per item completely. Erase cleanly to change an answer.
       </text>
-      {Array.from({ length: columns }, (_, c) => (
+      {Array.from({ length: Math.ceil(itemCount / ITEMS_PER_COLUMN) }, (_, c) => (
         <line
           key={c}
-          x1={itemRowOrigin(c * ITEMS_PER_COLUMN + 1).x - 2}
+          x1={itemRowOrigin(c * ITEMS_PER_COLUMN + 1, columns).x - 2}
           y1={52.5}
-          x2={itemRowOrigin(c * ITEMS_PER_COLUMN + 1).x + 39}
+          x2={itemRowOrigin(c * ITEMS_PER_COLUMN + 1, columns).x + 39}
           y2={52.5}
           stroke="#bbb"
           strokeWidth={0.2}
@@ -162,14 +175,14 @@ export default function AnswerSheetSvg({
       ))}
 
       {items.map((item) => {
-        const o = itemRowOrigin(item);
+        const o = itemRowOrigin(item, columns);
         return (
           <g key={item}>
             <text x={o.x + 7.5} y={o.y + 1.1} fontSize={3} fontWeight={700} fill="#000" textAnchor="end">
               {item}
             </text>
             {Array.from({ length: optionCount }, (_, k) => {
-              const c = bubbleCenter(item, k);
+              const c = bubbleCenter(item, k, columns);
               const shaded = filled?.[item - 1] === SHEET_OPTIONS[k];
               return (
                 <g key={k}>

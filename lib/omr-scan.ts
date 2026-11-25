@@ -6,17 +6,23 @@
 //    solid corner squares (picked by size consistency and sheet proportions).
 // 2. Orientation: of the corner orderings that give a portrait sheet, keep the
 //    one where the top-centre orientation bar is dark.
-// 3. A homography maps sheet millimetres to image pixels; each bubble's
+// 3. The layout-code squares along the bottom edge say how the item columns
+//    are spaced (none = a sheet printed before they existed).
+// 4. A homography maps sheet millimetres to image pixels; each bubble's
 //    interior is sampled and compared with the other bubbles in its row (so a
 //    shadow across the sheet doesn't read as shading).
 
 import {
   BUBBLE_RADIUS,
+  LAYOUT_MARK,
+  LAYOUT_MARK_SLOTS,
+  LEGACY_COLUMNS,
   MARKER_CENTERS,
   MARKER_SIZE,
   ORIENTATION_BAR,
   SHEET_OPTIONS,
   bubbleCenter,
+  layoutMarkRect,
   type Point,
 } from "./omr-sheet";
 
@@ -383,6 +389,21 @@ function bubbleMean(g: Gray, H: number[], c: Point): number {
   return sum / count;
 }
 
+// Brightness of the bare paper just above and below a bubble (rows are 7 mm
+// apart, so this strip touches no other bubble or the item number). Dividing
+// a bubble by its own paper cancels a shadow edge running through the row.
+function paperBeside(g: Gray, H: number[], c: Point): number {
+  const dy = BUBBLE_RADIUS + 0.9;
+  let best = 0;
+  for (const sy of [-dy, dy]) {
+    let sum = 0;
+    for (let i = -2; i <= 2; i++) sum += sampleAt(g, project(H, { x: c.x + i * 0.6, y: c.y + sy }));
+    // The brighter side: one side may catch a stray pencil stroke.
+    best = Math.max(best, sum / 5);
+  }
+  return Math.max(1, best);
+}
+
 export type ItemMark = {
   item: number;
   // Chosen letter, or "-" for blank / unreadable multiple marks.
@@ -396,6 +417,9 @@ export type SheetRead = {
   // Image-pixel corners of the sheet's markers, in sheet order TL, TR, BR, BL.
   corners: Point[];
   homography: number[];
+  // Column layout the bubbles were read with (see itemRowOrigin): the sheet's
+  // layout code, or LEGACY_COLUMNS for a sheet printed without one.
+  columns: number;
   marks: ItemMark[];
   answers: string;
 };
@@ -440,6 +464,25 @@ function classifyAll(fills: number[][]): ItemMark[] {
   return fills.map((f, i) => classify(i + 1, f, threshold));
 }
 
+// How far darker than the paper above it a layout-code square must be.
+const LAYOUT_MARK_CONTRAST = 0.35;
+
+// The sheet's column layout from its layout-code squares (one per column);
+// none = a sheet printed before the code existed.
+function layoutColumns(g: Gray, H: number[]): number {
+  const m = LAYOUT_MARK;
+  // Blank paper between the last bubble row and the squares.
+  const paper = rectMean(g, H, m.x, m.y - 7, LAYOUT_MARK_SLOTS * m.pitch, 3);
+  let count = 0;
+  for (let i = 0; i < LAYOUT_MARK_SLOTS; i++) {
+    const r = layoutMarkRect(i);
+    const mean = rectMean(g, H, r.x + 0.8, r.y + 0.8, r.size - 1.6, r.size - 1.6);
+    if ((paper - mean) / Math.max(1, paper) < LAYOUT_MARK_CONTRAST) break;
+    count++;
+  }
+  return count || LEGACY_COLUMNS;
+}
+
 // corners: from findSheetCorners (in this image's pixel coordinates).
 export function readSheet(
   g: Gray,
@@ -450,17 +493,24 @@ export function readSheet(
   const best = orient(g, corners);
   if (!best || best.contrast < MIN_BAR_CONTRAST) return null;
   const { H } = best;
+  const columns = layoutColumns(g, H);
 
   const fills: number[][] = [];
   for (let item = 1; item <= itemCount; item++) {
-    const means = Array.from({ length: optionCount }, (_, o) => bubbleMean(g, H, bubbleCenter(item, o)));
-    const paper = Math.max(...means, 1);
-    fills.push(means.map((m) => Math.max(0, (paper - m) / paper)));
+    // Each bubble relative to the paper right beside it (shadow-proof), then
+    // relative to the brightest bubble in the row (cancels the printed letter).
+    const ratios = Array.from({ length: optionCount }, (_, o) => {
+      const c = bubbleCenter(item, o, columns);
+      return bubbleMean(g, H, c) / paperBeside(g, H, c);
+    });
+    const paper = Math.max(...ratios, 1e-6);
+    fills.push(ratios.map((r) => Math.max(0, (paper - r) / paper)));
   }
   const marks = classifyAll(fills);
   return {
     corners: best.corners,
     homography: H,
+    columns,
     marks,
     answers: marks.map((m) => m.answer).join(""),
   };
