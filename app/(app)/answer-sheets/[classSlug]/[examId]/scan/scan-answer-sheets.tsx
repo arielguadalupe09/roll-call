@@ -11,7 +11,6 @@ import {
   MAX_SHEET_ITEMS,
   QR_BOX,
   SHEET_OPTIONS,
-  bubbleCenter,
   majorExamLabel,
   parseSheetQr,
   sheetOptionCount,
@@ -22,6 +21,7 @@ import {
   findSheetCorners,
   mergeReads,
   project,
+  readBubbleCenter,
   readSheet,
   rgbaToGray,
   type ItemMark,
@@ -439,15 +439,15 @@ export default function ScanAnswerSheets({
       if (isKey || !key) {
         const chosen = SHEET_OPTIONS.indexOf(m.answer as (typeof SHEET_OPTIONS)[number]);
         if (chosen >= 0) {
-          const { a, r } = radiusPx(bubbleCenter(m.item, chosen, read.columns));
+          const { a, r } = radiusPx(readBubbleCenter(read, m.item, chosen));
           ctx.strokeStyle = "#2563eb";
           ctx.beginPath();
           ctx.arc(a.x, a.y, r * 1.35, 0, Math.PI * 2);
           ctx.stroke();
         }
         if (m.status !== "ok") {
-          const first = radiusPx(bubbleCenter(m.item, 0, read.columns));
-          const last = radiusPx(bubbleCenter(m.item, SHEET_OPTIONS.length - 1, read.columns));
+          const first = radiusPx(readBubbleCenter(read, m.item, 0));
+          const last = radiusPx(readBubbleCenter(read, m.item, SHEET_OPTIONS.length - 1));
           ctx.strokeStyle = "#f59e0b";
           ctx.strokeRect(
             first.a.x - first.r * 1.6,
@@ -461,7 +461,7 @@ export default function ScanAnswerSheets({
       const keyIdx = SHEET_OPTIONS.indexOf(key[m.item - 1] as (typeof SHEET_OPTIONS)[number]);
       const chosenIdx = SHEET_OPTIONS.indexOf(m.answer as (typeof SHEET_OPTIONS)[number]);
       const ring = (idx: number, color: string) => {
-        const { a, r } = radiusPx(bubbleCenter(m.item, idx, read.columns));
+        const { a, r } = radiusPx(readBubbleCenter(read, m.item, idx));
         ctx.strokeStyle = color;
         ctx.beginPath();
         ctx.arc(a.x, a.y, r * 1.35, 0, Math.PI * 2);

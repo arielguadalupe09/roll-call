@@ -7,7 +7,10 @@ import AnswerSheetSvg from "@/app/_components/answer-sheet-svg";
 import { AnswerKeyPhotoError, readAnswerKeyPhoto } from "./answer-key-photo";
 import { downscale, findSheetCorners, homography, mergeReads, project, readSheet, rgbaToGray, type Gray } from "./omr-scan";
 import {
+  BUBBLE_RADIUS,
   LEGACY_COLUMNS,
+  SHEET_OPTIONS,
+  bubbleCenter,
   itemRowOrigin,
   sheetColumns,
   SHEET_H,
@@ -35,6 +38,8 @@ async function photographSheet(
     clutter = false,
     blur = 1.2,
     legacyLayout = false,
+    overflow = 0,
+    curl = 0,
   }: {
     corners: Point[];
     shadow?: number;
@@ -47,6 +52,12 @@ async function photographSheet(
     clutter?: boolean;
     blur?: number;
     legacyLayout?: boolean;
+    // Real pencil shading spills past the printed ring: shaded bubbles get a
+    // dark disc this many mm wider than the bubble's radius.
+    overflow?: number;
+    // Paper that doesn't lie flat: the middle of the sheet bows by this many
+    // mm, so the corner-marker homography is off there.
+    curl?: number;
   },
 ): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
   const svg = renderToStaticMarkup(
@@ -64,6 +75,11 @@ async function photographSheet(
       legacyLayout,
     }),
   );
+  const columns = legacyLayout ? LEGACY_COLUMNS : sheetColumns(answers.length);
+  const shadedCenters = [...answers].flatMap((ch, i) => {
+    const o = SHEET_OPTIONS.indexOf(ch as (typeof SHEET_OPTIONS)[number]);
+    return o >= 0 ? [bubbleCenter(i + 1, o, columns)] : [];
+  });
   const pxPerMm = 6;
   const { data: sheet, info } = await sharp(Buffer.from(svg), {
     density: 25.4 * pxPerMm,
@@ -110,10 +126,19 @@ async function photographSheet(
       if (p.x >= -MARGIN && p.y >= -MARGIN && p.x < SHEET_W + MARGIN && p.y < SHEET_H + MARGIN) {
         v = 255 * 0.85;
       }
+      if (curl) {
+        p.x += curl * Math.sin((Math.PI * p.y) / SHEET_H) * Math.sin((Math.PI * p.x) / SHEET_W);
+        p.y += curl * Math.sin((Math.PI * p.x) / SHEET_W) * Math.sin((Math.PI * p.y) / SHEET_H);
+      }
       if (p.x >= 0 && p.y >= 0 && p.x < SHEET_W && p.y < SHEET_H) {
         const sx = Math.min(info.width - 1, Math.floor((p.x * info.width) / SHEET_W));
         const sy = Math.min(info.height - 1, Math.floor((p.y * info.height) / SHEET_H));
         v = sheet[sy * info.width + sx] * 0.85; // paper isn't pure white in a photo
+        if (overflow) {
+          for (const c of shadedCenters) {
+            if (Math.hypot(p.x - c.x, p.y - c.y) < BUBBLE_RADIUS + overflow) v = Math.min(v, 60);
+          }
+        }
       }
       if (x > W * 0.55) v *= 1 - shadow; // phone/hand shadow on the right
       gray[y * W + x] = Math.max(0, Math.min(255, v + (rand() - 0.5) * 30));
@@ -133,8 +158,9 @@ async function photographSheet(
   return { rgba: new Uint8ClampedArray(blurred), width: W, height: H };
 }
 
-function scan(photo: { rgba: Uint8ClampedArray; width: number; height: number }, items: number) {
-  const full: Gray = rgbaToGray(photo.rgba, photo.width, photo.height);
+// Corners on an 800 px copy, bubbles on the full image -- as the scanner does.
+function scan(photo: { rgba: Uint8ClampedArray; width: number; height: number } | { gray: Gray }, items: number) {
+  const full: Gray = "gray" in photo ? photo.gray : rgbaToGray(photo.rgba, photo.width, photo.height);
   const { gray: small, scale } = downscale(full, 800);
   const corners = findSheetCorners(small);
   if (!corners) return null;
@@ -303,6 +329,30 @@ describe("OMR scan of a printed sheet", () => {
     expect(mergeReads([read!, read!, read!]).answers).toBe(ANSWERS);
   }, 30000);
 
+  it("reads a sheet that doesn't lie flat", async () => {
+    // A bowed page moves the middle of the sheet a few mm off where the
+    // corner squares put it; every row is slid back onto its printed rings.
+    for (const answers of [ANSWERS, ANSWERS.slice(0, 50), ANSWERS.slice(0, 25)]) {
+      const photo = await photographSheet(answers, { corners: TILTED, curl: 3 });
+      expect(scan(photo, answers.length)!.answers).toBe(answers);
+    }
+    const legacy = await photographSheet(ANSWERS, { corners: TILTED, curl: 3, legacyLayout: true });
+    expect(scan(legacy, ANSWERS.length)!.answers).toBe(ANSWERS);
+    // Live-camera frame of a bowed sheet.
+    const video = await photographSheet(ANSWERS, { corners: TILTED, curl: 3, blur: 3 });
+    const full = rgbaToGray(video.rgba, video.width, video.height);
+    const { gray: frame } = downscale(full, 1280);
+    expect(scan({ gray: frame }, ANSWERS.length)!.answers).toBe(ANSWERS);
+  }, 120000);
+
+  it("reads shading that spills past the bubbles on a bowed sheet", async () => {
+    const photo = await photographSheet(ANSWERS, { corners: TILTED, curl: 2, overflow: 0.8, blur: 4 });
+    const full = rgbaToGray(photo.rgba, photo.width, photo.height);
+    const { gray: frame } = downscale(full, 640);
+    const read = readSheet(frame, findSheetCorners(frame)!, ANSWERS.length);
+    expect(read!.answers).toBe(ANSWERS);
+  }, 60000);
+
   it("tells answer-key QR codes from student ones", () => {
     expect(parseSheetQr(answerKeyQrValue("exam-1"))).toEqual({ kind: "key", majorExamId: "exam-1" });
     expect(parseSheetQr("ABC123")).toBeNull();
@@ -325,4 +375,5 @@ describe("on-screen answer key", () => {
     expect(lettersToKeyText(["", "", ""])).toBe("");
   });
 });
+
 

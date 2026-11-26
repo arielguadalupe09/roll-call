@@ -8,7 +8,9 @@
 //    one where the top-centre orientation bar is dark.
 // 3. The layout-code squares along the bottom edge say how the item columns
 //    are spaced (none = a sheet printed before they existed).
-// 4. A homography maps sheet millimetres to image pixels; each bubble's
+// 4. A homography maps sheet millimetres to image pixels; each item row is
+//    then slid (up to a few mm) onto its printed rings, since a sheet that
+//    isn't perfectly flat bends away from the corner-square fit. Each bubble's
 //    interior is sampled and compared with the other bubbles in its row (so a
 //    shadow across the sheet doesn't read as shading).
 
@@ -19,6 +21,7 @@ import {
   LEGACY_COLUMNS,
   MARKER_CENTERS,
   MARKER_SIZE,
+  ITEMS_PER_COLUMN,
   ORIENTATION_BAR,
   SHEET_OPTIONS,
   bubbleCenter,
@@ -390,8 +393,8 @@ function bubbleMean(g: Gray, H: number[], c: Point): number {
 }
 
 // Brightness of the bare paper just above and below a bubble (rows are 7 mm
-// apart, so this strip touches no other bubble or the item number). Dividing
-// a bubble by its own paper cancels a shadow edge running through the row.
+// apart, so this strip touches no other bubble or the item number). Dividing a bubble by its own paper cancels a shadow edge
+// running through the row.
 function paperBeside(g: Gray, H: number[], c: Point): number {
   const dy = BUBBLE_RADIUS + 0.9;
   let best = 0;
@@ -402,6 +405,108 @@ function paperBeside(g: Gray, H: number[], c: Point): number {
     best = Math.max(best, sum / 5);
   }
   return Math.max(1, best);
+}
+
+// ---- Local alignment -------------------------------------------------------
+// The homography comes from the four corner squares only, so it's exact only
+// for paper lying perfectly flat. A sheet that bows or curls by a millimetre
+// or two (held in a hand, fresh from a stack, a wavy desk) moves the middle
+// of the sheet off the predicted bubbles -- which then sample the printed
+// ring or the paper beside it. So before reading, each item row is slid onto
+// its printed circles: the offset (in sheet mm) where the rings are darkest
+// against the paper just outside them.
+
+const RING_ANGLES = Array.from({ length: 16 }, (_, i) => (i * Math.PI * 2) / 16);
+const RING_IN = RING_ANGLES.map((a) => ({ x: Math.cos(a) * BUBBLE_RADIUS, y: Math.sin(a) * BUBBLE_RADIUS }));
+const RING_OUT = RING_ANGLES.map((a) => ({
+  x: Math.cos(a) * (BUBBLE_RADIUS + 0.9),
+  y: Math.sin(a) * (BUBBLE_RADIUS + 0.9),
+}));
+
+type Offset = { x: number; y: number };
+
+// How strongly a printed bubble ring sits at c (paper outside minus ring).
+// A shaded bubble scores too: its ring is dark, the paper outside it isn't.
+function ringScore(g: Gray, H: number[], c: Point): number {
+  let ring = 0;
+  let out = 0;
+  for (let i = 0; i < RING_IN.length; i++) {
+    ring += sampleAt(g, project(H, { x: c.x + RING_IN[i].x, y: c.y + RING_IN[i].y }));
+    out += sampleAt(g, project(H, { x: c.x + RING_OUT[i].x, y: c.y + RING_OUT[i].y }));
+  }
+  return (out - ring) / RING_IN.length;
+}
+
+// Best offset within +-range of `around` for a set of bubble centres, coarse
+// grid then a finer one around the winner.
+function bestOffset(
+  g: Gray,
+  H: number[],
+  centers: Point[],
+  around: Offset,
+  range: number,
+  step: number,
+): { offset: Offset; score: number } {
+  const scoreAt = (o: Offset) => {
+    let s = 0;
+    for (const c of centers) s += ringScore(g, H, { x: c.x + o.x, y: c.y + o.y });
+    return s / centers.length;
+  };
+  let best = { offset: around, score: scoreAt(around) };
+  const search = (center: Offset, r: number, st: number) => {
+    for (let dx = -r; dx <= r + 1e-9; dx += st)
+      for (let dy = -r; dy <= r + 1e-9; dy += st) {
+        const o = { x: center.x + dx, y: center.y + dy };
+        const s = scoreAt(o);
+        if (s > best.score) best = { offset: o, score: s };
+      }
+  };
+  search(around, range, step);
+  search(best.offset, step, step / 2);
+  return best;
+}
+
+const median = (v: number[]) => {
+  const s = [...v].sort((p, q) => p - q);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+
+// Search window for a whole column of items, then for each row within it.
+// Both stay under half the bubble pitch (6.2 mm) and half the row pitch, so
+// a row can't snap onto its neighbouring bubble or row.
+const COLUMN_SEARCH_MM = 2.5;
+const ROW_SEARCH_MM = 1.25;
+// A column whose rings are this faint (grey levels, ring vs paper) is too
+// blurred to align against; it's read where the homography puts it.
+const MIN_RING_SCORE = 4;
+
+// Per-item offset (sheet mm) to add to every bubble centre of that item.
+function alignItems(g: Gray, H: number[], itemCount: number, optionCount: number, columns: number): Offset[] {
+  const offsets: Offset[] = Array.from({ length: itemCount }, () => ({ x: 0, y: 0 }));
+  const centersOf = (item: number) =>
+    Array.from({ length: optionCount }, (_, o) => bubbleCenter(item, o, columns));
+  for (let first = 1; first <= itemCount; first += ITEMS_PER_COLUMN) {
+    const items = Array.from({ length: Math.min(ITEMS_PER_COLUMN, itemCount - first + 1) }, (_, i) => first + i);
+    // Whole column first (every other row is plenty), then each row near it.
+    const column = bestOffset(
+      g,
+      H,
+      items.filter((_, i) => i % 2 === 0).flatMap(centersOf),
+      { x: 0, y: 0 },
+      COLUMN_SEARCH_MM,
+      0.5,
+    );
+    if (column.score < MIN_RING_SCORE) continue;
+    const rows = items.map((item) => bestOffset(g, H, centersOf(item), column.offset, ROW_SEARCH_MM, 0.25).offset);
+    // Paper bends smoothly: a row's offset is the median of its neighbours',
+    // so one row with a stray mark or glare can't wander off on its own.
+    rows.forEach((_, i) => {
+      const near = rows.slice(Math.max(0, i - 2), i + 3);
+      offsets[items[i] - 1] = { x: median(near.map((o) => o.x)), y: median(near.map((o) => o.y)) };
+    });
+  }
+  return offsets;
 }
 
 export type ItemMark = {
@@ -420,6 +525,9 @@ export type SheetRead = {
   // Column layout the bubbles were read with (see itemRowOrigin): the sheet's
   // layout code, or LEGACY_COLUMNS for a sheet printed without one.
   columns: number;
+  // Per item, how far (sheet mm) its row was found from where the corner
+  // squares predicted it -- see alignItems. Add to bubbleCenter when drawing.
+  offsets: { x: number; y: number }[];
   marks: ItemMark[];
   answers: string;
 };
@@ -464,23 +572,30 @@ function classifyAll(fills: number[][]): ItemMark[] {
   return fills.map((f, i) => classify(i + 1, f, threshold));
 }
 
-// How far darker than the paper above it a layout-code square must be.
-const LAYOUT_MARK_CONTRAST = 0.35;
+// How far darker than the paper beside it the first layout-code square must
+// be; the others count when at least half as dark as the first.
+const LAYOUT_MARK_CONTRAST = 0.3;
 
 // The sheet's column layout from its layout-code squares (one per column);
-// none = a sheet printed before the code existed.
+// none = a sheet printed before the code existed. Each square is looked for
+// within 1.5 mm of where it should be (a bowed sheet moves it) -- the gap to
+// the next square is 2 mm, so a search never reaches a neighbour.
 function layoutColumns(g: Gray, H: number[]): number {
   const m = LAYOUT_MARK;
   // Blank paper between the last bubble row and the squares.
   const paper = rectMean(g, H, m.x, m.y - 7, LAYOUT_MARK_SLOTS * m.pitch, 3);
-  let count = 0;
-  for (let i = 0; i < LAYOUT_MARK_SLOTS; i++) {
+  const contrasts = Array.from({ length: LAYOUT_MARK_SLOTS }, (_, i) => {
     const r = layoutMarkRect(i);
-    const mean = rectMean(g, H, r.x + 0.8, r.y + 0.8, r.size - 1.6, r.size - 1.6);
-    if ((paper - mean) / Math.max(1, paper) < LAYOUT_MARK_CONTRAST) break;
-    count++;
-  }
-  return count || LEGACY_COLUMNS;
+    let darkest = 255;
+    for (let dx = -1.5; dx <= 1.5; dx += 0.5)
+      for (let dy = -1.5; dy <= 1.5; dy += 0.5)
+        darkest = Math.min(darkest, rectMean(g, H, r.x + 0.8 + dx, r.y + 0.8 + dy, r.size - 1.6, r.size - 1.6));
+    return (paper - darkest) / Math.max(1, paper);
+  });
+  if (contrasts[0] < LAYOUT_MARK_CONTRAST) return LEGACY_COLUMNS;
+  let count = 1;
+  while (count < LAYOUT_MARK_SLOTS && contrasts[count] >= contrasts[0] * 0.5) count++;
+  return count;
 }
 
 // corners: from findSheetCorners (in this image's pixel coordinates).
@@ -494,13 +609,15 @@ export function readSheet(
   if (!best || best.contrast < MIN_BAR_CONTRAST) return null;
   const { H } = best;
   const columns = layoutColumns(g, H);
+  const offsets = alignItems(g, H, itemCount, optionCount, columns);
 
   const fills: number[][] = [];
   for (let item = 1; item <= itemCount; item++) {
     // Each bubble relative to the paper right beside it (shadow-proof), then
     // relative to the brightest bubble in the row (cancels the printed letter).
     const ratios = Array.from({ length: optionCount }, (_, o) => {
-      const c = bubbleCenter(item, o, columns);
+      const p = bubbleCenter(item, o, columns);
+      const c = { x: p.x + offsets[item - 1].x, y: p.y + offsets[item - 1].y };
       return bubbleMean(g, H, c) / paperBeside(g, H, c);
     });
     const paper = Math.max(...ratios, 1e-6);
@@ -511,17 +628,28 @@ export function readSheet(
     corners: best.corners,
     homography: H,
     columns,
+    offsets,
     marks,
     answers: marks.map((m) => m.answer).join(""),
   };
 }
 
+// Where a read found a bubble (sheet mm): the printed layout plus its row's
+// alignment offset. For drawing the reading back onto the photo.
+export function readBubbleCenter(read: SheetRead, item: number, option: number): Point {
+  const c = bubbleCenter(item, option, read.columns);
+  const o = read.offsets[item - 1] ?? { x: 0, y: 0 };
+  return { x: c.x + o.x, y: c.y + o.y };
+}
+
 // Combines reads of the same sheet from several video frames: each bubble's
 // darkness is averaged across frames before classifying, so one blurred or
 // glare-hit frame can't flip an answer. Geometry comes from the first read.
-export function mergeReads(reads: SheetRead[]): SheetRead {
-  if (reads.length === 1) return reads[0];
-  const [first] = reads;
+export function mergeReads(all: SheetRead[]): SheetRead {
+  const [first] = all;
+  // A frame that read a different column layout sampled other spots.
+  const reads = all.filter((r) => r.columns === first.columns);
+  if (reads.length === 1) return first;
   const fills = first.marks.map((m, i) =>
     m.fill.map((_, o) => reads.reduce((s, r) => s + (r.marks[i]?.fill[o] ?? 0), 0) / reads.length),
   );
