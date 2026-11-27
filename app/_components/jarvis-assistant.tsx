@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Attendance, ClassRow, GradingConfig, Student } from "@/lib/types";
 import { computeClassStats } from "@/lib/dashboard-insights";
@@ -28,6 +28,9 @@ const WELCOME_MESSAGE: ChatMessage = {
 export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
   const router = useRouter();
   const params = useParams<{ classSlug?: string }>();
+  // The answer-sheet scanner needs the whole phone screen: the floating
+  // button would sit on top of its camera controls.
+  const hidden = /^\/answer-sheets\/[^/]+\/[^/]+\/scan/.test(usePathname() ?? "");
   const currentClassSlug = params?.classSlug;
   // The URL only carries the class's slug now -- resolve it back to the real
   // uuid via the live class list, since analytics queries and voice-command
@@ -248,6 +251,8 @@ export default function JarvisAssistant({ classes }: { classes: ClassRow[] }) {
     },
     [inputText, runTypedCommand],
   );
+
+  if (hidden) return null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">

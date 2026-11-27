@@ -36,14 +36,20 @@ import AnswerKeyBubbles from "@/app/_components/answer-key-bubbles";
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "@/app/_components/table";
 
 // Live detection runs on a small copy of each video frame. Once a sheet has
-// been held steady for STABLE_FRAMES checks in a row (~1.2 s, long enough for
-// autofocus and the hand to settle) it is captured: a real still photo where
+// been held steady for STABLE_FRAMES checks (~1 s, long enough for autofocus
+// and the hand to settle) it is captured: a real still photo where
 // the browser can take one (ImageCapture, Android Chrome), otherwise
 // BURST_FRAMES full-resolution video frames whose readings are averaged --
 // a single video frame is softer than a photo and misses light shading.
 const DETECT_SIZE = 640;
 const DETECT_EVERY_MS = 150;
-const STABLE_FRAMES = 8;
+const STABLE_FRAMES = 6;
+// A handheld phone drifts a little between checks; up to this share of the
+// frame still counts as steady (the capture itself re-finds the corners).
+const STEADY_MOVE = 0.03;
+// Checks in a row that may miss the corners (glare, a blink of focus hunting)
+// before the steady count starts over.
+const MAX_MISSES = 2;
 const BURST_FRAMES = 3;
 const BURST_GAP_MS = 120;
 
@@ -133,6 +139,13 @@ export default function ScanAnswerSheets({
   const pausedRef = useRef(false);
   const lastCornersRef = useRef<Point[] | null>(null);
   const stableRef = useRef(0);
+  const missesRef = useRef(0);
+  // One reused canvas for detection: iOS Safari runs out of canvas memory
+  // (and detection stalls) when a new one is made for every check.
+  const workRef = useRef<HTMLCanvasElement | null>(null);
+  // Width / height of the camera picture, so the preview box keeps its shape
+  // and fits on a phone screen.
+  const [videoAspect, setVideoAspect] = useState(3 / 4);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const studentById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
@@ -180,7 +193,12 @@ export default function ScanAnswerSheets({
       window.setTimeout(() => resolve(v.readyState >= 2 && v.videoWidth > 0), 4000);
     });
     await v.play().catch(() => {});
-    return ready;
+    const ok = await ready;
+    const fit = () => v.videoWidth && v.videoHeight && setVideoAspect(v.videoWidth / v.videoHeight);
+    fit();
+    // Turning the phone swaps the picture's width and height.
+    v.onresize = fit;
+    return ok;
   }
 
   async function startCamera() {
@@ -210,6 +228,7 @@ export default function ScanAnswerSheets({
           pausedRef.current = false;
           lastCornersRef.current = null;
           stableRef.current = 0;
+          missesRef.current = 0;
           setStatus("Point the camera at a sheet");
           scheduleDetect();
           return;
@@ -248,9 +267,11 @@ export default function ScanAnswerSheets({
     const s = DETECT_SIZE / Math.max(v.videoWidth, v.videoHeight);
     const w = Math.round(v.videoWidth * s);
     const h = Math.round(v.videoHeight * s);
-    const work = document.createElement("canvas");
-    work.width = w;
-    work.height = h;
+    const work = (workRef.current ??= document.createElement("canvas"));
+    if (work.width !== w || work.height !== h) {
+      work.width = w;
+      work.height = h;
+    }
     const ctx = work.getContext("2d", { willReadFrequently: true })!;
     ctx.drawImage(v, 0, 0, w, h);
     const corners = findSheetCorners(rgbaToGray(ctx.getImageData(0, 0, w, h).data, w, h));
@@ -260,11 +281,15 @@ export default function ScanAnswerSheets({
     const o = overlay.getContext("2d")!;
     o.clearRect(0, 0, w, h);
     if (!corners) {
+      // One or two missed checks keep the progress; more start over.
+      if (lastCornersRef.current && ++missesRef.current <= MAX_MISSES) return scheduleDetect();
       stableRef.current = 0;
+      missesRef.current = 0;
       lastCornersRef.current = null;
       setStatus("Fit all 4 black corner squares inside the frame");
       return scheduleDetect();
     }
+    missesRef.current = 0;
     o.strokeStyle = "#22c55e";
     o.lineWidth = 3;
     o.beginPath();
@@ -274,7 +299,7 @@ export default function ScanAnswerSheets({
 
     const prev = lastCornersRef.current;
     const moved = prev ? Math.max(...corners.map((c, i) => Math.hypot(c.x - prev[i].x, c.y - prev[i].y))) : Infinity;
-    stableRef.current = moved < Math.max(w, h) * 0.015 ? stableRef.current + 1 : 0;
+    stableRef.current = moved < Math.max(w, h) * STEADY_MOVE ? stableRef.current + 1 : 0;
     lastCornersRef.current = corners;
     // Progress bar along the top while the sheet is held steady.
     const progress = Math.min(1, stableRef.current / STABLE_FRAMES);
@@ -519,6 +544,7 @@ export default function ScanAnswerSheets({
     setCapture(null);
     lastCornersRef.current = null;
     stableRef.current = 0;
+    missesRef.current = 0;
     pausedRef.current = false;
     setStatus("Point the camera at a sheet");
     if (streamRef.current) scheduleDetect();
@@ -747,8 +773,14 @@ export default function ScanAnswerSheets({
       {/* Stays mounted while reviewing so the camera stream survives. */}
       <div className={capture ? "hidden" : "flex flex-col gap-3"}>
         {/* Always mounted, so the stream has a <video> to attach to the moment it opens. */}
-        <div className={cameraOn ? "relative overflow-hidden rounded-[10px] bg-black" : "hidden"}>
-          <video ref={videoRef} autoPlay playsInline muted className="block h-auto w-full" />
+        {/* Keeps the camera's own shape but never taller than ~60% of the
+            screen, so on a phone the whole preview, its status line and the
+            buttons below all fit without scrolling. */}
+        <div
+          className={cameraOn ? "relative mx-auto w-full overflow-hidden rounded-[10px] bg-black" : "hidden"}
+          style={{ aspectRatio: videoAspect, maxWidth: `calc(60dvh * ${videoAspect})` }}
+        >
+          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
           <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
           <p className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-center text-sm text-white">
             {processing ? "Reading…" : status}
@@ -766,7 +798,7 @@ export default function ScanAnswerSheets({
           </div>
         )}
         {cameraError && <p className="text-sm text-danger">{cameraError}</p>}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={processing}>
             {processing ? "Reading…" : "Take a photo"}
           </Button>
