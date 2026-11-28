@@ -140,6 +140,12 @@ export default function ScanAnswerSheets({
   const lastCornersRef = useRef<Point[] | null>(null);
   const stableRef = useRef(0);
   const missesRef = useRef(0);
+  // The teacher is scanning with the live camera (not just photos). The
+  // stream is released while a capture is reviewed and reopened for the next
+  // sheet: a stream kept alive behind the hidden preview (iOS pauses it) or
+  // after a still photo (Android can leave the preview frozen or out of
+  // focus) barely detected the next sheet, while a fresh one always works.
+  const liveRef = useRef(false);
   // One reused canvas for detection: iOS Safari runs out of canvas memory
   // (and detection stalls) when a new one is made for every check.
   const workRef = useRef<HTMLCanvasElement | null>(null);
@@ -225,6 +231,7 @@ export default function ScanAnswerSheets({
             .getVideoTracks()[0]
             ?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] })
             .catch(() => {});
+          liveRef.current = true;
           pausedRef.current = false;
           lastCornersRef.current = null;
           stableRef.current = 0;
@@ -236,9 +243,11 @@ export default function ScanAnswerSheets({
         stopCamera();
         await wait(300);
       }
+      liveRef.current = false;
       setCameraOn(false);
       setCameraError("The camera didn't start. Tap “Start camera” again, or use “Take a photo”.");
     } catch (e) {
+      liveRef.current = false;
       stopCamera();
       setCameraOn(false);
       setCameraError(
@@ -505,6 +514,8 @@ export default function ScanAnswerSheets({
     out.getContext("2d")!.drawImage(canvas, 0, 0, out.width, out.height);
 
     playBeep();
+    // Release the camera while this paper is reviewed; resume() reopens it.
+    stopCamera();
     setCapture({
       answers: read.answers,
       marks: read.marks,
@@ -546,8 +557,13 @@ export default function ScanAnswerSheets({
     stableRef.current = 0;
     missesRef.current = 0;
     pausedRef.current = false;
-    setStatus("Point the camera at a sheet");
-    if (streamRef.current) scheduleDetect();
+    if (streamRef.current) {
+      setStatus("Point the camera at a sheet");
+      scheduleDetect();
+    } else if (liveRef.current) {
+      setStatus("Starting camera…");
+      void startCamera();
+    } else setStatus("Point the camera at a sheet");
   }
 
   function cycleAnswer(item: number) {
@@ -814,6 +830,7 @@ export default function ScanAnswerSheets({
             <Button
               variant="secondary"
               onClick={() => {
+                liveRef.current = false;
                 stopCamera();
                 setCameraOn(false);
               }}
